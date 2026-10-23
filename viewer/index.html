@@ -1,0 +1,491 @@
+<title>GRACE Water Storage</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an instrument panel. Month readout and controls on top, the map as the main surface,
+   the time series of the selected place under it, credits last. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #fcfdfd;
+  --ink: #0e1419;
+  --ink-2: #47525c;
+  --muted: #7b8690;
+  --rule: #dde2e7;
+  --accent: #2a78d6;        /* water: more water on the map, and interactive controls */
+  --loss: #e34948;          /* less water on the map */
+  --focus: #2a78d6;
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1114; --surface: #151a1e; --ink: #eef2f5; --ink-2: #b9c3cb; --muted: #7f8a94;
+    --rule: #262d33; --accent: #3987e5; --loss: #e66767; --focus: #6aa8f0; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1114; --surface: #151a1e; --ink: #eef2f5; --ink-2: #b9c3cb; --muted: #7f8a94;
+  --rule: #262d33; --accent: #3987e5; --loss: #e66767; --focus: #6aa8f0; color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+main { max-width: 1120px; margin: 0 auto; display: grid; gap: 18px; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+.lede { color: var(--ink-2); margin: 4px 0 0; max-width: 68ch; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.month { display: grid; gap: 0; min-width: 9.5ch; }
+.month .label { font-family: var(--font-display); font-weight: 600; font-size: 28px; line-height: 1; }
+.month .mission { font-family: var(--font-data); font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.slider { flex: 1 1 260px; display: grid; gap: 4px; min-width: 0; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.ticks { display: flex; justify-content: space-between; font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+button, select {
+  font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 6px; padding: 6px 12px; cursor: pointer;
+}
+button:hover, select:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.controls label { font-size: 13px; color: var(--ink-2); display: inline-flex; gap: 6px; align-items: center; }
+.mapwrap { position: relative; width: 100%; }
+canvas#map { width: 100%; display: block; touch-action: none; cursor: crosshair; border-radius: 6px; }
+canvas#map.globe { cursor: grab; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--ink-2); }
+.ramp { width: min(320px, 70vw); height: 12px; border-radius: 3px; border: 1px solid var(--rule);
+  background: linear-gradient(to right, rgba(227,73,72,1), rgba(227,73,72,0) 50%, rgba(42,120,214,0) 50%, rgba(42,120,214,1)), var(--surface); }
+.ramp-ticks { display: flex; justify-content: space-between; width: min(320px, 70vw); font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.readout { font-family: var(--font-data); font-size: 12px; color: var(--ink-2); min-height: 1.4em; }
+.places { display: flex; flex-wrap: wrap; gap: 6px; }
+.places button { font-size: 13px; padding: 4px 10px; border-radius: 999px; }
+.places button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin: 0; }
+.sub { color: var(--muted); font-size: 13px; margin: 0; }
+.chartwrap { position: relative; width: 100%; }
+svg#chart { width: 100%; display: block; overflow: visible; }
+svg#chart text { font-family: var(--font-data); font-size: 11px; fill: var(--muted); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px;
+  padding: 4px 8px; font-family: var(--font-data); font-size: 12px; color: var(--ink); white-space: nowrap; }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
+.tablewrap { max-height: 320px; overflow: auto; margin-top: 8px; }
+table { border-collapse: collapse; font-family: var(--font-data); font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 3px 12px; border-bottom: 1px solid var(--rule); }
+th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--surface); }
+footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; max-width: 90ch; }
+footer a { color: var(--ink-2); }
+.status { color: var(--ink-2); }
+@media (max-width: 560px) { h1 { font-size: 25px; } .month .label { font-size: 23px; } }
+</style>
+
+<main>
+  <header>
+    <h1>Where the water went: GRACE and GRACE-FO, 2002–2026</h1>
+    <p class="lede">Monthly change in water stored on and under the ground, from the gravity field measured by two pairs of satellites. Each map is the difference from the 2004–2009 average, in centimetres of equivalent water height.</p>
+  </header>
+
+  <section class="panel" aria-label="Map">
+    <div class="bar">
+      <div class="month" aria-live="polite"><span class="label" id="monthLabel">Loading…</span><span class="mission" id="missionLabel">&nbsp;</span></div>
+      <button id="play" type="button" aria-label="Play through the months">Play</button>
+      <div class="slider">
+        <input id="monthSlider" type="range" min="0" max="0" value="0" aria-label="Month">
+        <div class="ticks" id="sliderTicks"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Projection">
+        <button type="button" id="projMap" aria-pressed="true">Map</button>
+        <button type="button" id="projGlobe" aria-pressed="false">Globe</button>
+      </div>
+      <label for="scale">Colour limit
+        <select id="scale">
+          <option value="15">±15 cm</option>
+          <option value="30" selected>±30 cm</option>
+          <option value="60">±60 cm</option>
+          <option value="120">±120 cm</option>
+        </select>
+      </label>
+    </div>
+    <div class="mapwrap"><canvas id="map" tabindex="0" aria-label="Water storage map. Click a place to see its time series."></canvas></div>
+    <div class="legend">
+      <span>less water</span>
+      <div><div class="ramp" aria-hidden="true"></div><div class="ramp-ticks" id="rampTicks"></div></div>
+      <span>more water</span>
+    </div>
+    <div class="readout" id="readout">Hover over the map to read a value; click to chart that place.</div>
+  </section>
+
+  <section class="panel" aria-label="Time series">
+    <div>
+      <h2 id="chartTitle">Water storage at a place</h2>
+      <p class="sub" id="chartSub">Pick a place below or click the map.</p>
+    </div>
+    <div class="places" id="places"></div>
+    <div class="chartwrap" id="chartwrap"><svg id="chart" role="img" aria-labelledby="chartTitle"></svg><div class="tip" id="tip" hidden></div></div>
+    <details>
+      <summary>Show the numbers</summary>
+      <div class="tablewrap"><table><thead><tr><th>Month</th><th>Mission</th><th>Water height (cm)</th></tr></thead><tbody id="tbody"></tbody></table></div>
+    </details>
+  </section>
+
+  <footer>
+    <p class="status" id="status"></p>
+    <p id="processing"></p>
+    <p>Not removed: glacial isostatic adjustment, the slow rebound of the crust since the last ice age. It shows as a steady gain around Hudson Bay and Scandinavia. Values are smoothed over about 300 km, so a point reads a regional average.</p>
+    <p>Computed with the <code>geopotential</code>, <code>gravity-field</code> and <code>gravimetry</code> Rust crates. Coastlines: Natural Earth (public domain). Projection: Equal Earth.</p>
+  </footer>
+</main>
+
+<script>
+"use strict";
+// ---- Projections -------------------------------------------------------------------------
+const A1 = 1.340264, A2 = -0.081106, A3 = 0.000893, A4 = 0.003796, M = Math.sqrt(3) / 2;
+const RAD = Math.PI / 180;
+const EE = {
+  xMax: Math.PI / (M * A1),
+  yMax: (() => { const t = Math.PI / 3, t2 = t * t, t6 = t2 * t2 * t2; return t * (A1 + A2 * t2 + t6 * (A3 + A4 * t2)); })(),
+  forward(lon, lat) {
+    const t = Math.asin(M * Math.sin(lat)), t2 = t * t, t6 = t2 * t2 * t2;
+    return [lon * Math.cos(t) / (M * (A1 + 3 * A2 * t2 + t6 * (7 * A3 + 9 * A4 * t2))), t * (A1 + A2 * t2 + t6 * (A3 + A4 * t2))];
+  },
+  inverse(x, y) {
+    let t = y;
+    for (let k = 0; k < 8; k++) {
+      const t2 = t * t, t6 = t2 * t2 * t2;
+      t -= (t * (A1 + A2 * t2 + t6 * (A3 + A4 * t2)) - y) / (A1 + 3 * A2 * t2 + t6 * (7 * A3 + 9 * A4 * t2));
+    }
+    const t2 = t * t, t6 = t2 * t2 * t2, s = Math.sin(t) / M;
+    const lon = M * x * (A1 + 3 * A2 * t2 + t6 * (7 * A3 + 9 * A4 * t2)) / Math.cos(t);
+    return Math.abs(s) <= 1 && Math.abs(lon) <= Math.PI ? [lon, Math.asin(s)] : null;
+  },
+};
+// Orthographic globe centred on (lon0, lat0), unit radius.
+const GLOBE = {
+  forward(lon, lat, lon0, lat0) {
+    const cosc = Math.sin(lat0) * Math.sin(lat) + Math.cos(lat0) * Math.cos(lat) * Math.cos(lon - lon0);
+    const x = Math.cos(lat) * Math.sin(lon - lon0);
+    const y = Math.cos(lat0) * Math.sin(lat) - Math.sin(lat0) * Math.cos(lat) * Math.cos(lon - lon0);
+    return [x, y, cosc > 0];
+  },
+  inverse(x, y, lon0, lat0) {
+    const rho = Math.hypot(x, y);
+    if (rho > 1) return null;
+    if (rho === 0) return [lon0, lat0];
+    const c = Math.asin(rho), sc = Math.sin(c), cc = Math.cos(c);
+    const lat = Math.asin(cc * Math.sin(lat0) + y * sc * Math.cos(lat0) / rho);
+    const lon = lon0 + Math.atan2(x * sc, rho * Math.cos(lat0) * cc - y * Math.sin(lat0) * sc);
+    return [((lon + 3 * Math.PI) % (2 * Math.PI)) - Math.PI, lat];
+  },
+};
+
+// ---- State -------------------------------------------------------------------------------
+const PLACES = [
+  ["Southeast Greenland", 65, -41], ["Northern India", 28.5, 77], ["Lake Victoria", -1, 33],
+  ["Amazon, Manaus", -3.5, -61], ["California Central Valley", 37, -120], ["Caspian Sea", 42, 51],
+  ["Amundsen Sea, Antarctica", -76, -105], ["Hudson Bay (crustal rebound)", 60, -86],
+];
+const state = { month: 0, projection: "map", lon0: 10 * RAD, lat0: 25 * RAD, limit: 30, place: null, playing: null };
+let idx, grids, cells, coast, lut = null, W = 0, H = 0;
+
+const $ = (id) => document.getElementById(id);
+const canvas = $("map"), ctx = canvas.getContext("2d");
+
+function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function rgb(hex) { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+
+// Value (cm) at fractional grid position for a month; NaN outside.
+function sampleAt(month, fi, fj) {
+  const { nlat, nlon } = idx, base = month * cells;
+  const i0 = Math.floor(fi), j0 = Math.floor(fj) % nlon, i1 = Math.min(i0 + 1, nlat - 1), j1 = (j0 + 1) % nlon;
+  const u = fi - i0, v = fj - Math.floor(fj);
+  const g = (i, j) => grids[base + i * nlon + j];
+  return ((1 - u) * ((1 - v) * g(i0, j0) + v * g(i0, j1)) + u * ((1 - v) * g(i1, j0) + v * g(i1, j1))) / 10;
+}
+function gridPos(lon, lat) {
+  const fi = Math.min(Math.max((lat / RAD - idx.lat0) / idx.step, 0), idx.nlat - 1);
+  const fj = ((((lon / RAD - idx.lon0) % 360) + 360) % 360) / idx.step;
+  return [fi, fj];
+}
+
+// ---- Map ---------------------------------------------------------------------------------
+function frame() {
+  // Pixel ↔ projection coordinates for the current projection and canvas size.
+  if (state.projection === "map") {
+    const s = W / (2 * EE.xMax);
+    return { s, toPx: (x, y) => [W / 2 + x * s, H / 2 - y * s], fromPx: (px, py) => EE.inverse((px - W / 2) / s, (H / 2 - py) / s) };
+  }
+  const r = Math.min(W, H) / 2 - 2;
+  return { s: r, toPx: (x, y) => [W / 2 + x * r, H / 2 - y * r],
+    fromPx: (px, py) => GLOBE.inverse((px - W / 2) / r, (H / 2 - py) / r, state.lon0, state.lat0) };
+}
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cssW = canvas.parentElement.clientWidth;
+  const cssH = state.projection === "map" ? cssW * EE.yMax / EE.xMax : Math.min(cssW, 560);
+  canvas.style.height = cssH + "px";
+  W = Math.round(cssW * dpr); H = Math.round(cssH * dpr);
+  canvas.width = W; canvas.height = H;
+  lut = null;
+}
+function buildLut() {
+  const f = frame(), n = W * H;
+  lut = { fi: new Float32Array(n), fj: new Float32Array(n) };
+  for (let py = 0; py < H; py++) {
+    for (let px = 0; px < W; px++) {
+      const k = py * W + px, ll = f.fromPx(px + 0.5, py + 0.5);
+      if (!ll) { lut.fi[k] = NaN; continue; }
+      const [fi, fj] = gridPos(ll[0], ll[1]);
+      lut.fi[k] = fi; lut.fj[k] = fj;
+    }
+  }
+}
+function draw() {
+  if (!idx || !W) return;
+  if (!lut) buildLut();
+  const img = ctx.createImageData(W, H), d = img.data;
+  const surf = rgb(css("--surface")), wet = [42, 120, 214], dry = [227, 73, 72];
+  const lim = state.limit;
+  for (let k = 0, n = W * H; k < n; k++) {
+    const fi = lut.fi[k];
+    if (Number.isNaN(fi)) continue; // transparent: page background shows outside the globe
+    const t = Math.max(-1, Math.min(1, sampleAt(state.month, fi, lut.fj[k]) / lim));
+    const pole = t >= 0 ? wet : dry, a = Math.abs(t), o = k * 4;
+    d[o] = surf[0] + (pole[0] - surf[0]) * a; d[o + 1] = surf[1] + (pole[1] - surf[1]) * a;
+    d[o + 2] = surf[2] + (pole[2] - surf[2]) * a; d[o + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  drawLines();
+}
+function drawLines() {
+  const f = frame(), globe = state.projection === "globe";
+  const proj = (lon, lat) => {
+    if (!globe) { const [x, y] = EE.forward(lon * RAD, lat * RAD); return [...f.toPx(x, y), true]; }
+    const [x, y, vis] = GLOBE.forward(lon * RAD, lat * RAD, state.lon0, state.lat0);
+    return [...f.toPx(x, y), vis];
+  };
+  const dpr = W / canvas.clientWidth;
+  ctx.lineWidth = 0.8 * dpr; ctx.strokeStyle = css("--ink-2"); ctx.globalAlpha = 0.75;
+  ctx.beginPath();
+  for (const seg of coast) {
+    let prev = null;
+    for (const [lon, lat] of seg) {
+      const [x, y, vis] = proj(lon, lat);
+      if (vis && prev && prev.vis && Math.abs(prev.lon - lon) < 180) ctx.lineTo(x, y); else if (vis) ctx.moveTo(x, y);
+      prev = { lon, vis };
+    }
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1; ctx.strokeStyle = css("--rule"); ctx.lineWidth = 1 * dpr;
+  ctx.beginPath();
+  if (globe) ctx.arc(W / 2, H / 2, f.s, 0, 2 * Math.PI);
+  else for (const [k, lon] of [[0, -180], [1, 180]]) for (let i = 0; i <= 90; i++) {
+    const lat = k === 0 ? -90 + 2 * i : 90 - 2 * i, [x, y] = proj(lon, lat);
+    if (k === 0 && i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.stroke();
+  if (state.place) {
+    const [x, y, vis] = proj(state.place.lon, state.place.lat);
+    if (vis) {
+      ctx.beginPath(); ctx.arc(x, y, 6 * dpr, 0, 2 * Math.PI);
+      ctx.fillStyle = css("--ink"); ctx.fill();
+      ctx.lineWidth = 2 * dpr; ctx.strokeStyle = css("--surface"); ctx.stroke();
+    }
+  }
+}
+function lonLatAt(evt) {
+  const r = canvas.getBoundingClientRect(), dpr = W / r.width;
+  const ll = frame().fromPx((evt.clientX - r.left) * dpr, (evt.clientY - r.top) * dpr);
+  return ll ? [ll[0] / RAD, ll[1] / RAD] : null;
+}
+const fmtLat = (lat) => `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
+const fmtLon = (lon) => `${Math.abs(lon).toFixed(1)}°${lon >= 0 ? "E" : "W"}`;
+const fmtCm = (v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)} cm`;
+
+// ---- Time series -------------------------------------------------------------------------
+function series(place) {
+  const [fi, fj] = gridPos(place.lon * RAD, place.lat * RAD);
+  return idx.months.map((m, k) => ({ ...m, v: sampleAt(k, fi, fj) }));
+}
+function drawChart() {
+  const svg = $("chart"), place = state.place;
+  if (!place) { svg.innerHTML = ""; svg.setAttribute("viewBox", "0 0 10 1"); return; }
+  const data = series(place);
+  const w = Math.max(320, $("chartwrap").clientWidth), h = w < 560 ? 220 : 260;
+  const L = 46, R = 12, T = 12, B = 26;
+  const t0 = data[0].t, t1 = data[data.length - 1].t;
+  let lo = Math.min(0, ...data.map((d) => d.v)), hi = Math.max(0, ...data.map((d) => d.v));
+  const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+  const x = (t) => L + (w - L - R) * (t - t0) / (t1 - t0), y = (v) => T + (h - T - B) * (hi - v) / (hi - lo);
+  const step = niceStep((hi - lo) / 5);
+  let s = "";
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+    s += `<line x1="${L}" x2="${w - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)" stroke-width="1"/>`;
+    s += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  s += `<line x1="${L}" x2="${w - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-width="1"/>`;
+  for (let yr = Math.ceil(t0 / 4) * 4; yr <= t1; yr += 4) s += `<text x="${x(yr)}" y="${h - 6}" text-anchor="middle">${yr}</text>`;
+  // Shade the long gap between the two missions, and break the line at any gap.
+  let d = "", gap = null;
+  data.forEach((p, k) => {
+    const brk = k === 0 || p.t - data[k - 1].t > 0.2;
+    if (k > 0 && p.t - data[k - 1].t > 0.5 && (!gap || p.t - data[k - 1].t > gap[1] - gap[0])) gap = [data[k - 1].t, p.t];
+    d += `${brk ? "M" : "L"}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`;
+  });
+  if (gap) {
+    s += `<rect x="${x(gap[0])}" y="${T}" width="${x(gap[1]) - x(gap[0])}" height="${h - T - B}" fill="var(--rule)" opacity="0.6"/>`;
+    s += `<text x="${(x(gap[0]) + x(gap[1])) / 2}" y="${T + 12}" text-anchor="middle">gap</text>`;
+  }
+  s += `<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const cur = data[state.month];
+  s += `<circle cx="${x(cur.t)}" cy="${y(cur.v)}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`;
+  s += `<line id="cross" x1="0" x2="0" y1="${T}" y2="${h - B}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>`;
+  s += `<circle id="hoverDot" r="4" fill="var(--ink)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>`;
+  s += `<rect id="hit" x="${L}" y="${T}" width="${w - L - R}" height="${h - T - B}" fill="transparent"/>`;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.innerHTML = s;
+  const tip = $("tip"), cross = $("cross"), dot = $("hoverDot");
+  const hit = $("hit");
+  let hovered = state.month;
+  const show = (evt) => {
+    const r = svg.getBoundingClientRect(), mx = (evt.clientX - r.left) * w / r.width;
+    const t = t0 + (mx - L) / (w - L - R) * (t1 - t0);
+    let best = 0; data.forEach((p, k) => { if (Math.abs(p.t - t) < Math.abs(data[best].t - t)) best = k; });
+    hovered = best;
+    const p = data[best];
+    cross.setAttribute("x1", x(p.t)); cross.setAttribute("x2", x(p.t)); cross.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", x(p.t)); dot.setAttribute("cy", y(p.v)); dot.setAttribute("visibility", "visible");
+    tip.hidden = false; tip.textContent = `${p.label} · ${fmtCm(p.v)}`;
+    const px = x(p.t) * r.width / w, tw = tip.offsetWidth;
+    tip.style.left = Math.min(Math.max(px - tw / 2, 0), r.width - tw) + "px"; tip.style.top = "-6px";
+  };
+  hit.addEventListener("pointermove", show);
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); });
+  hit.addEventListener("click", (evt) => { show(evt); setMonth(hovered); });
+  $("chartTitle").textContent = `Water storage at ${place.name || `${fmtLat(place.lat)}, ${fmtLon(place.lon)}`}`;
+  const first = data.slice(0, 12).reduce((a, p) => a + p.v, 0) / 12, last = data.slice(-12).reduce((a, p) => a + p.v, 0) / 12;
+  $("chartSub").textContent = `${fmtLat(place.lat)}, ${fmtLon(place.lon)} · cm of water relative to 2004–2009 · first-year mean ${fmtCm(first)}, last-year mean ${fmtCm(last)}`;
+  $("tbody").innerHTML = data.map((p) => `<tr><td>${p.label}</td><td>${p.mission}</td><td>${p.v.toFixed(1)}</td></tr>`).join("");
+}
+function niceStep(raw) {
+  const p = 10 ** Math.floor(Math.log10(raw)), f = raw / p;
+  return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p;
+}
+
+// ---- Controls ----------------------------------------------------------------------------
+function setMonth(k) {
+  state.month = Math.max(0, Math.min(idx.months.length - 1, k));
+  const m = idx.months[state.month];
+  const [y, mo] = m.label.split("-");
+  $("monthLabel").textContent = new Date(Date.UTC(+y, +mo - 1, 15)).toLocaleDateString("en", { month: "long", year: "numeric", timeZone: "UTC" });
+  $("missionLabel").textContent = m.mission;
+  $("monthSlider").value = state.month;
+  draw(); drawChart();
+}
+function setPlace(lat, lon, name) {
+  state.place = { lat, lon, name };
+  document.querySelectorAll("#places button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.name === name)));
+  if (state.projection === "globe") { state.lon0 = lon * RAD; state.lat0 = Math.max(-80, Math.min(80, lat)) * RAD; lut = null; }
+  draw(); drawChart();
+}
+function setProjection(p) {
+  state.projection = p;
+  $("projMap").setAttribute("aria-pressed", String(p === "map"));
+  $("projGlobe").setAttribute("aria-pressed", String(p === "globe"));
+  canvas.classList.toggle("globe", p === "globe");
+  resize(); draw();
+}
+function setRampTicks() {
+  const l = state.limit;
+  $("rampTicks").innerHTML = [`≤ −${l}`, `−${l / 2}`, "0", `+${l / 2}`, `≥ +${l} cm`].map((t) => `<span>${t}</span>`).join("");
+}
+
+function wire() {
+  $("monthSlider").max = idx.months.length - 1;
+  $("monthSlider").addEventListener("input", (e) => setMonth(+e.target.value));
+  // The slider moves by month index, so label the months at its two ends and its centre.
+  const n = idx.months.length;
+  $("sliderTicks").innerHTML = [0, Math.floor((n - 1) / 2), n - 1].map((k) => `<span>${idx.months[k].label.slice(0, 4)}</span>`).join("");
+  $("play").addEventListener("click", () => {
+    if (state.playing) { clearInterval(state.playing); state.playing = null; $("play").textContent = "Play"; return; }
+    if (state.month === idx.months.length - 1) setMonth(0);
+    $("play").textContent = "Pause";
+    state.playing = setInterval(() => {
+      if (state.month >= idx.months.length - 1) { $("play").click(); return; }
+      setMonth(state.month + 1);
+    }, 220);
+  });
+  $("projMap").addEventListener("click", () => setProjection("map"));
+  $("projGlobe").addEventListener("click", () => setProjection("globe"));
+  $("scale").addEventListener("change", (e) => { state.limit = +e.target.value; setRampTicks(); draw(); });
+  $("places").innerHTML = PLACES.map(([n]) => `<button type="button" data-name="${n}" aria-pressed="false">${n}</button>`).join("");
+  $("places").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const [n, lat, lon] = PLACES.find((p) => p[0] === b.dataset.name);
+    setPlace(lat, lon, n);
+  });
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, lon0: state.lon0, lat0: state.lat0, moved: false }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointermove", (e) => {
+    if (drag && state.projection === "globe") {
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (Math.hypot(dx, dy) > 3) drag.moved = true;
+      if (drag.moved) {
+        const k = 2 / canvas.clientHeight;
+        state.lon0 = drag.lon0 - dx * k; state.lat0 = Math.max(-1.5, Math.min(1.5, drag.lat0 + dy * k));
+        lut = null; draw(); return;
+      }
+    }
+    const ll = lonLatAt(e);
+    if (!ll) { $("readout").textContent = "Outside the globe."; return; }
+    const [fi, fj] = gridPos(ll[0] * RAD, ll[1] * RAD);
+    $("readout").textContent = `${fmtLat(ll[1])}, ${fmtLon(ll[0])}: ${fmtCm(sampleAt(state.month, fi, fj))} in ${idx.months[state.month].label}`;
+  });
+  canvas.addEventListener("pointerup", (e) => {
+    const moved = drag && drag.moved; drag = null;
+    if (moved) return;
+    const ll = lonLatAt(e); if (ll) setPlace(+ll[1].toFixed(1), +ll[0].toFixed(1), null);
+  });
+  canvas.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") setMonth(state.month + 1);
+    if (e.key === "ArrowLeft") setMonth(state.month - 1);
+  });
+  let pending = null;
+  window.addEventListener("resize", () => { clearTimeout(pending); pending = setTimeout(() => { resize(); draw(); drawChart(); }, 120); });
+  const rerender = () => { draw(); drawChart(); };
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", rerender);
+  new MutationObserver(rerender).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+}
+
+async function start() {
+  try {
+    const [index, buf, coastText] = await Promise.all([
+      fetch("data/tws_index.json").then((r) => { if (!r.ok) throw new Error("index " + r.status); return r.json(); }),
+      fetch("data/tws_grids.bin").then((r) => { if (!r.ok) throw new Error("grids " + r.status); return r.arrayBuffer(); }),
+      fetch("data/coast.txt").then((r) => { if (!r.ok) throw new Error("coastlines " + r.status); return r.text(); }),
+    ]);
+    idx = index;
+    cells = idx.nlat * idx.nlon;
+    grids = new Int16Array(buf); // little-endian, as every browser platform is
+    if (grids.length !== cells * idx.months.length) throw new Error("grid file does not match its index");
+    coast = coastText.split("\n\n").map((seg) => seg.split("\n").filter((l) => l && !l.startsWith("#")).map((l) => l.split(" ").map(Number))).filter((s) => s.length > 1);
+    $("processing").textContent = `Data: ${idx.source}. Processing: ${idx.processing}.`;
+    $("status").textContent = `${idx.months.length} months from ${idx.months[0].label} to ${idx.months[idx.months.length - 1].label}.`;
+    wire(); setRampTicks(); resize();
+    setPlace(PLACES[0][1], PLACES[0][2], PLACES[0][0]);
+    setMonth(idx.months.length - 1);
+  } catch (err) {
+    $("monthLabel").textContent = "Data did not load";
+    $("status").textContent = `The monthly grids could not be loaded (${err.message}). Reload the page to try again.`;
+  }
+}
+start();
+</script>

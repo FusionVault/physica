@@ -46,6 +46,18 @@ pub fn esc(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
 }
 
+/// An RGBA raster as a `data:image/png;base64,…` URI.
+pub fn png_data_uri(rgba: &[u8], width: u32, height: u32) -> Result<String, png::EncodingError> {
+    let mut bytes = Vec::new();
+    {
+        let mut enc = png::Encoder::new(&mut bytes, width, height);
+        enc.set_color(png::ColorType::Rgba);
+        enc.set_depth(png::BitDepth::Eight);
+        enc.write_header()?.write_image_data(rgba)?;
+    }
+    Ok(format!("data:image/png;base64,{}", base64(&bytes)))
+}
+
 /// Standard base64 (RFC 4648) for embedding a PNG as a data URI.
 pub fn base64(bytes: &[u8]) -> String {
     const A: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

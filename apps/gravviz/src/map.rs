@@ -3,7 +3,7 @@
 
 use std::fmt::Write;
 
-use crate::svg::{base64, esc, open};
+use crate::svg::{esc, open, png_data_uri};
 
 const A1: f64 = 1.340264;
 const A2: f64 = -0.081106;
@@ -102,13 +102,7 @@ pub fn render(grid: &Grid, limit: f64, coast: &[Vec<(f64, f64)>], text: &MapText
             }
         }
     }
-    let mut png_bytes = Vec::new();
-    {
-        let mut enc = png::Encoder::new(&mut png_bytes, pw, ph);
-        enc.set_color(png::ColorType::Rgba);
-        enc.set_depth(png::BitDepth::Eight);
-        enc.write_header()?.write_image_data(&rgba)?;
-    }
+    let raster = png_data_uri(&rgba, pw, ph)?;
 
     let colorbar_y = map_y + map_h + 34.0;
     let mut s = open(w, colorbar_y + 96.0, text.title);
@@ -116,7 +110,7 @@ pub fn render(grid: &Grid, limit: f64, coast: &[Vec<(f64, f64)>], text: &MapText
     for (i, line) in text.subtitle.iter().enumerate() {
         let _ = writeln!(s, r#"<text x="{map_x}" y="{}" class="subtitle">{}</text>"#, 54.0 + 18.0 * i as f64, esc(line));
     }
-    let _ = writeln!(s, r#"<image x="{map_x}" y="{map_y}" width="{map_w}" height="{map_h}" href="data:image/png;base64,{}"/>"#, base64(&png_bytes));
+    let _ = writeln!(s, r#"<image x="{map_x}" y="{map_y}" width="{map_w}" height="{map_h}" href="{raster}"/>"#);
 
     // Coastlines, split where a segment crosses the antimeridian.
     let mut d = String::new();
