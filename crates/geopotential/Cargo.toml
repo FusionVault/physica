@@ -1,6 +1,6 @@
 [package]
 name = "geopotential"
-version = "0.1.0"
+version = "0.1.1"
 description = "Spherical-harmonic gravity fields: stable normalized Legendre functions to degree 2700, potential and gradient synthesis, grids of geoid/gravity/water height, degree spectra, tide systems and ICGEM time-variable terms."
 keywords = ["geodesy", "gravity", "spherical-harmonics", "geoid", "grace"]
 categories = ["science::geo", "mathematics"]
@@ -9,6 +9,16 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+# Serialize/Deserialize for Coefficients and TideSystem (deserialization checks array lengths).
+serde = ["dep:serde"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lints]
 workspace = true

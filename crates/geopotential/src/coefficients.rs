@@ -3,6 +3,7 @@ use crate::legendre::idx;
 
 /// How the permanent tide is treated in `C̄20`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TideSystem {
     /// No permanent tide, direct or indirect (the "conventional tide-free" system).
     TideFree,
@@ -37,6 +38,7 @@ impl TideSystem {
 /// The same type holds a static model, one GRACE month, a difference of months, or formal
 /// errors (store `σC, σS` as the coefficients and take [`degree_amplitudes`](Self::degree_amplitudes)).
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(try_from = "RawCoefficients"))]
 pub struct Coefficients {
     /// Geocentric gravitational constant `GM`, m³/s².
     pub gm: f64,
@@ -148,6 +150,31 @@ impl Coefficients {
     }
 }
 
+/// Deserialized form of [`Coefficients`], checked before use: the arrays must match the degree.
+#[cfg(feature = "serde")]
+#[derive(serde::Deserialize)]
+struct RawCoefficients {
+    gm: f64,
+    radius: f64,
+    tide_system: TideSystem,
+    nmax: usize,
+    c: Vec<f64>,
+    s: Vec<f64>,
+}
+
+#[cfg(feature = "serde")]
+impl TryFrom<RawCoefficients> for Coefficients {
+    type Error = String;
+
+    fn try_from(r: RawCoefficients) -> Result<Self, String> {
+        let len = r.nmax.checked_add(1).and_then(|a| a.checked_mul(r.nmax + 2)).map(|v| v / 2);
+        if len != Some(r.c.len()) || r.c.len() != r.s.len() {
+            return Err(format!("coefficient arrays of length {}/{} do not match degree {}", r.c.len(), r.s.len(), r.nmax));
+        }
+        Ok(Coefficients { gm: r.gm, radius: r.radius, tide_system: r.tide_system, nmax: r.nmax, c: r.c, s: r.s })
+    }
+}
+
 /// What a time-variable ICGEM record contributes to a coefficient at time `t`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TermKind {
@@ -239,6 +266,15 @@ mod tests {
         let mut unknown = zt.clone();
         unknown.tide_system = TideSystem::Unknown;
         assert!(unknown.to_tide_system(TideSystem::TideFree).is_none());
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn deserialization_checks_array_lengths() {
+        let raw = |nmax, len| RawCoefficients { gm: 1.0, radius: 1.0, tide_system: TideSystem::Unknown, nmax, c: vec![0.0; len], s: vec![0.0; len] };
+        assert!(Coefficients::try_from(raw(2, 6)).is_ok());
+        assert!(Coefficients::try_from(raw(2, 5)).is_err());
+        assert!(Coefficients::try_from(raw(usize::MAX, 0)).is_err());
     }
 
     #[test]

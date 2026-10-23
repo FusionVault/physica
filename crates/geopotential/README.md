@@ -1,6 +1,6 @@
 # geopotential
 
-Spherical-harmonic gravity fields in pure Rust, with no dependencies. It is the engine behind
+Spherical-harmonic gravity fields in pure Rust, with no required dependencies (optional `serde`). It is the engine behind
 geoid, gravity and GRACE water-storage maps, and behind error spectra for simulated satellite
 missions.
 
