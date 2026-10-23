@@ -11,13 +11,14 @@ use crate::svg::{esc, open, pow10};
 
 const NMAX: usize = 40;
 const DAYS: f64 = 31.0;
-const DT: f64 = 30.0;
+/// 2¹⁶ samples over the month (40.9 s; Nyquist ≈ degree 69), so noise whitening is exact.
+const DT: f64 = DAYS * 86_400.0 / 65_536.0;
 
 struct Curve {
     name: String,
     class: &'static str,
     mm: Vec<f64>,
-    /// RMS of (actual error / formal error) over all coefficients: ~1 when the loop is consistent.
+    /// χ²/K of the errors against the formal covariance: 1 ± √(2/K) when the loop is consistent.
     consistency: Option<f64>,
 }
 
@@ -42,19 +43,8 @@ pub fn figure(reference: Option<(&Coefficients, &str)>) -> (String, String) {
         let t0 = std::time::Instant::now();
         let setup = Setup { pair, gm, radius, nmax: NMAX, duration: DAYS * 86_400.0, dt: DT, seed: 100 + i as u64 };
         let sol = simulate(&setup, move |f| pair_noise(acc, rng, f), None);
-        let (mut sum, mut count) = (0.0, 0.0);
-        for n in 2..=NMAX {
-            for m in 0..=n {
-                sum += (sol.errors.c(n, m) / sol.formal.c(n, m)).powi(2);
-                count += 1.0;
-                if m > 0 {
-                    sum += (sol.errors.s(n, m) / sol.formal.s(n, m)).powi(2);
-                    count += 1.0;
-                }
-            }
-        }
-        let consistency = (sum / count).sqrt();
-        eprintln!("{name}: {:.0} s, RMS(error/formal) = {consistency:.2}", t0.elapsed().as_secs_f64());
+        let consistency = sol.chi2_per_dof;
+        eprintln!("{name}: {:.0} s, chi2/K = {consistency:.3}", t0.elapsed().as_secs_f64());
         curves.push(Curve { name: name.into(), class, mm: ewh_mm(&sol.errors), consistency: Some(consistency) });
     }
     if let Some((sigma, label)) = reference {
@@ -73,7 +63,7 @@ pub fn figure(reference: Option<(&Coefficients, &str)>) -> (String, String) {
         s,
         r#"<text x="{left}" y="32" class="title">Closed-loop errors of GRACE-type mission classes</text>
 <text x="{left}" y="54" class="subtitle">Error per degree, mm of equivalent water height, of one month recovered from simulated noise only (single pair, 89°, 463 km, 200 km apart,</text>
-<text x="{left}" y="72" class="subtitle">30 s sampling, degree {NMAX}, whitened least squares). Compare Zingerle et al. (2024), Fig. 2a; time-variable gravity and aliasing are not simulated.</text>
+<text x="{left}" y="72" class="subtitle">41 s sampling, degree {NMAX}, whitened least squares). Compare Zingerle et al. (2024), Fig. 2a; time-variable gravity and aliasing are not simulated.</text>
 "#
     );
     for (i, c) in curves.iter().enumerate() {
@@ -94,10 +84,10 @@ pub fn figure(reference: Option<(&Coefficients, &str)>) -> (String, String) {
         let d: String = (2..=NMAX).map(|n| format!("{}{:.1},{:.1}", if n == 2 { 'M' } else { 'L' }, x(n as f64), y(c.mm[n]))).collect();
         let _ = writeln!(s, r#"<path d="{d}" class="line {}"><title>{}</title></path>"#, c.class, esc(&c.name));
     }
-    let consist: Vec<String> = curves.iter().filter_map(|c| c.consistency.map(|r| format!("{:.2}", r))).collect();
+    let consist: Vec<String> = curves.iter().filter_map(|c| c.consistency.map(|r| format!("{r:.2}"))).collect();
     let _ = write!(
         s,
-        r#"<text x="{left}" y="{}" class="subtitle">Actual errors over formal errors, RMS per class: {} (1 means the loop is self-consistent).</text>
+        r#"<text x="{left}" y="{}" class="subtitle">Consistency of actual and formal errors, χ²/K per class: {} (expected 1 ± 0.03).</text>
 </svg>
 "#,
         bottom + 66.0,

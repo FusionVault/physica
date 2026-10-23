@@ -83,6 +83,9 @@ pub struct Solution {
     pub errors: Coefficients,
     /// Formal standard deviations from the whitened normal equations.
     pub formal: Coefficients,
+    /// `eᵀ(N/σ²)e / K` for the error vector `e` of all `K` unknowns: χ²/K, which is 1 ± √(2/K) when
+    /// the noise model and its weighting are consistent, however correlated the errors are.
+    pub chi2_per_dof: f64,
 }
 
 /// One simulated solution's settings.
@@ -106,6 +109,12 @@ pub struct Setup {
 
 /// Simulate observations with noise of ASD `asd` (m s⁻² Hz⁻¹ᐟ²), add the signal of `truth` (if
 /// any), and estimate degrees 2..=`nmax`.
+///
+/// Noise is coloured and whitened with the same FFT filter. With a power-of-two number of samples
+/// (`duration / dt`) the two are exact inverses, i.e. the noise covariance is taken as circulant,
+/// and the formal errors match the actual ones. Otherwise the series is zero-padded, and very red
+/// noise (e.g. MicroSTAR below 1 mHz) is whitened only approximately: actual errors then exceed
+/// the formal ones.
 ///
 /// Memory is `unknowns × samples` f64 values (about 1.2 GB for degree 40, one month at 30 s).
 pub fn simulate(setup: &Setup, asd: impl Fn(f64) -> f64 + Copy, truth: Option<&Coefficients>) -> Solution {
@@ -156,9 +165,12 @@ pub fn simulate(setup: &Setup, asd: impl Fn(f64) -> f64 + Copy, truth: Option<&C
     let s0 = (1.0 / (2.0 * dt)).sqrt();
     let mut errors = Coefficients::zeros(gm, radius, nmax);
     let mut formal = Coefficients::zeros(gm, radius, nmax);
+    let truth_of = |n: usize, m: usize, sine: bool| truth.filter(|tr| n <= tr.max_degree()).map_or(0.0, |tr| if sine { tr.s(n, m) } else { tr.c(n, m) });
+    let e: Vec<f64> = cols.iter().zip(&x).map(|(&(n, m, sine), xi)| xi - truth_of(n, m, sine)).collect();
+    // eᵀNe = |Lᵀe|².
+    let chi2: f64 = (0..k).map(|j| (j..k).map(|i| nm[i * k + j] * e[i]).sum::<f64>().powi(2)).sum::<f64>() / (s0 * s0);
     for (i, &(n, m, sine)) in cols.iter().enumerate() {
-        let tv = truth.filter(|tr| n <= tr.max_degree()).map_or(0.0, |tr| if sine { tr.s(n, m) } else { tr.c(n, m) });
-        let (e, f) = (x[i] - tv, s0 * inv_diag[i].sqrt());
+        let (e, f) = (e[i], s0 * inv_diag[i].sqrt());
         let (ec, es, fc, fs) = (errors.c(n, m), errors.s(n, m), formal.c(n, m), formal.s(n, m));
         if sine {
             errors.set(n, m, ec, e);
@@ -168,7 +180,7 @@ pub fn simulate(setup: &Setup, asd: impl Fn(f64) -> f64 + Copy, truth: Option<&C
             formal.set(n, m, f, fs);
         }
     }
-    Solution { errors, formal }
+    Solution { errors, formal, chi2_per_dof: chi2 / k as f64 }
 }
 
 /// In-place Cholesky of a symmetric positive-definite matrix stored in the lower triangle.
@@ -208,7 +220,7 @@ fn cholesky_solve(l: &[f64], n: usize, b: &[f64]) -> Vec<f64> {
     z
 }
 
-/// Diagonal of N⁻¹ = L⁻ᵀL⁻¹: the squared column norms of L⁻¹.
+/// Diagonal of N⁻¹ = L⁻ᵀL⁻¹: the squared norms of the columns of L⁻¹.
 fn cholesky_inverse_diagonal(l: &[f64], n: usize) -> Vec<f64> {
     let mut diag = vec![0.0; n];
     let mut col = vec![0.0; n];
@@ -223,9 +235,8 @@ fn cholesky_inverse_diagonal(l: &[f64], n: usize) -> Vec<f64> {
             }
             col[i] = s / l[i * n + i];
         }
-        for (i, c) in col.iter().enumerate().skip(j) {
-            diag[i] += c * c;
-        }
+        // Column j of L⁻¹; (N⁻¹)_jj is its squared norm.
+        diag[j] = col[j..].iter().map(|c| c * c).sum();
     }
     diag
 }
@@ -290,6 +301,20 @@ mod tests {
         let sol = simulate(&setup, |_| 1e-16, Some(&truth));
         let worst = (2..=8).flat_map(|n| (0..=n).map(move |m| (n, m))).map(|(n, m)| sol.errors.c(n, m).abs().max(sol.errors.s(n, m).abs())).fold(0.0, f64::max);
         assert!(worst < 1e-12, "worst error {worst:e}");
+    }
+
+    /// MicroSTAR's red noise (∝ 1/f² below 1 mHz) over a power-of-two sample count: whitening is
+    /// exact, so the actual errors match the formal ones.
+    #[test]
+    fn red_noise_is_weighted_consistently() {
+        let asd = |f: f64| crate::Accelerometer::MicroStar.asd(f) * 1e3;
+        let dt = 4.0 * 86_400.0 / 8192.0;
+        // χ²/K over 8 seeds × 117 unknowns: 1 ± 0.046 (1σ) when the weighting is consistent.
+        let mean: f64 = (1..=8).map(|seed| {
+            let setup = Setup { pair: GRACE, gm: GM, radius: R, nmax: 10, duration: 4.0 * 86_400.0, dt, seed };
+            simulate(&setup, asd, None).chi2_per_dof
+        }).sum::<f64>() / 8.0;
+        assert!((mean - 1.0).abs() < 0.15, "chi2/K = {mean}");
     }
 
     #[test]

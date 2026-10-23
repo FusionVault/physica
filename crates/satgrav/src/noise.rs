@@ -80,7 +80,12 @@ pub fn whiten(x: &mut [f64], dt: f64, asd: impl Fn(f64) -> f64) {
 
 /// Standard normal samples (xorshift64* and Box–Muller).
 fn gaussian(n: usize, seed: u64) -> Vec<f64> {
-    let mut s = seed.max(1);
+    // xorshift is linear over GF(2), so nearby seeds give dependent streams (seed 3 = seed 1 ⊕
+    // seed 2): scramble the seed with SplitMix64 first.
+    let mut z = seed.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    let mut s = (z ^ (z >> 31)).max(1);
     let mut uniform = move || {
         s ^= s >> 12;
         s ^= s << 25;

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 630" width="960" height="630" role="img" aria-label="Closed-loop errors of GRACE-type mission classes">
+<title>Closed-loop errors of GRACE-type mission classes</title>
+<style>
+svg { color-scheme: light; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781; --grid: #e1e0d9; --axis: #c3c2b7; --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; }
+@media (prefers-color-scheme: dark) { svg:where(:not([data-theme="light"])) { color-scheme: dark; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; } }
+svg[data-theme="dark"] { color-scheme: dark; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; }
+text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--ink2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.title { fill: var(--ink); font-size: 18px; font-weight: 600; font-variant-numeric: normal; }
+.subtitle { font-size: 13px; font-variant-numeric: normal; }
+.panel { fill: var(--ink); font-size: 14px; font-weight: 600; }
+.tick { fill: var(--muted); }
+.grid { stroke: var(--grid); stroke-width: 1; }
+.axis { stroke: var(--axis); stroke-width: 1; }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ink { stroke: var(--ink); } .ink2 { stroke: var(--ink2); } .muted { stroke: var(--muted); }
+.s1 { stroke: var(--s1); } .s2 { stroke: var(--s2); } .s3 { stroke: var(--s3); } .s4 { stroke: var(--s4); }
+.s5 { stroke: var(--s5); } .s6 { stroke: var(--s6); } .s7 { stroke: var(--s7); }
+</style>
+<rect width="960" height="630" fill="var(--surface)"/>
+<text x="92" y="32" class="title">Closed-loop errors of GRACE-type mission classes</text>
+<text x="92" y="54" class="subtitle">Error per degree, mm of equivalent water height, of one month recovered from simulated noise only (single pair, 89°, 463 km, 200 km apart,</text>
+<text x="92" y="72" class="subtitle">30 s sampling, degree 40, whitened least squares). Compare Zingerle et al. (2024), Fig. 2a; time-variable gravity and aliasing are not simulated.</text>
+<line x1="92" y1="98" x2="108" y2="98" class="line ink"/><text x="114" y="102">GRACE-FO class</text>
+<line x1="522" y1="98" x2="538" y2="98" class="line s1"/><text x="544" y="102">NGGM class</text>
+<line x1="92" y1="118" x2="108" y2="118" class="line s2"/><text x="114" y="122">CAI11 class</text>
+<line x1="522" y1="118" x2="538" y2="118" class="line s3"/><text x="544" y="122">CAI12 class</text>
+<line x1="92" y1="138" x2="108" y2="138" class="line muted"/><text x="114" y="142">Real GRACE-FO month: COST-G July 2026, calibrated errors</text>
+<line x1="92" y1="524.0" x2="936" y2="524.0" class="grid"/><text x="84.0" y="528.0" class="tick" text-anchor="end">10⁻⁴ mm</text>
+<line x1="92" y1="452.0" x2="936" y2="452.0" class="grid"/><text x="84.0" y="456.0" class="tick" text-anchor="end">10⁻³ mm</text>
+<line x1="92" y1="380.0" x2="936" y2="380.0" class="grid"/><text x="84.0" y="384.0" class="tick" text-anchor="end">10⁻² mm</text>
+<line x1="92" y1="308.0" x2="936" y2="308.0" class="grid"/><text x="84.0" y="312.0" class="tick" text-anchor="end">10⁻¹ mm</text>
+<line x1="92" y1="236.0" x2="936" y2="236.0" class="grid"/><text x="84.0" y="240.0" class="tick" text-anchor="end">10⁰ mm</text>
+<line x1="92" y1="164.0" x2="936" y2="164.0" class="grid"/><text x="84.0" y="168.0" class="tick" text-anchor="end">10¹ mm</text>
+<line x1="269.7" y1="164" x2="269.7" y2="524" class="grid"/><text x="269.7" y="542" class="tick" text-anchor="middle">10</text>
+<line x1="491.8" y1="164" x2="491.8" y2="524" class="grid"/><text x="491.8" y="542" class="tick" text-anchor="middle">20</text>
+<line x1="713.9" y1="164" x2="713.9" y2="524" class="grid"/><text x="713.9" y="542" class="tick" text-anchor="middle">30</text>
+<line x1="936.0" y1="164" x2="936.0" y2="524" class="grid"/><text x="936.0" y="542" class="tick" text-anchor="middle">40</text>
+<line x1="92.0" y1="164" x2="92.0" y2="524" class="grid"/><text x="92.0" y="542" class="tick" text-anchor="middle">2</text>
+<line x1="92" y1="524" x2="936" y2="524" class="axis"/><text x="514" y="562" class="tick" text-anchor="middle">Spherical-harmonic degree</text>
+<path d="M92.0,321.6L114.2,341.4L136.4,329.0L158.6,313.5L180.8,317.6L203.1,318.3L225.3,320.9L247.5,321.2L269.7,324.8L291.9,304.5L314.1,319.5L336.3,311.0L358.5,312.8L380.7,294.3L402.9,299.7L425.2,290.0L447.4,289.9L469.6,300.1L491.8,280.6L514.0,278.8L536.2,283.6L558.4,292.8L580.6,280.0L602.8,286.9L625.1,267.8L647.3,268.6L669.5,274.3L691.7,255.9L713.9,277.9L736.1,257.7L758.3,269.2L780.5,258.2L802.7,269.1L824.9,271.4L847.2,273.2L869.4,270.5L891.6,255.0L913.8,265.3L936.0,274.5" class="line ink"><title>GRACE-FO class: SuperSTAR + LRI GRACE-FO</title></path>
+<path d="M92.0,352.3L114.2,397.5L136.4,365.4L158.6,386.8L180.8,373.9L203.1,390.1L225.3,362.3L247.5,362.0L269.7,368.1L291.9,362.6L314.1,363.4L336.3,350.8L358.5,364.0L380.7,354.8L402.9,351.7L425.2,352.0L447.4,355.6L469.6,348.1L491.8,352.8L514.0,333.6L536.2,356.2L558.4,346.2L580.6,355.5L602.8,343.6L625.1,363.5L647.3,350.6L669.5,338.4L691.7,336.8L713.9,341.3L736.1,333.5L758.3,332.6L780.5,331.5L802.7,345.5L824.9,334.4L847.2,348.6L869.4,353.6L891.6,351.1L913.8,365.7L936.0,355.7" class="line s1"><title>NGGM class: MicroSTAR + LRI 2030</title></path>
+<path d="M92.0,451.2L114.2,447.9L136.4,460.5L158.6,443.2L180.8,456.0L203.1,421.2L225.3,446.4L247.5,419.5L269.7,428.8L291.9,438.1L314.1,421.3L336.3,421.0L358.5,423.2L380.7,423.1L402.9,405.1L425.2,392.8L447.4,399.6L469.6,398.1L491.8,394.7L514.0,399.8L536.2,393.9L558.4,395.8L580.6,393.8L602.8,396.4L625.1,395.6L647.3,386.1L669.5,385.2L691.7,377.0L713.9,377.6L736.1,387.6L758.3,369.3L780.5,374.8L802.7,367.3L824.9,375.5L847.2,370.5L869.4,372.5L891.6,366.0L913.8,372.8L936.0,369.8" class="line s2"><title>CAI11 class: CAI 1e-11 + LRI 2033</title></path>
+<path d="M92.0,518.0L114.2,512.2L136.4,508.7L158.6,509.5L180.8,483.7L203.1,492.7L225.3,488.6L247.5,499.2L269.7,485.5L291.9,484.1L314.1,485.7L336.3,459.7L358.5,473.1L380.7,461.5L402.9,473.9L425.2,469.7L447.4,456.1L469.6,470.5L491.8,458.2L514.0,455.0L536.2,443.8L558.4,446.8L580.6,437.2L602.8,425.6L625.1,430.9L647.3,429.7L669.5,433.9L691.7,429.7L713.9,429.5L736.1,426.2L758.3,430.3L780.5,424.1L802.7,427.2L824.9,421.9L847.2,421.2L869.4,406.6L891.6,407.6L913.8,417.4L936.0,420.9" class="line s3"><title>CAI12 class: CAI 1e-12 + LRI 2033</title></path>
+<path d="M92.0,199.1L114.2,235.7L136.4,240.9L158.6,249.5L180.8,245.6L203.1,243.8L225.3,241.1L247.5,252.8L269.7,244.7L291.9,240.0L314.1,241.7L336.3,246.4L358.5,241.8L380.7,227.0L402.9,226.8L425.2,230.1L447.4,230.4L469.6,230.6L491.8,226.5L514.0,230.0L536.2,221.2L558.4,225.0L580.6,219.6L602.8,222.3L625.1,220.1L647.3,216.7L669.5,210.7L691.7,207.9L713.9,195.6L736.1,194.7L758.3,196.9L780.5,200.4L802.7,189.6L824.9,196.9L847.2,185.7L869.4,189.0L891.6,185.0L913.8,186.1L936.0,179.0" class="line muted"><title>Real GRACE-FO month: COST-G July 2026, calibrated errors</title></path>
+<text x="92" y="590" class="subtitle">Actual errors over formal errors, RMS per class: 0.81, 1.79, 0.84, 0.89 (1 means the loop is self-consistent).</text>
+</svg>
