@@ -1,0 +1,13 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+authors = ["Daniel Garden"]
+repository = "https://github.com/dan-garden/quantum-gravimeter"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
