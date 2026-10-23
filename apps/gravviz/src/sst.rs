@@ -84,14 +84,17 @@ pub fn figure(reference: Option<(&Coefficients, &str)>) -> (String, String) {
         let d: String = (2..=NMAX).map(|n| format!("{}{:.1},{:.1}", if n == 2 { 'M' } else { 'L' }, x(n as f64), y(c.mm[n]))).collect();
         let _ = writeln!(s, r#"<path d="{d}" class="line {}"><title>{}</title></path>"#, c.class, esc(&c.name));
     }
+    let unknowns = (NMAX + 1) * (NMAX + 1) - 4;
     let consist: Vec<String> = curves.iter().filter_map(|c| c.consistency.map(|r| format!("{r:.2}"))).collect();
     let _ = write!(
         s,
-        r#"<text x="{left}" y="{}" class="subtitle">Consistency of actual and formal errors, χ²/K per class: {} (expected 1 ± 0.03).</text>
+        r#"<text x="{left}" y="{}" class="subtitle">Consistency of actual and formal errors, χ²/K per class: {} (expected 1 ± {:.3} for {} unknowns).</text>
 </svg>
 "#,
         bottom + 66.0,
-        consist.join(", ")
+        consist.join(", "),
+        (2.0 / unknowns as f64).sqrt(),
+        unknowns
     );
 
     let mut csv = String::from("degree");
