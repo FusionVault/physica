@@ -217,7 +217,6 @@ mod tests {
     use super::*;
 
     const COSTG: &str = include_str!("../tests/data/costg_2026-07_n10.gfc");
-    const SWARM: &str = include_str!("../tests/data/swarm_2025-12_n10.gfc");
     const GOCO: &str = include_str!("../tests/data/goco06s_n4.gfc");
 
     #[test]
@@ -249,7 +248,14 @@ mod tests {
     /// Swarm: `comment` lines, a stray `WARNING:` line, `errors no`.
     #[test]
     fn swarm_monthly() {
-        let g = read_gfc(SWARM).unwrap();
+        // ESA data: kept in the repository but out of the published package, because its
+        // redistribution terms were not confirmed. Skipped where the file is absent.
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/swarm_2025-12_n10.gfc");
+        let Ok(text) = std::fs::read_to_string(path) else {
+            eprintln!("skipped: {path} is not in this package");
+            return;
+        };
+        let g = read_gfc(&text).unwrap();
         let b = &g.model.base;
         assert_eq!(b.max_degree(), 40);
         assert_eq!((b.c(2, 1), b.s(2, 1)), (-8.08481517811e-10, 1.48254384135e-9));

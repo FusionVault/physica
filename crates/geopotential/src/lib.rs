@@ -6,7 +6,8 @@
 //! - [`Coefficients`]: `C̄nm, S̄nm` with their `GM`, radius and [`TideSystem`]; degree
 //!   variances and amplitudes; tide-system conversion.
 //! - [`TimeVariable`]: ICGEM `gfct`/`trnd`/`acos`/`asin` models evaluated at any epoch.
-//! - [`Coefficients::partials`] (point potential and gradient) and [`Coefficients::grid`]
+//! - [`Coefficients::partials`] (point potential and gradient),
+//!   [`Coefficients::second_partials`] (and its Hessian, for gradiometry) and [`Coefficients::grid`]
 //!   (any [`Functional`] on a latitude × longitude grid).
 //!
 //! Conventions follow IERS 2010 ch. 6 and Barthelmes (ICGEM STR 09/02, rev. 2013): geocentric
@@ -31,4 +32,4 @@ mod synthesis;
 pub use coefficients::{Coefficients, Term, TermKind, TideSystem, TimeVariable};
 pub use functional::{Functional, RHO_EARTH, RHO_WATER};
 pub use legendre::{Legendre, MAX_DEGREE};
-pub use synthesis::Partials;
+pub use synthesis::{Partials, SecondPartials};

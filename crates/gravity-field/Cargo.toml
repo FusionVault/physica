@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Readers for satellite gravity-field files: ICGEM .gfc models, static and time-variable (icgem1.0/2.0), tolerant of real COST-G, Swarm and GOCO files."
 keywords = ["geodesy", "gravity", "icgem", "grace", "goce"]
 categories = ["science::geo", "parser-implementations"]
+# ESA Swarm data: its redistribution terms were not confirmed, so it stays out of the package.
+exclude = ["tests/data/swarm_*"]
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

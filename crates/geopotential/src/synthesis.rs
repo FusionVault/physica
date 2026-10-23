@@ -23,7 +23,75 @@ impl Partials {
     }
 }
 
+/// The potential with its first and second partial derivatives in `(r, φ, λ)` at one point: what
+/// a gravity-gradient tensor is built from.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SecondPartials {
+    /// `V`, `∂V/∂r`, `∂V/∂φ`, `∂V/∂λ`.
+    pub first: Partials,
+    /// `∂²V/∂r²`.
+    pub drr: f64,
+    /// `∂²V/∂φ²`.
+    pub dlatlat: f64,
+    /// `∂²V/∂λ²`.
+    pub dlonlon: f64,
+    /// `∂²V/∂r∂φ`.
+    pub drlat: f64,
+    /// `∂²V/∂r∂λ`.
+    pub drlon: f64,
+    /// `∂²V/∂φ∂λ`.
+    pub dlatlon: f64,
+}
+
 impl Coefficients {
+    /// `V` with its first and second partial derivatives at geocentric radius `r` (m), latitude
+    /// `lat` and longitude `lon` (radians). Finite at the poles.
+    ///
+    /// # Panics
+    /// If the degree exceeds [`MAX_DEGREE`](crate::MAX_DEGREE).
+    pub fn second_partials(&self, r: f64, lat: f64, lon: f64) -> SecondPartials {
+        let nmax = self.max_degree();
+        let mut leg = Legendre::new(nmax);
+        leg.compute_with_second_derivative(lat);
+        let (cos_m, sin_m): (Vec<f64>, Vec<f64>) =
+            (0..=nmax).map(|m| ((m as f64 * lon).cos(), (m as f64 * lon).sin())).unzip();
+        let q = self.radius / r;
+        let mut acc = [0.0f64; 10]; // v, r, φ, λ, rr, φφ, λλ, rφ, rλ, φλ
+        let mut qn = 1.0;
+        for n in 0..=nmax {
+            let mut sum = [0.0f64; 6]; // P·e, P'·e, P''·e, P·de, P·d²e, P'·de
+            for m in 0..=n {
+                let k = idx(n, m);
+                let (c, s) = (self.c[k], self.s[k]);
+                let mf = m as f64;
+                let even = c * cos_m[m] + s * sin_m[m];
+                let deven = mf * (s * cos_m[m] - c * sin_m[m]);
+                sum[0] += leg.p[k] * even;
+                sum[1] += leg.dp[k] * even;
+                sum[2] += leg.ddp[k] * even;
+                sum[3] += leg.p[k] * deven;
+                sum[4] -= leg.p[k] * mf * mf * even;
+                sum[5] += leg.dp[k] * deven;
+            }
+            let (n1, n12) = ((n + 1) as f64, ((n + 1) * (n + 2)) as f64);
+            let terms = [sum[0], -n1 * sum[0], sum[1], sum[3], n12 * sum[0], sum[2], sum[4], -n1 * sum[1], -n1 * sum[3], sum[5]];
+            for (a, t) in acc.iter_mut().zip(terms) {
+                *a += qn * t;
+            }
+            qn *= q;
+        }
+        let gmr = self.gm / r;
+        SecondPartials {
+            first: Partials { v: gmr * acc[0], dr: gmr / r * acc[1], dlat: gmr * acc[2], dlon: gmr * acc[3] },
+            drr: gmr / (r * r) * acc[4],
+            dlatlat: gmr * acc[5],
+            dlonlon: gmr * acc[6],
+            drlat: gmr / r * acc[7],
+            drlon: gmr / r * acc[8],
+            dlatlon: gmr * acc[9],
+        }
+    }
+
     /// `V` and its partial derivatives at geocentric radius `r` (m), latitude `lat` and longitude
     /// `lon` (radians). Finite at the poles.
     ///
@@ -220,6 +288,32 @@ mod tests {
         for k in 0..trr.len() {
             let fd = -(up[k] - down[k]) / (2.0 * h);
             assert!((trr[k] - fd).abs() < 1e-6 * max_abs(&trr), "{} vs {fd}", trr[k]);
+        }
+    }
+
+    #[test]
+    fn second_partials_match_differences_and_laplace() {
+        let mut f = field(25);
+        f.set(0, 0, 0.0, 0.0);
+        for (r, lat, lon) in [(6.9e6, 0.6, -1.1), (7.2e6, -1.3, 2.9), (6.7e6, 1.569, 0.4)] {
+            let sp = f.second_partials(r, lat, lon);
+            let (a, b) = (sp.first, f.partials(r, lat, lon));
+            for (x, y) in [(a.v, b.v), (a.dr, b.dr), (a.dlat, b.dlat), (a.dlon, b.dlon)] {
+                assert!((x - y).abs() <= 1e-13 * y.abs().max(1e-30), "{x} vs {y}"); // same sums, other order
+            }
+            let (hr, ha) = (1.0, 1e-6);
+            let p = |r, lat, lon| f.partials(r, lat, lon);
+            let close = |a: f64, b: f64| (a - b).abs() <= 1e-5 * (a.abs() + b.abs() + 1e-30);
+            assert!(close(sp.drr, (p(r + hr, lat, lon).dr - p(r - hr, lat, lon).dr) / (2.0 * hr)));
+            assert!(close(sp.dlatlat, (p(r, lat + ha, lon).dlat - p(r, lat - ha, lon).dlat) / (2.0 * ha)));
+            assert!(close(sp.dlonlon, (p(r, lat, lon + ha).dlon - p(r, lat, lon - ha).dlon) / (2.0 * ha)));
+            assert!(close(sp.drlat, (p(r, lat + ha, lon).dr - p(r, lat - ha, lon).dr) / (2.0 * ha)));
+            assert!(close(sp.drlon, (p(r, lat, lon + ha).dr - p(r, lat, lon - ha).dr) / (2.0 * ha)));
+            assert!(close(sp.dlatlon, (p(r, lat, lon + ha).dlat - p(r, lat, lon - ha).dlat) / (2.0 * ha)));
+            // Laplace in spherical coordinates: V_rr + 2V_r/r + (V_φφ − tanφ·V_φ + V_λλ/cos²φ)/r² = 0.
+            let lap = sp.drr + 2.0 * sp.first.dr / r
+                + (sp.dlatlat - lat.tan() * sp.first.dlat + sp.dlonlon / lat.cos().powi(2)) / (r * r);
+            assert!(lap.abs() < 1e-9 * sp.drr.abs(), "Laplacian {lap:e} vs {:e}", sp.drr);
         }
     }
 

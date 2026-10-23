@@ -36,6 +36,7 @@ pub struct Legendre {
     b: Vec<f64>,
     pub(crate) p: Vec<f64>,
     pub(crate) dp: Vec<f64>,
+    pub(crate) ddp: Vec<f64>,
 }
 
 impl Legendre {
@@ -70,6 +71,7 @@ impl Legendre {
             b,
             p: vec![0.0; len],
             dp: Vec::new(),
+            ddp: Vec::new(),
         }
     }
 
@@ -105,22 +107,15 @@ impl Legendre {
     pub fn compute_with_derivative(&mut self, lat: f64) {
         self.compute(lat);
         self.dp.resize(self.p.len(), 0.0);
-        self.dp[0] = 0.0;
-        for n in 1..=self.nmax {
-            let nf = n as f64;
-            self.dp[idx(n, 0)] = (nf * (nf + 1.0) / 2.0).sqrt() * self.p[idx(n, 1)];
-            for m in 1..=n {
-                let mf = m as f64;
-                let km = if m == 1 { std::f64::consts::SQRT_2 } else { 1.0 };
-                let lower = km * ((nf + mf) * (nf - mf + 1.0)).sqrt() * self.p[idx(n, m - 1)];
-                let upper = if m < n {
-                    ((nf - mf) * (nf + mf + 1.0)).sqrt() * self.p[idx(n, m + 1)]
-                } else {
-                    0.0
-                };
-                self.dp[idx(n, m)] = -0.5 * (lower - upper);
-            }
-        }
+        derive(&self.p, &mut self.dp, self.nmax);
+    }
+
+    /// Like [`compute_with_derivative`](Self::compute_with_derivative), and also fill
+    /// `∂²P̄nm/∂φ²`, by applying the same pole-safe operator to the first derivatives.
+    pub fn compute_with_second_derivative(&mut self, lat: f64) {
+        self.compute_with_derivative(lat);
+        self.ddp.resize(self.p.len(), 0.0);
+        derive(&self.dp, &mut self.ddp, self.nmax);
     }
 
     /// `P̄nm` from the last [`compute`](Self::compute).
@@ -139,6 +134,35 @@ impl Legendre {
     pub fn dp(&self, n: usize, m: usize) -> f64 {
         assert!(m <= n && n <= self.nmax, "∂P̄({n},{m}) outside table");
         self.dp[idx(n, m)]
+    }
+
+    /// `∂²P̄nm/∂φ²` from the last
+    /// [`compute_with_second_derivative`](Self::compute_with_second_derivative).
+    ///
+    /// # Panics
+    /// If `m > n`, `n > max_degree()`, or no second derivative has been computed.
+    pub fn ddp(&self, n: usize, m: usize) -> f64 {
+        assert!(m <= n && n <= self.nmax, "∂²P̄({n},{m}) outside table");
+        self.ddp[idx(n, m)]
+    }
+}
+
+/// `dst = ∂src/∂φ` for a table `src` of functions that transform like `P̄nm` under the latitude
+/// derivative: `∂P̄nm/∂φ = −½[k_m·√((n+m)(n−m+1))·P̄n,m−1 − √((n−m)(n+m+1))·P̄n,m+1]`, with
+/// `k_1 = √2`, `k_m = 1` otherwise, and `∂P̄n0/∂φ = √(n(n+1)/2)·P̄n1`. Being linear, it also maps
+/// `∂P̄/∂φ` to `∂²P̄/∂φ²`.
+fn derive(src: &[f64], dst: &mut [f64], nmax: usize) {
+    dst[0] = 0.0;
+    for n in 1..=nmax {
+        let nf = n as f64;
+        dst[idx(n, 0)] = (nf * (nf + 1.0) / 2.0).sqrt() * src[idx(n, 1)];
+        for m in 1..=n {
+            let mf = m as f64;
+            let km = if m == 1 { std::f64::consts::SQRT_2 } else { 1.0 };
+            let lower = km * ((nf + mf) * (nf - mf + 1.0)).sqrt() * src[idx(n, m - 1)];
+            let upper = if m < n { ((nf - mf) * (nf + mf + 1.0)).sqrt() * src[idx(n, m + 1)] } else { 0.0 };
+            dst[idx(n, m)] = -0.5 * (lower - upper);
+        }
     }
 }
 
@@ -196,6 +220,25 @@ mod tests {
                 for m in 0..=n {
                     let fd = (hi.p(n, m) - lo.p(n, m)) / (2.0 * h);
                     assert!((leg.dp(n, m) - fd).abs() < 1e-5, "∂P̄({n},{m}) at {lat}");
+                }
+            }
+        }
+    }
+
+    /// Second derivatives against the Legendre equation, P̄'' = tanφ·P̄' − (n(n+1) − m²/cos²φ)·P̄
+    /// in latitude, away from the poles (where that form is singular and ours is not).
+    #[test]
+    fn second_derivative_satisfies_the_legendre_equation() {
+        let nmax = 40;
+        let mut leg = Legendre::new(nmax);
+        for lat in [-1.2, -0.3, 0.0, 0.7, 1.4f64] {
+            leg.compute_with_second_derivative(lat);
+            let (t, u) = (lat.tan(), lat.cos());
+            for n in 0..=nmax {
+                for m in 0..=n {
+                    let rhs = t * leg.dp(n, m) - ((n * (n + 1)) as f64 - (m * m) as f64 / (u * u)) * leg.p(n, m);
+                    let scale = 1.0 + ((n * (n + 1)) as f64) * leg.p(n, m).abs();
+                    assert!((leg.ddp(n, m) - rhs).abs() < 1e-9 * scale, "({n},{m}) at {lat}: {} vs {rhs}", leg.ddp(n, m));
                 }
             }
         }
