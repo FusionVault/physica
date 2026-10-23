@@ -1,0 +1,13 @@
+index                       months   γ⁺ km³/σ  p      q      γ⁻ km³/σ  p      q      γ⁺−γ⁻   p      q
+Niño 3.4                       259      -438  0.001  0.027      -157  0.449  0.856      -281  0.353  0.764
+Indian Ocean Dipole            259      -213  0.308  0.764       279  0.131  0.505      -493  0.104  0.505
+Pacific Decadal Osc.           250      -731  0.037  0.333       263  0.272  0.764      -994  0.022  0.297
+Atlantic Multidecadal Osc.     219       210  0.476  0.856      -903  0.093  0.505      1113  0.128  0.505
+North Atlantic Osc.            259       -82  0.740  0.869       103  0.648  0.869      -185  0.623  0.869
+Arctic Osc.                    259       243  0.280  0.764        42  0.842  0.910       201  0.561  0.869
+Southern Annular Mode          257        11  0.959  0.959        86  0.720  0.869       -75  0.853  0.910
+QBO (control)                  256        78  0.695  0.869       124  0.511  0.863       -46  0.876  0.910
+Solar flux (control)           240        57  0.711  0.869      -365  0.324  0.764       422  0.368  0.764
+p: two-sided, 1000 circular shifts of at least 5 years; q: Benjamini–Hochberg over all 27 tests
+q < 0.1: Niño 3.4 γ⁺
+negative controls (QBO, solar flux): null, as required

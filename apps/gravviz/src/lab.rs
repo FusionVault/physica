@@ -88,26 +88,28 @@ pub fn land_volume_km3(cm: &[f64], area_km2: &[f64]) -> f64 {
 }
 
 /// A NOAA PSL climate-index file: a "first last" year line, then `year v1 … v12` rows, then a
-/// missing-value line. Returns ((year, month), value) for every non-missing month.
+/// missing-value line (−99.99, −9.90, −999, … depending on the index). Returns ((year, month),
+/// value) for every non-missing month.
 pub fn read_psl_index(path: &Path) -> Result<Vec<((i32, u32), f64)>> {
     let text = std::fs::read_to_string(path)?;
     let mut lines = text.lines();
     let first = lines.next().ok_or("empty index file")?;
     let years: Vec<i32> = first.split_whitespace().filter_map(|s| s.parse().ok()).collect();
     let [y0, y1] = years[..] else { return Err("bad index header".into()) };
-    let mut rows = Vec::new();
+    let mut table = Vec::new();
+    let mut missing = None;
     for line in lines {
         let f: Vec<f64> = line.split_whitespace().filter_map(|s| s.parse().ok()).collect();
-        if f.len() != 13 || f[0].fract() != 0.0 || !(y0..=y1).contains(&(f[0] as i32)) {
-            continue;
-        }
-        for (m, &v) in f[1..].iter().enumerate() {
-            if v > -90.0 {
-                rows.push(((f[0] as i32, m as u32 + 1), v));
-            }
+        if f.len() == 13 && f[0].fract() == 0.0 && (y0..=y1).contains(&(f[0] as i32)) {
+            table.push(f);
+        } else if let ([v], false) = (f.as_slice(), table.is_empty()) {
+            let v = *v;
+            missing = Some(v);
+            break;
         }
     }
-    Ok(rows)
+    let missing = missing.ok_or("index file has no missing-value line")?;
+    Ok(table.iter().flat_map(|f| (1..13).filter(|&m| (f[m] - missing).abs() > 1e-6).map(|m| ((f[0] as i32, m as u32), f[m]))).collect())
 }
 
 /// Ordinary least squares by the normal equations (small, well-scaled designs only).
@@ -216,6 +218,16 @@ mod tests {
         let y: Vec<f64> = (0..20).map(|i| 3.0 - 0.5 * i as f64).collect();
         let (b, r) = ols(&x, &y).unwrap();
         assert!((b[0] - 3.0).abs() < 1e-10 && (b[1] + 0.5).abs() < 1e-10 && r.iter().all(|e| e.abs() < 1e-9));
+    }
+
+    #[test]
+    fn psl_index_missing_values() {
+        let path = std::env::temp_dir().join(format!("gravviz_psl_{}.data", std::process::id()));
+        std::fs::write(&path, " 2024 2025\n 2024 1 2 3 4 5 6 7 8 9 10 11 12\n 2025 -1 -2 -9.90 -9.90 -9.90 -9.90 -9.90 -9.90 -9.90 -9.90 -9.90 -9.90\n -9.90\n PDO\n").unwrap();
+        let rows = read_psl_index(&path).unwrap();
+        std::fs::remove_file(&path).unwrap();
+        assert_eq!(rows.len(), 14);
+        assert_eq!(rows[13], ((2025, 2), -2.0));
     }
 
     #[test]

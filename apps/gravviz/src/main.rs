@@ -9,6 +9,7 @@
 //! gravviz sst OUT_DIR [REFERENCE_MONTH.gfc]
 //! gravviz w1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt NINO34.data OUT_DIR
 //! gravviz e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR
+//! gravviz screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR
 //! ```
 //!
 //! `noise` writes `noise_spectra.svg` and `.csv` (Zingerle et al. 2024, Fig. 1). `water-map`
@@ -25,13 +26,15 @@
 //! El Niño test on global land storage (NOAA PSL Niño 3.4 anomaly file) and writes `w1_report.txt`,
 //! `w1_land_storage.svg` and `.csv`, and `w1_forecast.csv`. `e1` looks for the 2025 Kamchatka
 //! earthquake in GRACE-FO gravity against a random-location null and writes `e1_kamchatka.svg`,
-//! `e1_report.txt` and `e1_step.csv`.
+//! `e1_report.txt` and `e1_step.csv`. `screen` reruns the W1 level model with every NOAA PSL index in
+//! INDEX_DIR, QBO and solar flux as negative controls, and writes `screen_indices.svg` and `.txt`.
 
 mod e1;
 mod gradiometry;
 mod lab;
 mod map;
 mod noise;
+mod screen;
 mod sst;
 mod svg;
 mod triangle;
@@ -101,11 +104,17 @@ fn main() -> Result<()> {
             write(out, "e1_kamchatka.svg", &svg)?;
             write(out, "e1_step.csv", &csv)
         }
+        ["screen", csv, indices, out] => {
+            let screen::Outcome { report, svg } = screen::run(Path::new(csv), Path::new(indices))?;
+            print!("{report}");
+            write(out, "screen_indices.txt", &report)?;
+            write(out, "screen_indices.svg", &svg)
+        }
         _ => Err("usage: gravviz noise OUT_DIR | water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | \
             series MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | triangle MONTH.gfc OUT_DIR | \
             gradiometry STATIC_MODEL.gfc OUT_DIR | sst OUT_DIR [REFERENCE_MONTH.gfc] | \
             w1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt NINO34.data OUT_DIR | \
-            e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR".into()),
+            e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR".into()),
     }
 }
 

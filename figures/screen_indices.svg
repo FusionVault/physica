@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 542" width="940" height="542" role="img" aria-label="Land water storage against climate indices">
+<title>Land water storage against climate indices</title>
+<style>
+svg { color-scheme: light; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781; --grid: #e1e0d9; --axis: #c3c2b7; --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; }
+@media (prefers-color-scheme: dark) { svg:where(:not([data-theme="light"])) { color-scheme: dark; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; } }
+svg[data-theme="dark"] { color-scheme: dark; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; }
+text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--ink2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.title { fill: var(--ink); font-size: 18px; font-weight: 600; font-variant-numeric: normal; }
+.subtitle { font-size: 13px; font-variant-numeric: normal; }
+.panel { fill: var(--ink); font-size: 14px; font-weight: 600; }
+.tick { fill: var(--muted); }
+.grid { stroke: var(--grid); stroke-width: 1; }
+.axis { stroke: var(--axis); stroke-width: 1; }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ink { stroke: var(--ink); } .ink2 { stroke: var(--ink2); } .muted { stroke: var(--muted); }
+.s1 { stroke: var(--s1); } .s2 { stroke: var(--s2); } .s3 { stroke: var(--s3); } .s4 { stroke: var(--s4); }
+.s5 { stroke: var(--s5); } .s6 { stroke: var(--s6); } .s7 { stroke: var(--s7); }
+</style>
+<rect width="940" height="542" fill="var(--surface)"/>
+<text x="20" y="32" class="title">Which climate patterns move global land water?</text>
+<text x="20" y="54" class="subtitle">W1 level model with each index in place of Niño 3.4: how each phase moves land storage, as z against 1,000 time-shifted copies of the index.</text>
+<text x="20" y="72" class="subtitle">Blue: positive phase. Orange: negative phase. Right: that phase adds water to land. Filled: q &lt; 0.1 over all 27 tests. Grey band: |z| &lt; 2.</text>
+<rect x="412.5" y="110" width="325.0" height="342.0" fill="var(--grid)" opacity="0.6"/>
+<line x1="575.0" y1="110" x2="575.0" y2="452.0" class="axis"/>
+<text x="250.0" y="470.0" class="tick" text-anchor="middle">-4</text>
+<text x="412.5" y="470.0" class="tick" text-anchor="middle">-2</text>
+<text x="575.0" y="470.0" class="tick" text-anchor="middle">+0</text>
+<text x="737.5" y="470.0" class="tick" text-anchor="middle">+2</text>
+<text x="900.0" y="470.0" class="tick" text-anchor="middle">+4</text>
+<text x="250.0" y="490.0" class="tick">← land loses water</text><text x="575.0" y="490.0" class="tick" text-anchor="middle">z</text><text x="900.0" y="490.0" class="tick" text-anchor="end">land gains water →</text>
+<text x="236.0" y="133.0" text-anchor="end">Niño 3.4</text>
+<circle cx="333.3" cy="124.0" r="6" fill="var(--s1)" stroke="var(--s1)" stroke-width="2"><title>Niño 3.4, positive phase: -438 km³ per σ, p = 0.001, q = 0.027</title></circle>
+<circle cx="638.6" cy="134.0" r="6" fill="var(--surface)" stroke="var(--s2)" stroke-width="2"><title>Niño 3.4, negative phase: +157 km³ per σ, p = 0.449, q = 0.856</title></circle>
+<text x="236.0" y="171.0" text-anchor="end">Indian Ocean Dipole</text>
+<circle cx="484.1" cy="162.0" r="6" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"><title>Indian Ocean Dipole, positive phase: -213 km³ per σ, p = 0.308, q = 0.764</title></circle>
+<circle cx="452.0" cy="172.0" r="6" fill="var(--surface)" stroke="var(--s2)" stroke-width="2"><title>Indian Ocean Dipole, negative phase: -279 km³ per σ, p = 0.131, q = 0.505</title></circle>
+<text x="236.0" y="209.0" text-anchor="end">Pacific Decadal Osc.</text>
+<circle cx="371.7" cy="200.0" r="6" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"><title>Pacific Decadal Osc., positive phase: -731 km³ per σ, p = 0.037, q = 0.333</title></circle>
+<circle cx="484.0" cy="210.0" r="6" fill="var(--surface)" stroke="var(--s2)" stroke-width="2"><title>Pacific Decadal Osc., negative phase: -263 km³ per σ, p = 0.272, q = 0.764</title></circle>
+<text x="236.0" y="247.0" text-anchor="end">Atlantic Multidecadal Osc.</text>
+<circle cx="617.7" cy="238.0" r="6" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"><title>Atlantic Multidecadal Osc., positive phase: +210 km³ per σ, p = 0.476, q = 0.856</title></circle>
+<circle cx="709.7" cy="248.0" r="6" fill="var(--surface)" stroke="var(--s2)" stroke-width="2"><title>Atlantic Multidecadal Osc., negative phase: +903 km³ per σ, p = 0.093, q = 0.505</title></circle>
+<text x="236.0" y="285.0" text-anchor="end">North Atlantic Osc.</text>
+<circle cx="545.8" cy="276.0" r="6" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"><title>North Atlantic Osc., positive phase: -82 km³ per σ, p = 0.740, q = 0.869</title></circle>
+<circle cx="544.8" cy="286.0" r="6" fill="var(--surface)" stroke="var(--s2)" stroke-width="2"><title>North Atlantic Osc., negative phase: -103 km³ per σ, p = 0.648, q = 0.869</title></circle>
+<text x="236.0" y="323.0" text-anchor="end">Arctic Osc.</text>
+<circle cx="661.3" cy="314.0" r="6" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"><title>Arctic Osc., positive phase: +243 km³ per σ, p = 0.280, q = 0.764</title></circle>
+<circle cx="557.8" cy="324.0" r="6" fill="var(--surface)" stroke="var(--s2)" stroke-width="2"><title>Arctic Osc., negative phase: -42 km³ per σ, p = 0.842, q = 0.910</title></circle>
+<text x="236.0" y="361.0" text-anchor="end">Southern Annular Mode</text>
+<circle cx="580.2" cy="352.0" r="6" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"><title>Southern Annular Mode, positive phase: +11 km³ per σ, p = 0.959, q = 0.959</title></circle>
+<circle cx="545.5" cy="362.0" r="6" fill="var(--surface)" stroke="var(--s2)" stroke-width="2"><title>Southern Annular Mode, negative phase: -86 km³ per σ, p = 0.720, q = 0.869</title></circle>
+<text x="236.0" y="399.0" text-anchor="end" class="tick">QBO (control)</text>
+<circle cx="608.4" cy="390.0" r="6" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"><title>QBO (control), positive phase: +78 km³ per σ, p = 0.695, q = 0.869</title></circle>
+<circle cx="508.5" cy="400.0" r="6" fill="var(--surface)" stroke="var(--s2)" stroke-width="2"><title>QBO (control), negative phase: -124 km³ per σ, p = 0.511, q = 0.863</title></circle>
+<text x="236.0" y="437.0" text-anchor="end" class="tick">Solar flux (control)</text>
+<circle cx="609.0" cy="428.0" r="6" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"><title>Solar flux (control), positive phase: +57 km³ per σ, p = 0.711, q = 0.869</title></circle>
+<circle cx="680.5" cy="438.0" r="6" fill="var(--surface)" stroke="var(--s2)" stroke-width="2"><title>Solar flux (control), negative phase: +365 km³ per σ, p = 0.324, q = 0.764</title></circle>
+</svg>

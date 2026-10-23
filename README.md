@@ -111,6 +111,9 @@ curl -LO https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-docs/grace
 curl -L -o GOCO06s.gfc https://icgem.gfz.de/getmodel/gfc/32ec2884630a02670476f752d2a2bf1c395d8c8d6d768090ed95b4f04b0d5863/GOCO06s.gfc
 # The Niño 3.4 index from NOAA PSL (for the W1 forecast).
 mkdir -p indices && curl -L -o indices/nina34.anom.data https://psl.noaa.gov/data/correlation/nina34.anom.data
+# More indices for the climate screen (QBO and solar flux are the negative controls).
+for f in pdo amon.us nao ao aao qbo solar; do curl -L -o indices/$f.data https://psl.noaa.gov/data/correlation/$f.data; done
+curl -L -o indices/dmi.had.long.data https://psl.noaa.gov/gcos_wgsp/Timeseries/Data/dmi.had.long.data
 cd ..
 ```
 
@@ -125,6 +128,7 @@ and the map):
 | `cargo run --release -p gravviz -- gradiometry data/GOCO06s.gfc figures` | [`gradiometry_errors.svg`](figures/gradiometry_errors.svg): GOCE-like and cold-atom gradiometers against GOCO06s |
 | `cargo run --release -p gravviz -- sst figures data/costg/GSM-2_2026182-2026212_GRFO_COSTG_BF01_0201.gfc` | [`sst_closed_loop.svg`](figures/sst_closed_loop.svg): closed-loop simulation of four mission classes (about 5 minutes and 1 GB of memory per class) |
 | `cargo run --release -p gravviz -- w1 data/costg data/baseline data/TN-14_C30_C20_GSFC_SLR.txt data/TN-13_GEOC_CSR_RL0603.txt data/indices/nina34.anom.data figures` | [`w1_land_storage.svg`](figures/w1_land_storage.svg): global land water storage against El Niño, with the [pre-registered forecast](prereg/W1-2026-10-24.md) to June 2027 |
+| `cargo run --release -p gravviz -- screen figures/w1_land_storage.csv data/indices figures` | [`screen_indices.svg`](figures/screen_indices.svg): the W1 model with every climate index, QBO and solar flux as negative controls (needs the index files listed in `apps/gravviz/src/screen.rs`) |
 | `cargo run --release -p gravviz -- e1 data/costg data/baseline data/TN-14_C30_C20_GSFC_SLR.txt data/TN-13_GEOC_CSR_RL0603.txt figures` | [`e1_kamchatka.svg`](figures/e1_kamchatka.svg): the 2025 Kamchatka earthquake in GRACE-FO gravity against a random-location null ([notes](results/E1-2026-10-24.md)) |
 
 ## Run the viewer
@@ -180,6 +184,11 @@ Results so far:
 - **[E1](results/E1-2026-10-24.md):** the Mw 8.8 Kamchatka earthquake of July 2025 is detected in
   COST-G monthly gravity. It shows a −3.7/+3.4 µGal dipole and lies above all 100 random ocean
   locations in the null (rank p = 0.01). The trench-side lobe is still rising a year later.
+- **[Climate-index screen](figures/screen_indices.svg) (Q1 controls for W1):** of seven climate
+  patterns and two negative controls, only El Niño moves global land water significantly once
+  autocorrelation and 27 tests are accounted for. El Niño drains land, p = 0.001, q = 0.03. La Niña
+  and the claimed asymmetry do not hold up. The QBO and solar-flux controls are null, as they
+  should be.
 
 ## Limits
 
