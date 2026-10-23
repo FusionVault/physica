@@ -85,9 +85,10 @@ fn water_map(month: &str, baseline: &str, tn14: &str, tn13: &str, out: &str) -> 
     let mean = gravimetry::mean(&fields).ok_or("empty baseline")?;
     eprintln!("baseline: {} months, {}-{:02} to {}-{:02}", fields.len(), first.1, first.2, last.1, last.2);
 
-    let smoothing = 300e3;
-    let nmax = field.max_degree();
-    let anomaly = gravimetry::smooth(&gravimetry::anomaly(&field, &mean), &gravimetry::gaussian_weights(smoothing, field.radius, nmax));
+    // The GRACE Tellus chain (Landerer & Swenson 2012): degree 60, destriping, 300 km Gaussian.
+    let nmax = 60;
+    let anomaly = gravimetry::destripe(&gravimetry::anomaly(&field, &mean).truncated(nmax));
+    let anomaly = gravimetry::smooth(&anomaly, &gravimetry::gaussian_weights(300e3, field.radius, nmax));
     let love = gravimetry::love_numbers(nmax).ok_or("degree above the Love-number table")?;
     let lats: Vec<f64> = (0..360).map(|i| (-89.75 + 0.5 * i as f64).to_radians()).collect();
     let lons: Vec<f64> = (0..720).map(|j| (-179.75 + 0.5 * j as f64).to_radians()).collect();
@@ -113,7 +114,7 @@ fn water_map(month: &str, baseline: &str, tn14: &str, tn13: &str, out: &str) -> 
 
     let month_name = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][mon as usize - 1];
     let title = format!("Water storage anomaly, {month_name} {year}");
-    let sub1 = format!("Equivalent water height of the GRACE-FO {month_name} {year} field relative to the {}–{} mean ({} months), 300 km Gaussian smoothing.", first.1, last.1, fields.len());
+    let sub1 = format!("Equivalent water height of the GRACE-FO {month_name} {year} field relative to the {}–{} mean ({} months); degree 60, destriped, 300 km Gaussian.", first.1, last.1, fields.len());
     let sub2 = "COST-G RL02.1 monthly fields (ICGEM); C₂₀ and C₃₀ from satellite laser ranging (TN-14), degree 1 from TN-13. Glacial isostatic adjustment not removed.";
     let svg = map::render(&map::Grid { lats: &lats, lons: &lons, values: &cm }, limit, &coast, &map::MapText {
         title: &title,

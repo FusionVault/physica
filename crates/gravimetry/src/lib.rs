@@ -80,6 +80,70 @@ pub fn smooth(field: &Coefficients, weights: &[f64]) -> Coefficients {
     out
 }
 
+/// Remove north–south stripes (correlated errors) the way Swenson & Wahr (2006, GRL 33, L08402)
+/// do: for each order `m ≥ 5`, fit a moving quadratic across degree, separately for even and odd
+/// degrees, over `2nₛ+1` coefficients with `nₛ = max(round(15·e^(−m/10)), 2)`, and subtract the
+/// fit. Sequences too short for one window are removed entirely. Apply it to an anomaly
+/// (typically truncated to degree 60), before Gaussian smoothing.
+///
+/// Ported from gravity-toolkit's `destripe_harmonics` (MIT, Copyright (c) 2020 Tyler C
+/// Sutterley; after I. Velicogna's `remove_errors.f`), default settings.
+pub fn destripe(field: &Coefficients) -> Coefficients {
+    let nmax = field.max_degree();
+    let mut out = field.clone();
+    for m in 5..=nmax {
+        let ns = ((15.0 * (-(m as f64) / 10.0).exp()).round() as usize).max(2);
+        // Window sums of ll⁰, ll², ll⁴ for ll = −nₛ..=nₛ (odd powers vanish by symmetry).
+        let (s0, s2, s4) = (-(ns as i64)..=ns as i64).fold((0.0, 0.0, 0.0), |(a, b, c), ll| {
+            let l2 = (ll * ll) as f64;
+            (a + 1.0, b + l2, c + l2 * l2)
+        });
+        let det = s0 * s4 - s2 * s2;
+        for parity in 0..2 {
+            let degrees: Vec<usize> = (m..=nmax).filter(|l| l % 2 == parity).collect();
+            for part in 0..2 {
+                let x: Vec<f64> = degrees.iter().map(|&l| if part == 0 { field.c(l, m) } else { field.s(l, m) }).collect();
+                let fit = smooth_part(&x, ns, s2, (s0, s4, det));
+                for (&l, f) in degrees.iter().zip(fit) {
+                    let (c, s) = (out.c(l, m), out.s(l, m));
+                    if part == 0 { out.set(l, m, c - f, s) } else { out.set(l, m, c, s - f) }
+                }
+            }
+        }
+    }
+    out
+}
+
+/// The moving-quadratic smooth of `x` (see [`destripe`]); `x` itself when it is shorter than one
+/// window.
+fn smooth_part(x: &[f64], ns: usize, s2: f64, (s0, s4, det): (f64, f64, f64)) -> Vec<f64> {
+    if x.len() < 2 * ns + 1 {
+        return x.to_vec();
+    }
+    let mut out = vec![0.0; x.len()];
+    let last = x.len() - 1 - ns;
+    for l in ns..=last {
+        let (mut r0, mut r1, mut r2) = (0.0, 0.0, 0.0);
+        for ll in -(ns as i64)..=ns as i64 {
+            let v = x[(l as i64 + ll) as usize];
+            let llf = ll as f64;
+            (r0, r1, r2) = (r0 + v, r1 + v * llf, r2 + v * llf * llf);
+        }
+        // Normal equations of a + b·ll + c·ll² on a symmetric window.
+        let (a, b, c) = ((s4 * r0 - s2 * r2) / det, r1 / s2, (s0 * r2 - s2 * r0) / det);
+        let poly = |ll: f64| a + b * ll + c * ll * ll;
+        out[l] = a;
+        // The first and last windows also cover the ends of the sequence.
+        if l == ns {
+            (0..ns).for_each(|k| out[k] = poly(k as f64 - ns as f64));
+        }
+        if l == last {
+            (1..=ns).for_each(|k| out[l + k] = poly(k as f64));
+        }
+    }
+    out
+}
+
 /// The mean of several fields, in the first field's `GM` and radius (others are rescaled), to the
 /// lowest degree among them. `None` if `fields` is empty.
 pub fn mean(fields: &[Coefficients]) -> Option<Coefficients> {
@@ -145,6 +209,29 @@ mod tests {
         // A 1000 km filter decays to the floor without going negative or oscillating.
         let wide = gaussian_weights(1000e3, r, 120);
         assert!(wide.iter().all(|&x| x >= 1e-10) && wide[120] == 1e-10);
+    }
+
+    #[test]
+    fn destripe_removes_smooth_patterns_and_keeps_spikes() {
+        let nmax = 60;
+        let mut f = Coefficients::zeros(4e14, 6.4e6, nmax);
+        for n in 0..=nmax {
+            for m in 0..=n {
+                let q = 1e-10 * (1.0 + 0.1 * n as f64 + 0.01 * (n * n) as f64);
+                f.set(n, m, q, if m == 0 { 0.0 } else { -q });
+            }
+        }
+        let d = destripe(&f);
+        let worst = (0..=nmax).flat_map(|n| (5..=n).map(move |m| (n, m)))
+            .map(|(n, m)| d.c(n, m).abs().max(d.s(n, m).abs()))
+            .fold(0.0, f64::max);
+        assert!(worst < 1e-20, "quadratic left {worst:e}");
+        assert_eq!((d.c(40, 4), d.s(40, 4)), (f.c(40, 4), f.s(40, 4)), "orders < 5 untouched");
+        // A lone coefficient is mostly signal to the filter: at m = 5 (19-point window) 88% stays.
+        let mut spike = Coefficients::zeros(4e14, 6.4e6, nmax);
+        spike.set(30, 5, 1e-10, 0.0);
+        let kept = destripe(&spike).c(30, 5) / 1e-10;
+        assert!((kept - (1.0 - 30666.0 / 257754.0)).abs() < 1e-12, "{kept}");
     }
 
     #[test]

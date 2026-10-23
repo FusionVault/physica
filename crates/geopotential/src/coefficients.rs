@@ -112,6 +112,13 @@ impl Coefficients {
             .collect()
     }
 
+    /// The field cut to degree `nmax` (or unchanged if it is already at or below it).
+    pub fn truncated(&self, nmax: usize) -> Coefficients {
+        let nmax = nmax.min(self.nmax);
+        let len = idx(nmax, nmax) + 1;
+        Coefficients { nmax, c: self.c[..len].to_vec(), s: self.s[..len].to_vec(), ..self.clone() }
+    }
+
     /// The same field expressed with another `GM` and reference radius:
     /// `C̄'nm = C̄nm · (GM/GM') · (R/R')^n`, so that the synthesized potential is unchanged.
     pub fn rescaled(&self, gm: f64, radius: f64) -> Coefficients {
@@ -240,6 +247,9 @@ mod tests {
         c.set(2, 1, 3.0, 4.0);
         c.set(3, 3, 1.0, 0.0);
         assert_eq!(c.degree_variances(), vec![0.0, 0.0, 25.0, 1.0]);
+        let t = c.truncated(2);
+        assert_eq!((t.max_degree(), t.c(2, 1), t.s(2, 1)), (2, 3.0, 4.0));
+        assert_eq!(c.truncated(9), c);
     }
 
     #[test]

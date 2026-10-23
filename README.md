@@ -8,7 +8,7 @@ quantum (cold-atom) sensors.
 |---|---|---|
 | [`geopotential`](crates/geopotential) | 0.1.0, unpublished | Legendre functions to degree 2700, coefficients with tide systems, GM/R rescaling and ICGEM time-variable terms, point and grid synthesis, functionals, degree spectra |
 | [`gravity-field`](crates/gravity-field) | 0.1.0, unpublished | ICGEM `.gfc` reader (static and time-variable icgem1.0/2.0, with errors), tested on real COST-G, Swarm and GOCO06s files; TN-14 (C20/C30) and TN-13 (degree 1) readers. Planned: GRACE Level-2 and mascon NetCDF readers, data fetchers |
-| [`gravimetry`](crates/gravimetry) | 0.1.0, unpublished | Load Love numbers, Gaussian smoothing, baseline means and anomalies. Planned: GIA, destriping/DDK, basins |
+| [`gravimetry`](crates/gravimetry) | 0.1.0, unpublished | Load Love numbers, Gaussian smoothing, Swenson–Wahr destriping, baseline means and anomalies. Planned: GIA, DDK, basins |
 | [`satgrav`](crates/satgrav) | 0.1.0, unpublished | Noise models of electrostatic and cold-atom accelerometers and laser ranging (Zingerle et al. 2024), pair line-of-sight noise. Planned: atom-interferometer physics, error propagation |
 | [`gravviz`](apps/gravviz) | app, not published | The figures below |
 
