@@ -85,21 +85,31 @@ pub struct Solution {
     pub formal: Coefficients,
 }
 
-/// Simulate `duration` seconds of observations every `dt` seconds with noise of ASD `asd`
-/// (m s⁻² Hz⁻¹ᐟ²), add the signal of `truth` (if any), and estimate degrees 2..=`nmax`.
+/// One simulated solution's settings.
+#[derive(Clone, Copy, Debug)]
+pub struct Setup {
+    /// The satellite pair.
+    pub pair: Pair,
+    /// `GM` (m³/s²) and reference radius (m) of the estimated field.
+    pub gm: f64,
+    /// Reference radius, m.
+    pub radius: f64,
+    /// Highest degree estimated (from degree 2).
+    pub nmax: usize,
+    /// Length of the solution, s.
+    pub duration: f64,
+    /// Sampling interval, s.
+    pub dt: f64,
+    /// Noise seed.
+    pub seed: u64,
+}
+
+/// Simulate observations with noise of ASD `asd` (m s⁻² Hz⁻¹ᐟ²), add the signal of `truth` (if
+/// any), and estimate degrees 2..=`nmax`.
 ///
 /// Memory is `unknowns × samples` f64 values (about 1.2 GB for degree 40, one month at 30 s).
-pub fn simulate(
-    pair: &Pair,
-    gm: f64,
-    radius: f64,
-    nmax: usize,
-    duration: f64,
-    dt: f64,
-    asd: impl Fn(f64) -> f64 + Copy,
-    truth: Option<&Coefficients>,
-    seed: u64,
-) -> Solution {
+pub fn simulate(setup: &Setup, asd: impl Fn(f64) -> f64 + Copy, truth: Option<&Coefficients>) -> Solution {
+    let Setup { pair, gm, radius, nmax, duration, dt, seed } = *setup;
     let cols = unknowns(nmax);
     let (k, samples) = (cols.len(), (duration / dt) as usize);
     let mut a = vec![0.0; k * samples]; // column-major
@@ -276,7 +286,8 @@ mod tests {
             }
         }
         // Noise far below the signal: the estimate must reproduce the truth closely.
-        let sol = simulate(&GRACE, GM, R, 8, 2.0 * 86_400.0, 30.0, |_| 1e-16, Some(&truth), 1);
+        let setup = Setup { pair: GRACE, gm: GM, radius: R, nmax: 8, duration: 2.0 * 86_400.0, dt: 30.0, seed: 1 };
+        let sol = simulate(&setup, |_| 1e-16, Some(&truth));
         let worst = (2..=8).flat_map(|n| (0..=n).map(move |m| (n, m))).map(|(n, m)| sol.errors.c(n, m).abs().max(sol.errors.s(n, m).abs())).fold(0.0, f64::max);
         assert!(worst < 1e-12, "worst error {worst:e}");
     }
@@ -284,7 +295,8 @@ mod tests {
     #[test]
     fn empirical_errors_agree_with_formal_errors() {
         // White noise: the RMS of (estimate − truth)/formal over all coefficients is ~1.
-        let sol = simulate(&GRACE, GM, R, 10, 4.0 * 86_400.0, 30.0, |_| 1e-10, None, 42);
+        let setup = Setup { pair: GRACE, gm: GM, radius: R, nmax: 10, duration: 4.0 * 86_400.0, dt: 30.0, seed: 42 };
+        let sol = simulate(&setup, |_| 1e-10, None);
         let mut sum = 0.0;
         let mut count = 0.0;
         for n in 2..=10 {

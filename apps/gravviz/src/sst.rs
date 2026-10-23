@@ -4,7 +4,7 @@
 use std::fmt::Write;
 
 use geopotential::{Coefficients, Functional};
-use satgrav::sim::{Pair, simulate};
+use satgrav::sim::{Pair, Setup, simulate};
 use satgrav::{Accelerometer, Ranging, pair_noise};
 
 use crate::svg::{esc, open, pow10};
@@ -40,7 +40,8 @@ pub fn figure(reference: Option<(&Coefficients, &str)>) -> (String, String) {
     let mut curves: Vec<Curve> = Vec::new();
     for (i, (name, class, acc, rng)) in classes.into_iter().enumerate() {
         let t0 = std::time::Instant::now();
-        let sol = simulate(&pair, gm, radius, NMAX, DAYS * 86_400.0, DT, move |f| pair_noise(acc, rng, f), None, 100 + i as u64);
+        let setup = Setup { pair, gm, radius, nmax: NMAX, duration: DAYS * 86_400.0, dt: DT, seed: 100 + i as u64 };
+        let sol = simulate(&setup, move |f| pair_noise(acc, rng, f), None);
         let (mut sum, mut count) = (0.0, 0.0);
         for n in 2..=NMAX {
             for m in 0..=n {
