@@ -114,6 +114,9 @@ dependencies = [
 [[package]]
 name = "satgrav"
 version = "0.1.0"
+dependencies = [
+ "geopotential",
+]
 
 [[package]]
 name = "simd-adler32"

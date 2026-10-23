@@ -3,12 +3,16 @@
 //! ```text
 //! gravviz noise OUT_DIR
 //! gravviz water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR
+//! gravviz gradiometry STATIC_MODEL.gfc OUT_DIR
 //! ```
 //!
 //! `noise` writes `noise_spectra.svg` and `.csv` (Zingerle et al. 2024, Fig. 1). `water-map`
 //! writes `water_<yyyy-mm>.svg` and a 1° `.csv`: the month's equivalent water height minus the
 //! mean of every `.gfc` in BASELINE_DIR, all from ICGEM GSM-2 files (`GSM-2_YYYYDDD-YYYYDDD_…`).
+//! `gradiometry` writes `gradiometry_errors.svg` and `.csv`: gradiometer mission errors against
+//! the static model's signal (e.g. GOCO06s).
 
+mod gradiometry;
 mod map;
 mod noise;
 mod svg;
@@ -30,7 +34,14 @@ fn main() -> Result<()> {
             write(out, "noise_spectra.csv", &csv)
         }
         ["water-map", month, baseline, tn14, tn13, out] => water_map(month, baseline, tn14, tn13, out),
-        _ => Err("usage: gravviz noise OUT_DIR | gravviz water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR".into()),
+        ["gradiometry", model, out] => {
+            let gfc = read_gfc(&std::fs::read_to_string(model)?)?;
+            let name = gfc.name.clone().unwrap_or_else(|| "model".into());
+            let (svg, csv) = gradiometry::figure(&gfc.model.base, &name);
+            write(out, "gradiometry_errors.svg", &svg)?;
+            write(out, "gradiometry_errors.csv", &csv)
+        }
+        _ => Err("usage: gravviz noise OUT_DIR | gravviz water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | gravviz gradiometry STATIC_MODEL.gfc OUT_DIR".into()),
     }
 }
 

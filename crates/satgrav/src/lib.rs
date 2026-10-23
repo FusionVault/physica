@@ -14,6 +14,12 @@
 //! assert!((n - 3.5e-10).abs() < 0.05e-10);
 //! ```
 
+mod atom;
+mod errors;
+
+pub use atom::{AtomInterferometer, K_EFF_RB87};
+pub use errors::{gradiometry_errors, radial_gradient_transfer, resolution};
+
 use core::f64::consts::{SQRT_2, TAU};
 
 /// An accelerometer noise model; [`asd`](Self::asd) is in m s⁻² Hz⁻¹ᐟ².
@@ -91,6 +97,15 @@ pub fn pair_noise(accelerometer: Accelerometer, ranging: Ranging, f: f64) -> f64
     (SQRT_2 * accelerometer.asd(f)).hypot(ranging.as_acceleration(f))
 }
 
+/// Noise density of two accelerometers combined by inverse-variance weighting at each frequency,
+/// `1/s² = 1/s_a² + 1/s_b²`: a stand-in for an electrostatic + cold-atom hybrid. Zingerle et al.
+/// (2024) "optimally combine" the two but do not publish how; real hybrids (Zahzam et al. 2022)
+/// use bias loops or Kalman filters and also suffer from the CAI's dead time.
+pub fn hybrid_asd(a: Accelerometer, b: Accelerometer, f: f64) -> f64 {
+    let (x, y) = (a.asd(f), b.asd(f));
+    x * y / x.hypot(y)
+}
+
 /// Spherical-harmonic degree that a signal at frequency `f` maps to along an orbit of period
 /// `orbit_period` seconds, `n ≈ f·T` (one cycle per revolution is degree 1).
 pub fn degree_at_frequency(f: f64, orbit_period: f64) -> f64 {
@@ -129,6 +144,15 @@ mod tests {
         assert!(close(Accelerometer::SuperStar.asd(10.0), 1e-10, 1e-3));
         // MicroSTAR's floor is 1e-11/√2 between 1 mHz and 0.1 Hz.
         assert!(close(Accelerometer::MicroStar.asd(1e-2), 1e-11 / SQRT_2, 0.02));
+    }
+
+    #[test]
+    fn hybrid_takes_the_better_sensor_per_frequency() {
+        let cai = Accelerometer::AtomInterferometer { white: 1e-11 };
+        assert!(close(hybrid_asd(cai, cai, 1e-3), 1e-11 / SQRT_2, 1e-12));
+        // Below SuperSTAR's corner the CAI dominates; well above it neither does.
+        assert!(close(hybrid_asd(Accelerometer::SuperStar, cai, 1e-4), 1e-11, 0.01));
+        assert!(hybrid_asd(Accelerometer::MicroStar, cai, 1e-2) < Accelerometer::MicroStar.asd(1e-2));
     }
 
     #[test]

@@ -1,7 +1,7 @@
 [package]
 name = "satgrav"
 version = "0.1.0"
-description = "Instrument noise models for satellite gravimetry missions: electrostatic and cold-atom accelerometers, laser ranging, and the combined line-of-sight noise of a satellite pair."
+description = "Instrument and mission models for satellite gravimetry: electrostatic and cold-atom (atom-interferometer) accelerometers and gradiometers, laser ranging, pair line-of-sight noise, and gravity-field error propagation."
 keywords = ["geodesy", "gravimetry", "grace", "atom-interferometry", "noise"]
 categories = ["science::geo", "simulation"]
 edition.workspace = true
@@ -12,3 +12,6 @@ repository.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+geopotential = { path = "../geopotential" }
