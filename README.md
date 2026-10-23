@@ -6,11 +6,12 @@ quantum (cold-atom) sensors.
 
 | Crate | Status | Scope |
 |---|---|---|
-| [`geopotential`](crates/geopotential) | 0.1.0, unpublished | Legendre functions to degree 2700, coefficients with tide systems, GM/R rescaling and ICGEM time-variable terms, point and grid synthesis, functionals, degree spectra |
-| [`gravity-field`](crates/gravity-field) | 0.1.0, unpublished | ICGEM `.gfc` reader (static and time-variable icgem1.0/2.0, with errors), tested on real COST-G, Swarm and GOCO06s files; TN-14 (C20/C30) and TN-13 (degree 1) readers. Planned: GRACE Level-2 and mascon NetCDF readers, data fetchers |
-| [`gravimetry`](crates/gravimetry) | 0.1.0, unpublished | Load Love numbers, Gaussian smoothing, Swenson–Wahr destriping, baseline means and anomalies. Planned: GIA, DDK, basins |
-| [`satgrav`](crates/satgrav) | 0.1.0, unpublished | Noise models of electrostatic and cold-atom accelerometers and laser ranging (Zingerle et al. 2024), pair line-of-sight noise, hybrid stand-in; atom-interferometer physics (phase, shot noise, accelerometer and gradiometer noise, checked against CARIOQA, GRICE and Trimeche et al.); closed-form gradiometry error propagation; noise colouring and whitening (FFT); a closed-loop GRACE-type pair simulation (line-of-sight gravity difference, whitened least squares). Planned: time-variable gravity and aliasing, orbit dynamics |
+| [`geopotential`](crates/geopotential) | [0.1.1](https://crates.io/crates/geopotential) | Legendre functions to degree 2700, coefficients with tide systems, GM/R rescaling and ICGEM time-variable terms, point and grid synthesis, functionals, degree spectra |
+| [`gravity-field`](crates/gravity-field) | [0.1.0](https://crates.io/crates/gravity-field) | ICGEM `.gfc` reader (static and time-variable icgem1.0/2.0, with errors), tested on real COST-G, Swarm and GOCO06s files; TN-14 (C20/C30) and TN-13 (degree 1) readers. Planned: GRACE Level-2 and mascon NetCDF readers, data fetchers |
+| [`gravimetry`](crates/gravimetry) | [0.1.0](https://crates.io/crates/gravimetry) | Load Love numbers, Gaussian smoothing, Swenson–Wahr destriping, baseline means and anomalies. Planned: GIA, DDK, basins |
+| [`satgrav`](crates/satgrav) | [0.1.0](https://crates.io/crates/satgrav) | Noise models of electrostatic and cold-atom accelerometers and laser ranging (Zingerle et al. 2024), pair line-of-sight noise, hybrid stand-in; atom-interferometer physics (phase, shot noise, accelerometer and gradiometer noise, checked against CARIOQA, GRICE and Trimeche et al.); closed-form gradiometry error propagation; noise colouring and whitening (FFT); a closed-loop GRACE-type pair simulation (line-of-sight gravity difference, whitened least squares). Planned: time-variable gravity and aliasing, orbit dynamics |
 | [`gravviz`](apps/gravviz) | app, not published | The figures below, and the data for the viewer |
+| [`geo5d`](https://crates.io/crates/geo5d) | 0.4.0 (own repo) | Normal gravity, heights and relativistic geodesy; its synthesis is `geopotential` |
 | [`viewer`](viewer) | web page ([published](https://claude.ai/artifact/J7pKCUXkF2R25Ck9ZyBVB5), private) | Month-by-month water-storage maps (flat or globe) and the 2002–2026 series at any place |
 
 ## Figures
