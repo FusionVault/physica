@@ -112,6 +112,21 @@ impl Coefficients {
             .collect()
     }
 
+    /// The same field expressed with another `GM` and reference radius:
+    /// `C̄'nm = C̄nm · (GM/GM') · (R/R')^n`, so that the synthesized potential is unchanged.
+    pub fn rescaled(&self, gm: f64, radius: f64) -> Coefficients {
+        let mut out = self.clone();
+        (out.gm, out.radius) = (gm, radius);
+        for n in 0..=self.nmax {
+            let f = self.gm / gm * (self.radius / radius).powi(n as i32);
+            for m in 0..=n {
+                out.c[idx(n, m)] *= f;
+                out.s[idx(n, m)] *= f;
+            }
+        }
+        out
+    }
+
     /// The same field in another tide system (only `C̄20` changes). `None` if either system is
     /// [`TideSystem::Unknown`] or the field has no degree 2.
     pub fn to_tide_system(&self, target: TideSystem) -> Option<Coefficients> {

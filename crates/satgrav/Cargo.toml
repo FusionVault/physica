@@ -1,0 +1,14 @@
+[package]
+name = "satgrav"
+version = "0.1.0"
+description = "Instrument noise models for satellite gravimetry missions: electrostatic and cold-atom accelerometers, laser ranging, and the combined line-of-sight noise of a satellite pair."
+keywords = ["geodesy", "gravimetry", "grace", "atom-interferometry", "noise"]
+categories = ["science::geo", "simulation"]
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true

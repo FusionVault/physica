@@ -1,0 +1,42 @@
+Title: NASA GSFC SLR C20 and C30 solutions
+Version: 3 (see Notes)
+Date created: 30 Sep 2026
+Data span: 4 Apr 2002 - 1 Aug 2026 (beginning of solution)
+Authors: B.D. Loomis and K.E. Rachlin
+Contact: bryant.d.loomis@nasa.gov
+Description:
+   This file contains SLR-derived C20 and C30 values for replacing GRACE/GRACE-FO GSM
+   Values prior to MJD 53039 use 5 satellites: LAGEOS-1/2, Stella, Starlette, AJISAI
+   Values beginning on MJD 53039 use 6 satellites: Larets added
+   Values beginning on MJD 55987 use 7 satellites: LARES added
+   Values beginning on MJD 59792 use 8 satellites: LARES-2 added
+   C30 values are not provided prior to MJD 55987
+   Estimated gravity parameters: 5x5+C61,S61
+Citation:
+   Loomis et al., 2020, Geophys. Res. Lett., https://doi.org/10.1029/2019GL085488
+Notes:
+   AOD1B RL06 model applied for dealiasing
+   C20 is zero tide
+   Sigmas were calibrated with C30 differences to dual-accelerometer GRACE values
+   The background time variable gravity model was updated for Version 3 (beginning 8 Nov 2023)
+Format: (F7.1,F10.4,E22.13,2F8.4,E22.13,2F8.4,F8.1,F10.4) 
+   Column  1: MJD of BEGINNING of solution data span (matches JPL GSM)
+   Column  2: Year and fraction of year of BEGINNING of solution data span
+   Column  3: Replacement C20
+   Column  4: Replacement C20 - mean C20 (1.0E-10)
+   Column  5: C20 Sigma (1.0E-10)
+   Column  6: Replacement C30
+   Column  7: Replacement C30 - mean C30 (1.0E-10)
+   Column  8: C30 Sigma (1.0E-10)
+   Column  9: MJD of END of solution data span (matches JPL GSM)
+   Column 10: Year and fraction of year of END of solution data span
+Constants:
+   Mean C20: -4.841694573200E-04
+   Mean C30: +9.571647583412E-07
+         GM: 0.3986004415E+06 (km^3/s^2)
+          R: 6378.1363 (km)
+Product:
+52368.0 2002.2548  -4.8416934147454E-04  1.1585  0.1628                   NaN     NaN     NaN 52395.0 2002.3288
+52396.0 2002.3315  -4.8416936114948E-04  0.9617  0.1546                   NaN     NaN     NaN 52413.0 2002.3781
+52487.0 2002.5808  -4.8416948381112E-04 -0.2649  0.1472                   NaN     NaN     NaN 52518.0 2002.6658
+61253.0 2026.5808  -4.8416986716357E-04 -4.0984  0.2009   9.5700367112704E-07 -1.6109  0.3138 61284.0 2026.6658

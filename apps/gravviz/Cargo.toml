@@ -1,0 +1,20 @@
+[package]
+name = "gravviz"
+version = "0.0.0"
+description = "Figures from the quantum-gravimeter crates: instrument noise spectra and GRACE water-storage maps."
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+geopotential = { path = "../../crates/geopotential" }
+gravity-field = { path = "../../crates/gravity-field" }
+gravimetry = { path = "../../crates/gravimetry" }
+satgrav = { path = "../../crates/satgrav" }
+png = "0.18.1"
+
+[lints]
+workspace = true

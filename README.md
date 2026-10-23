@@ -6,10 +6,26 @@ quantum (cold-atom) sensors.
 
 | Crate | Status | Scope |
 |---|---|---|
-| [`geopotential`](crates/geopotential) | 0.1.0, unpublished | Legendre functions to degree 2700, coefficients with tide systems and ICGEM time-variable terms, point and grid synthesis, functionals, degree spectra |
-| [`gravity-field`](crates/gravity-field) | 0.1.0, unpublished | ICGEM `.gfc` reader (static and time-variable icgem1.0/2.0, with errors), tested on real COST-G, Swarm and GOCO06s files. Planned: GRACE Level-2, TN-13/14 and mascon NetCDF readers; data fetchers |
-| `gravimetry` | planned | GRACE processing chain: C20/degree-1/GIA, filters, water height, basins |
-| `satgrav` | planned | Sensor noise models (electrostatic, laser ranging, atom interferometry), error propagation |
+| [`geopotential`](crates/geopotential) | 0.1.0, unpublished | Legendre functions to degree 2700, coefficients with tide systems, GM/R rescaling and ICGEM time-variable terms, point and grid synthesis, functionals, degree spectra |
+| [`gravity-field`](crates/gravity-field) | 0.1.0, unpublished | ICGEM `.gfc` reader (static and time-variable icgem1.0/2.0, with errors), tested on real COST-G, Swarm and GOCO06s files; TN-14 (C20/C30) and TN-13 (degree 1) readers. Planned: GRACE Level-2 and mascon NetCDF readers, data fetchers |
+| [`gravimetry`](crates/gravimetry) | 0.1.0, unpublished | Load Love numbers, Gaussian smoothing, baseline means and anomalies. Planned: GIA, destriping/DDK, basins |
+| [`satgrav`](crates/satgrav) | 0.1.0, unpublished | Noise models of electrostatic and cold-atom accelerometers and laser ranging (Zingerle et al. 2024), pair line-of-sight noise. Planned: atom-interferometer physics, error propagation |
+| [`gravviz`](apps/gravviz) | app, not published | The figures below |
+
+## Figures
+
+[`figures/noise_spectra.svg`](figures/noise_spectra.svg) reproduces Fig. 1 of Zingerle et al.
+(2024) from the paper's equations. [`figures/water_2026-07.svg`](figures/water_2026-07.svg) is the
+July 2026 GRACE-FO water-storage anomaly. Each has a CSV of the plotted values beside it.
+
+```bash
+cargo run --release -p gravviz -- noise figures
+cargo run --release -p gravviz -- water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt figures
+```
+
+The water map needs ICGEM COST-G monthly files (`https://icgem.gfz.de/series/02_COST-G_/Grace-Grace-FO_RL02.1`;
+fetch them one at a time, ICGEM rate-limits) and the TN-14/TN-13 files from the
+[PO.DAAC docs bucket](https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-docs/gracefo/open/docs/).
 
 The research behind this, covering open data access, quantum missions, formulas and the plan, is in
 [`reports/`](reports/Satellite%20gravimetry%20data%20and%20Rust%20tooling.md), with source notes in

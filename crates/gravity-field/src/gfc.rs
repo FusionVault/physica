@@ -69,7 +69,7 @@ pub fn julian_epoch(year: i32, month: u32, day: u32, hour: u32, minute: u32) -> 
 }
 
 /// Parse `yyyymmdd` or `yyyymmdd.hhmm` into a Julian epoch.
-fn parse_date(s: &str) -> Option<f64> {
+pub(crate) fn parse_date(s: &str) -> Option<f64> {
     let (date, time) = s.split_once('.').unwrap_or((s, "0000"));
     if date.len() != 8 || !date.bytes().all(|b| b.is_ascii_digit()) {
         return None;

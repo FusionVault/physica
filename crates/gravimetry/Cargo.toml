@@ -1,0 +1,17 @@
+[package]
+name = "gravimetry"
+version = "0.1.0"
+description = "GRACE-style processing of monthly gravity fields: load Love numbers, Gaussian smoothing, anomalies against a baseline mean, for equivalent water height maps."
+keywords = ["geodesy", "grace", "hydrology", "gravimetry", "water"]
+categories = ["science::geo"]
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+geopotential = { path = "../geopotential", version = "0.1.0" }
+
+[lints]
+workspace = true

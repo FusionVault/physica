@@ -1,0 +1,120 @@
+GRACE Technical Note 13
+
+TITLE: 	
+	Monthly estimates of degree-1 (geocenter) gravity coefficients, generated from 
+	GRACE (04-2002 - 06/2017) and GRACE-FO (06/2018 onward) RL0603 solutions.
+        Last reported data point: 16-Aug-2026.
+
+UPDATE HISTORY: 
+        Created/updated 03-Oct-2026 00:33:01.
+
+AUTHOR:	
+	Felix Landerer, Jet Propulsion Laboratory (JPL)
+	Contact: gracefo@jpl.nasa.gov
+
+REFERENCES:
+	Sun, Y., R. Riva, and P. Ditmar (2016), Optimizing estimates of annual variations and 
+	trends in geocenter motion and J2 from a combination of GRACE data and geophysical 
+	models, J. Geophys. Res. Solid Earth, 121, doi:10.1002/2016JB013073.
+
+	Swenson, S., D. Chambers, and J. Wahr 2008  Estimating geocenter variations from a 
+	combination of GRACE and ocean model output, J. Geophys. Res.,  113, B08410, 
+	doi:10.1029/2007JB005338.
+     
+DESCRIPTION:
+	This file contains estimates of degree-1 gravity coefficients for the GRACE Release-06 data, 
+	based on ocean and atmospheric models and GRACE coefficients for degrees 2 and higher. 
+	The original method was developed by [Swenson et al., 2008], and subsequently expanded by 
+	[Sun et al., 2016] to include the effects of the barystatic sea level fingerprint (i.e., 
+        solving the sea level equation using land mass changes as measured by GRACE) in the ocean mass
+	contribution to degree-1. 
+
+	The implementation for degree-1 coefficients below uses the optimal parameter values as 
+	described in [Sun et al., 2016]. These coefficients represent the degree 1 gravity 
+	coefficients that should be added to the GSM coefficients to correct for geocenter motion, 
+	relative to the modeled atmosphere and ocean degree 1 coefficients (e.g., GAC and GAD). The 
+	coefficients have been normalized using the GRACE standards. Prior to the inversion for 
+	degree-1, GRACE-C20 has been replaced with the SLR-C20 (TN-14), and GIA has been corrected 
+	with ICE6G-D.
+
+	To use for land applications or to compute global ocean mass, use these coefficients along 
+	with GRACE GSM coefficients for degrees 2 and higher, along with a Degree 1 Love number 
+	(k1) = 0.02621347 (from Martens et al., 2018).
+
+	For ocean applications, add the degree 1 values found in the ocean bottom pressure product 
+	(GAD) to these values. If you are interested in the full ocean, land, atmosphere geocenter, 
+	add the degree 1 values of the atmosphere/ocean product (GAC) to these values. 
+
+SPECIAL NOTES:
+	1) Reported values are derived from geopotential anomalies relative to GGM05C (epoch: 2008-01-01)
+		NOTE: A previous version from 04/2019 had an inconsistent epoch removed - please update all 
+		      data with the most recent version
+	2) The 1-sigma errors are based on Tab.1 of [Sun et al., 2016]
+	3) The native GRACE C20 coefficient has been replaced with SLR-C20 (TN-14v3)
+	4) GIA has been corrected for subtracting the ICE6G-D (Peltier et al., 2018) prior to the 
+	   degree-1 inversion 
+	5) From 06/2019 on, C30 in GRACE-FO has been replaced with SLR-C30 (TN-14v3)
+
+FORMAT:
+	The data format is similar to that for GSM, GAD, and GAC files distributed by PODAAC, see 
+	GRACE Level-2 handbook for more information.
+
+# EGM Coefficient Record 2 
+  variables:
+    record_key:
+      key_name              : GRCOF2 
+      long_name             : Earth Gravity Spherical Harmonic Model Format Type
+      coverage_content_type : referenceInformation
+      data_type             : string
+      comment               : 1st column
+    degree_index:
+      long_name             : spherical harmonic degree l
+      coverage_content_type : referenceInformation
+      data_type             : int32
+      comment               : 2nd column
+    order_index:
+      long_name             : spherical harmonic order m
+      coverage_content_type : referenceInformation
+      data_type             : int32
+      comment               : 3rd column
+    clm:
+      long_name             : Clm coefficient; cosine coefficient for degree l and order m
+      data_type             : double precision
+      comment               : 4th column
+    slm:
+      long_name             : Slm coefficient; sine coefficient for degree l and order m 
+      data_type             : double precision
+      comment               : 5th column
+    clm_std_dev: 
+      long_name             : standard deviation of Clm
+      coverage_content_type : qualityInformation
+      data_type             : double precision
+      comment               : 6th column; 
+    slm_std_dev: 
+      long_name             : standard deviation of Slm
+      coverage_content_type : qualityInformation
+      data_type             : double precision
+      comment               : 7th column; 
+    epoch_begin_time: 
+      long_name             : epoch begin of Clm, Slm coefficients
+      time_format           : yyyymmdd.hhmm
+      coverage_content_type : referenceInformation
+      data_type             : string
+      comment               : 8th column
+    epoch_stop_time: 
+      long_name             : epoch stop of Clm, Slm coefficients
+      time_format           : yyyymmdd.hhmm
+      coverage_content_type : referenceInformation
+      data_type             : string
+      comment               : 9th column
+    solution_flags:
+      long_name             : Comment when present
+      coverage_content_type : referenceInformation
+      data_type             : string
+      comment               : 10th column
+
+end of header ===============================================================================
+GRCOF2    1   0 +5.120437146e-10 +0.000000000e+00 +4.4585e-11 +0.0000e+00 20020405.0000 20020501.0000
+GRCOF2    1   1 +2.897447347e-10 -6.826708442e-11 +4.5296e-11 +5.0724e-11 20020405.0000 20020501.0000
+GRCOF2    1   0 -1.316762750e-09 +0.000000000e+00 +4.4585e-11 +0.0000e+00 20260801.0000 20260901.0000
+GRCOF2    1   1 -2.288142243e-10 +3.654707391e-10 +4.5296e-11 +5.0724e-11 20260801.0000 20260901.0000

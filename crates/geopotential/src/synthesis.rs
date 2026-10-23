@@ -224,6 +224,14 @@ mod tests {
     }
 
     #[test]
+    fn rescaling_leaves_the_field_unchanged() {
+        let f = field(20);
+        let g = f.rescaled(3.986004418e14, 6378137.0);
+        let (a, b) = (f.partials(7.0e6, 0.3, 1.1), g.partials(7.0e6, 0.3, 1.1));
+        assert!((a.v - b.v).abs() < 1e-14 * a.v.abs() && (a.dlat - b.dlat).abs() < 1e-12 * a.dlat.abs());
+    }
+
+    #[test]
     fn water_height_degree_two() {
         // A GRACE-sized ΔC̄20 of 1e-10 is about 19 mm of water at the pole (k'_2 = −0.303,
         // P̄20(pole) = √5).
