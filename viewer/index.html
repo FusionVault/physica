@@ -465,11 +465,17 @@ function wire() {
   new MutationObserver(rerender).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 }
 
+// The grids arrive zlib-compressed and base64-encoded inside JSON (artifact hosting serves no raw binary).
+async function inflate(packed) {
+  const bytes = Uint8Array.from(atob(packed.data), (c) => c.charCodeAt(0));
+  return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"))).arrayBuffer();
+}
+
 async function start() {
   try {
     const [index, buf, coastText] = await Promise.all([
       fetch("data/tws_index.json").then((r) => { if (!r.ok) throw new Error("index " + r.status); return r.json(); }),
-      fetch("data/tws_grids.bin").then((r) => { if (!r.ok) throw new Error("grids " + r.status); return r.arrayBuffer(); }),
+      fetch("data/tws_grids.json").then((r) => { if (!r.ok) throw new Error("grids " + r.status); return r.json(); }).then(inflate),
       fetch("data/coast.txt").then((r) => { if (!r.ok) throw new Error("coastlines " + r.status); return r.text(); }),
     ]);
     idx = index;

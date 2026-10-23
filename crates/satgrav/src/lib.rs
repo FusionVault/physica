@@ -16,6 +16,8 @@
 
 mod atom;
 mod errors;
+pub mod noise;
+pub mod sim;
 
 pub use atom::{AtomInterferometer, K_EFF_RB87};
 pub use errors::{gradiometry_errors, radial_gradient_transfer, resolution};

@@ -71,6 +71,7 @@ dependencies = [
 name = "gravviz"
 version = "0.0.0"
 dependencies = [
+ "flate2",
  "geopotential",
  "gravimetry",
  "gravity-field",

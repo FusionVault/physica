@@ -10,8 +10,8 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[dependencies]
+geopotential = { path = "../geopotential", version = "0.1.0" }
+
 [lints]
 workspace = true
-
-[dev-dependencies]
-geopotential = { path = "../geopotential" }

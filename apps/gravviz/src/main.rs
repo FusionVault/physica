@@ -6,20 +6,25 @@
 //! gravviz series MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR
 //! gravviz triangle MONTH.gfc OUT_DIR
 //! gravviz gradiometry STATIC_MODEL.gfc OUT_DIR
+//! gravviz sst OUT_DIR [REFERENCE_MONTH.gfc]
 //! ```
 //!
 //! `noise` writes `noise_spectra.svg` and `.csv` (Zingerle et al. 2024, Fig. 1). `water-map`
 //! writes `water_<yyyy-mm>.svg` and a 1° `.csv`: the month's equivalent water height minus the
 //! mean of every `.gfc` in BASELINE_DIR, all from ICGEM GSM-2 files (`GSM-2_YYYYDDD-YYYYDDD_…`).
-//! `series` does the same for every month in MONTHS_DIR on a 2° grid and writes
-//! `tws_grids.bin` (little-endian i16, mm, `[month][lat][lon]`), `tws_index.json` and the coastlines
-//! (`coast.txt`) for the browser viewer in `viewer/`. `triangle` writes `error_triangle_<yyyy-mm>.svg`: the month's calibrated
+//! `series` does the same for every month in MONTHS_DIR on a 2° grid and writes `tws_grids.json`
+//! (zlib-compressed little-endian i16 millimetres, `[month][lat][lon]`, base64 in JSON because
+//! artifact hosting serves no raw binary), `tws_index.json` and the coastlines (`coast.txt`) for the
+//! browser viewer in `viewer/`. `triangle` writes `error_triangle_<yyyy-mm>.svg`: the month's calibrated
 //! coefficient errors as water height. `gradiometry` writes `gradiometry_errors.svg` and `.csv`:
-//! gradiometer mission errors against the static model's signal (e.g. GOCO06s).
+//! gradiometer mission errors against the static model's signal (e.g. GOCO06s). `sst` runs the
+//! closed-loop simulation of four GRACE-type mission classes and writes `sst_closed_loop.svg` and
+//! `.csv`, with a real month's calibrated errors as reference if given.
 
 mod gradiometry;
 mod map;
 mod noise;
+mod sst;
 mod svg;
 mod triangle;
 
@@ -58,9 +63,22 @@ fn main() -> Result<()> {
             write(out, "gradiometry_errors.svg", &svg)?;
             write(out, "gradiometry_errors.csv", &csv)
         }
+        ["sst", out, rest @ ..] if rest.len() <= 1 => {
+            let reference = match rest.first() {
+                Some(path) => {
+                    let sigma = read_gfc(&std::fs::read_to_string(path)?)?.sigma.ok_or("the reference file has no error columns")?;
+                    let (year, mon) = calendar(span(Path::new(path))?.mid());
+                    Some((sigma, format!("{} {year}", MONTH_NAMES[mon as usize - 1])))
+                }
+                None => None,
+            };
+            let (svg, csv) = sst::figure(reference.as_ref().map(|(s, l)| (s, l.as_str())));
+            write(out, "sst_closed_loop.svg", &svg)?;
+            write(out, "sst_closed_loop.csv", &csv)
+        }
         _ => Err("usage: gravviz noise OUT_DIR | water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | \
             series MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | triangle MONTH.gfc OUT_DIR | \
-            gradiometry STATIC_MODEL.gfc OUT_DIR".into()),
+            gradiometry STATIC_MODEL.gfc OUT_DIR | sst OUT_DIR [REFERENCE_MONTH.gfc]".into()),
     }
 }
 
@@ -107,15 +125,22 @@ fn calendar(t: f64) -> (i32, u32) {
 /// One monthly field with the standard replacements: `C̄20` (and `C̄30` from August 2016) from
 /// TN-14 satellite laser ranging, degree 1 from TN-13.
 fn corrected_month(path: &Path, tn14: &[SlrC20C30], tn13: &[Degree1]) -> Result<Coefficients> {
-    let t = span(path)?.start;
+    let sp = span(path)?;
+    let (t, mid) = (sp.start, sp.mid());
     let mut c = read_gfc(&std::fs::read_to_string(path)?)?.model.base;
-    let near = |start: f64| (start - t).abs() < 10.0 / 365.25;
-    let slr = tn14.iter().find(|r| near(r.start)).ok_or_else(|| format!("{}: no TN-14 month", path.display()))?;
+    // Technical-note months can be offset from the field's (late-2016 GRACE months ran from the
+    // 11th), so take the entry whose midpoint is nearest, within half a month.
+    let nearest = |mids: &mut dyn Iterator<Item = (usize, f64)>| {
+        mids.map(|(i, m)| (i, (m - mid).abs())).filter(|(_, d)| *d < 15.0 / 365.25).min_by(|a, b| a.1.total_cmp(&b.1)).map(|(i, _)| i)
+    };
+    let slr = nearest(&mut tn14.iter().map(|r| (r.start + r.end) / 2.0).enumerate())
+        .map(|i| &tn14[i]).ok_or_else(|| format!("{}: no TN-14 month", path.display()))?;
     c.set(2, 0, slr.c20, 0.0);
     if let (Some(c30), true) = (slr.c30, t >= julian_epoch(2016, 8, 1, 0, 0)) {
         c.set(3, 0, c30, 0.0);
     }
-    let d1 = tn13.iter().find(|r| near(r.start)).ok_or_else(|| format!("{}: no TN-13 month", path.display()))?;
+    let d1 = nearest(&mut tn13.iter().map(|r| (r.start + r.end) / 2.0).enumerate())
+        .map(|i| &tn13[i]).ok_or_else(|| format!("{}: no TN-13 month", path.display()))?;
     c.set(1, 0, d1.c10, 0.0);
     c.set(1, 1, d1.c11, d1.s11);
     Ok(c)
@@ -242,7 +267,9 @@ fn series(months: &str, baseline: &str, tn14: &str, tn13: &str, out: &str) -> Re
         lats[0].to_degrees(), lons[0].to_degrees(), lats.len(), lons.len(), entries.join(",\n")
     );
     eprintln!("{} months", entries.len());
-    write(out, "tws_grids.bin", &bin)?;
+    let mut z = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+    std::io::Write::write_all(&mut z, &bin)?;
+    write(out, "tws_grids.json", format!(r#"{{"encoding":"zlib+base64","data":"{}"}}"#, svg::base64(&z.finish()?)))?;
     write(out, "coast.txt", include_str!("../data/coastline_110m.txt"))?;
     write(out, "tws_index.json", index)
 }

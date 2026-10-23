@@ -15,6 +15,7 @@ gravity-field = { path = "../../crates/gravity-field" }
 gravimetry = { path = "../../crates/gravimetry" }
 satgrav = { path = "../../crates/satgrav" }
 png = "0.18.1"
+flate2 = "1.1.10"
 
 [lints]
 workspace = true
