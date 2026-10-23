@@ -1,0 +1,24 @@
+fields: 259 months, 2002-04 to 2026-07; land area used: 132.0 million km²
+season (frozen; S′ = S − these terms): annual cos/sin -287.217 2919.274, semi-annual -183.404 -100.055, 161-day 39.769 57.901 km³
+trend in S: 25.6 km³/yr; annual amplitude 2933 km³
+Niño 3.4 observed to 2026-09 (+2.09 °C); analogue years (same month > +1.4 °C): [1997, 2015, 2023]
+
+rate model (219 rate samples)
+  intercept -29.0 km³/month; β⁺ lags 0–9: 211 92 -408 -276 70 361 40 -119 -47 153; β⁻ lags 0–9: 75 456 -470 -410 126 382 -36 -110 113 -129
+  Σβ⁺ 76.5, 90% CI [-44.1, 205.5], p = 0.315; Σβ⁻ -4.4, 90% CI [-140.9, 127.2], p = 0.948 (km³/month per °C)
+  asymmetry Σβ⁺ − Σβ⁻: 81.0, 90% CI [-159.0, 322.8], p = 0.576
+  fitted on GRACE, correlation with GRACE-FO rates: r = 0.32 over 92 months
+
+level model, primary (frozen coefficients for scoring)
+  S′ = 280.899 + 25.7652·(t − 2015) + -621.504·N̄⁺ + -189.382·N̄⁻ km³, N̄ = mean Niño 3.4 at lags 2–6 months
+  residual sd 556 km³, AR(1) φ = 0.608
+  γ⁺ (El Niño, km³ per °C): -621.5, 90% CI [-860.6, -375.6], p < 5e-4
+  γ⁻ (La Niña, km³ per °C): -189.4, 90% CI [-510.6, 121.7], p = 0.322
+  asymmetry γ⁺ − γ⁻: -432.1, 90% CI [-907.9, 51.3], p = 0.141
+  fitted on GRACE, correlation with GRACE-FO S′: r = 0.38 over 96 months
+  ratchet criterion: mean level-model residual over 2027-07..2028-06 (observed Niño 3.4, frozen coefficients) below -367 km³ (5th percentile of 175 full 12-month windows, 2002–2026)
+
+forecasts from S′ = 755 km³ at 2026-07 (median [5%, 95%], km³)
+  2026-12: level model S′ -586 [-1570, 452], full anomaly incl. season -1738 [-2721, -699]; rate model S′ 167 [-1077, 1437]
+  2027-03: level model S′ -856 [-1890, 200], full anomaly incl. season 2035 [1002, 3092]; rate model S′ -245 [-1852, 1377]
+  2027-06: level model S′ -669 [-1687, 418], full anomaly incl. season 197 [-822, 1284]; rate model S′ 45 [-1780, 1932]

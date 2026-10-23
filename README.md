@@ -109,6 +109,8 @@ curl -LO https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-docs/grace
 curl -LO https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-docs/gracefo/open/docs/TN-13_GEOC_CSR_RL0603.txt
 # GOCO06s, a static model (for the gradiometry figure).
 curl -L -o GOCO06s.gfc https://icgem.gfz.de/getmodel/gfc/32ec2884630a02670476f752d2a2bf1c395d8c8d6d768090ed95b4f04b0d5863/GOCO06s.gfc
+# The Niño 3.4 index from NOAA PSL (for the W1 forecast).
+mkdir -p indices && curl -L -o indices/nina34.anom.data https://psl.noaa.gov/data/correlation/nina34.anom.data
 cd ..
 ```
 
@@ -122,6 +124,7 @@ and the map):
 | `cargo run --release -p gravviz -- triangle data/costg/GSM-2_2026182-2026212_GRFO_COSTG_BF01_0201.gfc figures` | [`error_triangle_2026-07.svg`](figures/error_triangle_2026-07.svg): that month's error per coefficient |
 | `cargo run --release -p gravviz -- gradiometry data/GOCO06s.gfc figures` | [`gradiometry_errors.svg`](figures/gradiometry_errors.svg): GOCE-like and cold-atom gradiometers against GOCO06s |
 | `cargo run --release -p gravviz -- sst figures data/costg/GSM-2_2026182-2026212_GRFO_COSTG_BF01_0201.gfc` | [`sst_closed_loop.svg`](figures/sst_closed_loop.svg): closed-loop simulation of four mission classes (about 5 minutes and 1 GB of memory per class) |
+| `cargo run --release -p gravviz -- w1 data/costg data/baseline data/TN-14_C30_C20_GSFC_SLR.txt data/TN-13_GEOC_CSR_RL0603.txt data/indices/nina34.anom.data figures` | [`w1_land_storage.svg`](figures/w1_land_storage.svg): global land water storage against El Niño, with the [pre-registered forecast](prereg/W1-2026-10-24.md) to June 2027 |
 
 ## Run the viewer
 
@@ -161,6 +164,16 @@ Run everything with:
 cargo test --workspace
 ```
 
+## Pre-registered forecasts
+
+The [research plan](reports/Gravimetry%20frontiers%20and%20hidden%20connections.md) tests new
+connections between gravity data and climate. Each test is committed, with a forecast, as a git
+tag before the data that decides it exists. The results are reported whether they hit or miss.
+
+| Test | Registered | Question | Decided by |
+|---|---|---|---|
+| [W1](prereg/W1-2026-10-24.md) | 2026-10-24 | Does land lose more water per degree of El Niño than it gains per degree of La Niña, and does it fail to recover after the 2026 El Niño? | COST-G fields for December 2026 to June 2028 |
+
 ## Limits
 
 - **Glacial isostatic adjustment is not removed**, so Hudson Bay and Scandinavia show crustal
@@ -181,6 +194,7 @@ Data credits:
 - **COST-G monthly fields:** CC BY 4.0, doi:10.5880/COST-G.ICGEM_02_L2.
 - **GOCO06s:** CC BY 4.0, doi:10.5880/ICGEM.2019.002.
 - **GRACE technical notes:** NASA, no use constraints.
-- **Coastlines:** Natural Earth, public domain.
+- **Coastlines and land:** Natural Earth, public domain.
+- **Niño 3.4 index:** NOAA PSL.
 - **Stripe removal:** ported from [gravity-toolkit](https://github.com/polargeodesy/gravity-toolkit)
   (MIT).

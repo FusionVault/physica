@@ -1,0 +1,10 @@
+month,model,quantity,q05,q50,q95
+2026-12,level,s_prime,-1570,-586,452
+2026-12,level,s_full,-2721,-1738,-699
+2026-12,rate,s_prime,-1077,167,1437
+2027-03,level,s_prime,-1890,-856,200
+2027-03,level,s_full,1002,2035,3092
+2027-03,rate,s_prime,-1852,-245,1377
+2027-06,level,s_prime,-1687,-669,418
+2027-06,level,s_full,-822,197,1284
+2027-06,rate,s_prime,-1780,45,1932

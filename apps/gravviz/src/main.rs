@@ -7,6 +7,7 @@
 //! gravviz triangle MONTH.gfc OUT_DIR
 //! gravviz gradiometry STATIC_MODEL.gfc OUT_DIR
 //! gravviz sst OUT_DIR [REFERENCE_MONTH.gfc]
+//! gravviz w1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt NINO34.data OUT_DIR
 //! ```
 //!
 //! `noise` writes `noise_spectra.svg` and `.csv` (Zingerle et al. 2024, Fig. 1). `water-map`
@@ -19,14 +20,18 @@
 //! coefficient errors as water height. `gradiometry` writes `gradiometry_errors.svg` and `.csv`:
 //! gradiometer mission errors against the static model's signal (e.g. GOCO06s). `sst` runs the
 //! closed-loop simulation of four GRACE-type mission classes and writes `sst_closed_loop.svg` and
-//! `.csv`, with a real month's calibrated errors as reference if given.
+//! `.csv`, with a real month's calibrated errors as reference if given. `w1` runs the pre-registered
+//! El Niño test on global land storage (NOAA PSL Niño 3.4 anomaly file) and writes `w1_report.txt`,
+//! `w1_land_storage.svg` and `.csv`, and `w1_forecast.csv`.
 
 mod gradiometry;
+mod lab;
 mod map;
 mod noise;
 mod sst;
 mod svg;
 mod triangle;
+mod w1;
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -76,9 +81,19 @@ fn main() -> Result<()> {
             write(out, "sst_closed_loop.svg", &svg)?;
             write(out, "sst_closed_loop.csv", &csv)
         }
+        ["w1", months, baseline, tn14, tn13, nino, out] => {
+            let (lats, lons, fields) = lab::load_months(months, baseline, tn14, tn13)?;
+            let w1::Outcome { report, svg, csv, forecast_csv } = w1::run(&fields, &lats, &lons, Path::new(nino))?;
+            print!("{report}");
+            write(out, "w1_report.txt", &report)?;
+            write(out, "w1_land_storage.svg", &svg)?;
+            write(out, "w1_land_storage.csv", &csv)?;
+            write(out, "w1_forecast.csv", &forecast_csv)
+        }
         _ => Err("usage: gravviz noise OUT_DIR | water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | \
             series MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | triangle MONTH.gfc OUT_DIR | \
-            gradiometry STATIC_MODEL.gfc OUT_DIR | sst OUT_DIR [REFERENCE_MONTH.gfc]".into()),
+            gradiometry STATIC_MODEL.gfc OUT_DIR | sst OUT_DIR [REFERENCE_MONTH.gfc] | \
+            w1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt NINO34.data OUT_DIR".into()),
     }
 }
 
