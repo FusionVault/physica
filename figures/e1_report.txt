@@ -1,0 +1,5 @@
+GRACE-FO months: 96 (13 after the event); event 2025-07-29 23:25 UTC at 52.5°N 160.3°E
+largest |step| within 500 km: 3.42 µGal at 50.5°N 160.5°E (sign +3.42); step range in the disk -3.39 to 3.42 µGal
+at that cell: post-event ramp +3.12 µGal/yr; residual sd 0.61 µGal
+null (100 ocean points, 40–65° latitude): median 1.13, 95th percentile 2.26, max 2.95 µGal
+rank p = 0.010 (above the null's 95th percentile: detected)

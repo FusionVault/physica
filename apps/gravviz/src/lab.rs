@@ -31,7 +31,7 @@ pub fn load_months(months_dir: &str, baseline_dir: &str, tn14: &str, tn13: &str)
 }
 
 /// Land rings (lon, lat degrees) from the bundled Natural Earth 1:110m polygons.
-fn land_rings() -> Vec<Vec<(f64, f64)>> {
+pub fn land_rings() -> Vec<Vec<(f64, f64)>> {
     include_str!("../data/land_110m.txt")
         .split("\n\n")
         .map(|ring| ring.lines().filter_map(|l| {
@@ -43,7 +43,7 @@ fn land_rings() -> Vec<Vec<(f64, f64)>> {
 }
 
 /// Even–odd point-in-polygon over all rings (holes included).
-fn on_land(rings: &[Vec<(f64, f64)>], lon: f64, lat: f64) -> bool {
+pub fn on_land(rings: &[Vec<(f64, f64)>], lon: f64, lat: f64) -> bool {
     let mut inside = false;
     for ring in rings {
         let mut j = ring.len() - 1;

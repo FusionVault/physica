@@ -125,6 +125,7 @@ and the map):
 | `cargo run --release -p gravviz -- gradiometry data/GOCO06s.gfc figures` | [`gradiometry_errors.svg`](figures/gradiometry_errors.svg): GOCE-like and cold-atom gradiometers against GOCO06s |
 | `cargo run --release -p gravviz -- sst figures data/costg/GSM-2_2026182-2026212_GRFO_COSTG_BF01_0201.gfc` | [`sst_closed_loop.svg`](figures/sst_closed_loop.svg): closed-loop simulation of four mission classes (about 5 minutes and 1 GB of memory per class) |
 | `cargo run --release -p gravviz -- w1 data/costg data/baseline data/TN-14_C30_C20_GSFC_SLR.txt data/TN-13_GEOC_CSR_RL0603.txt data/indices/nina34.anom.data figures` | [`w1_land_storage.svg`](figures/w1_land_storage.svg): global land water storage against El Niño, with the [pre-registered forecast](prereg/W1-2026-10-24.md) to June 2027 |
+| `cargo run --release -p gravviz -- e1 data/costg data/baseline data/TN-14_C30_C20_GSFC_SLR.txt data/TN-13_GEOC_CSR_RL0603.txt figures` | [`e1_kamchatka.svg`](figures/e1_kamchatka.svg): the 2025 Kamchatka earthquake in GRACE-FO gravity against a random-location null ([notes](results/E1-2026-10-24.md)) |
 
 ## Run the viewer
 
@@ -173,6 +174,12 @@ tag before the data that decides it exists. The results are reported whether the
 | Test | Registered | Question | Decided by |
 |---|---|---|---|
 | [W1](prereg/W1-2026-10-24.md) | 2026-10-24 | Does land lose more water per degree of El Niño than it gains per degree of La Niña, and does it fail to recover after the 2026 El Niño? | COST-G fields for December 2026 to June 2028 |
+
+Results so far:
+
+- **[E1](results/E1-2026-10-24.md):** the Mw 8.8 Kamchatka earthquake of July 2025 is detected in
+  COST-G monthly gravity. It shows a −3.7/+3.4 µGal dipole and lies above all 100 random ocean
+  locations in the null (rank p = 0.01). The trench-side lobe is still rising a year later.
 
 ## Limits
 
