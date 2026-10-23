@@ -7,7 +7,7 @@ quantum (cold-atom) sensors.
 | Crate | Status | Scope |
 |---|---|---|
 | [`geopotential`](crates/geopotential) | 0.1.0, unpublished | Legendre functions to degree 2700, coefficients with tide systems and ICGEM time-variable terms, point and grid synthesis, functionals, degree spectra |
-| `gravity-field` | planned | ICGEM `.gfc`, GRACE Level-2, TN-13/14 and mascon NetCDF readers; data fetchers |
+| [`gravity-field`](crates/gravity-field) | 0.1.0, unpublished | ICGEM `.gfc` reader (static and time-variable icgem1.0/2.0, with errors), tested on real COST-G, Swarm and GOCO06s files. Planned: GRACE Level-2, TN-13/14 and mascon NetCDF readers; data fetchers |
 | `gravimetry` | planned | GRACE processing chain: C20/degree-1/GIA, filters, water height, basins |
 | `satgrav` | planned | Sensor noise models (electrostatic, laser ranging, atom interferometry), error propagation |
 

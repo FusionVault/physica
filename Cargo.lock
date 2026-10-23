@@ -5,3 +5,10 @@ version = 4
 [[package]]
 name = "geopotential"
 version = "0.1.0"
+
+[[package]]
+name = "gravity-field"
+version = "0.1.0"
+dependencies = [
+ "geopotential",
+]
