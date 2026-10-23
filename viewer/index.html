@@ -39,11 +39,13 @@ main { max-width: 1120px; margin: 0 auto; display: grid; gap: 18px; }
 h1 { font-family: var(--font-display); font-weight: 600; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
 .lede { color: var(--ink-2); margin: 4px 0 0; max-width: 68ch; }
 .panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
-.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
-.month { display: grid; gap: 0; min-width: 9.5ch; }
-.month .label { font-family: var(--font-display); font-weight: 600; font-size: 28px; line-height: 1; }
+/* The slider has a row of its own: the month label changes width as it moves, and must not resize
+   or re-wrap the slider under the pointer. */
+.bar { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px 16px; }
+.month { display: grid; gap: 0; }
+.month .label { font-family: var(--font-display); font-weight: 600; font-size: 28px; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .month .mission { font-family: var(--font-data); font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-.slider { flex: 1 1 260px; display: grid; gap: 4px; min-width: 0; }
+.slider { grid-column: 1 / -1; display: grid; gap: 4px; min-width: 0; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 .ticks { display: flex; justify-content: space-between; font-family: var(--font-data); font-size: 11px; color: var(--muted); }
 button, select {
@@ -94,8 +96,8 @@ footer a { color: var(--ink-2); }
 
   <section class="panel" aria-label="Map">
     <div class="bar">
-      <div class="month" aria-live="polite"><span class="label" id="monthLabel">Loading…</span><span class="mission" id="missionLabel">&nbsp;</span></div>
       <button id="play" type="button" aria-label="Play through the months">Play</button>
+      <div class="month" aria-live="polite"><span class="label" id="monthLabel">Loading…</span><span class="mission" id="missionLabel">&nbsp;</span></div>
       <div class="slider">
         <input id="monthSlider" type="range" min="0" max="0" value="0" aria-label="Month">
         <div class="ticks" id="sliderTicks"></div>
@@ -381,13 +383,13 @@ function niceStep(raw) {
 }
 
 // ---- Controls ----------------------------------------------------------------------------
-function setMonth(k) {
+function setMonth(k, fromSlider = false) {
   state.month = Math.max(0, Math.min(idx.months.length - 1, k));
   const m = idx.months[state.month];
   const [y, mo] = m.label.split("-");
   $("monthLabel").textContent = new Date(Date.UTC(+y, +mo - 1, 15)).toLocaleDateString("en", { month: "long", year: "numeric", timeZone: "UTC" });
   $("missionLabel").textContent = m.mission;
-  $("monthSlider").value = state.month;
+  if (!fromSlider) $("monthSlider").value = state.month;
   draw(); drawChart();
 }
 function setPlace(lat, lon, name) {
@@ -410,7 +412,13 @@ function setRampTicks() {
 
 function wire() {
   $("monthSlider").max = idx.months.length - 1;
-  $("monthSlider").addEventListener("input", (e) => setMonth(+e.target.value));
+  // Scrubbing fires many input events per frame: redraw once per frame with the latest month.
+  let scrubTo = null;
+  $("monthSlider").addEventListener("input", (e) => {
+    const idle = scrubTo === null;
+    scrubTo = +e.target.value;
+    if (idle) requestAnimationFrame(() => { const k = scrubTo; scrubTo = null; setMonth(k, true); });
+  });
   // The slider moves by month index, so label the months at its two ends and its centre.
   const n = idx.months.length;
   $("sliderTicks").innerHTML = [0, Math.floor((n - 1) / 2), n - 1].map((k) => `<span>${idx.months[k].label.slice(0, 4)}</span>`).join("");
