@@ -1,0 +1,23 @@
+comment                       Synthetic file in the layout of ESA Swarm EGF_SHA_2 monthly fields; not ESA data.
+comment                       It reproduces the header quirks a reader must tolerate: comment lines,
+comment                       time_period_of_data, errors no, and a stray WARNING line.
+time_period_of_data           20251201-20251231
+product_type                  gravity_field
+earth_gravity_constant        0.3986004415E+15
+radius                        0.637813630E+07
+norm                          fully_normalized
+tide_system                   tide_free
+errors                        no
+modelname                     SYNTHETIC_SWARM_STYLE_2025-12
+max_degree                    40
+WARNING: No quality found for 2025-12
+key    L    M       C                   S
+end_of_head ========================================
+gfc    0    0 0.100000000000E+01 0.000000000000E+00
+gfc    1    0 0.000000000000E+00 0.000000000000E+00
+gfc    1    1 0.000000000000E+00 0.000000000000E+00
+gfc    2    0 -4.84165000000E-04 +0.00000000000E+00
+gfc    2    1 -1.00000000000E-10 +2.00000000000E-09
+gfc    2    2 +2.43950000000E-06 -1.40030000000E-06
+gfc    3    0 +9.57000000000E-07 +0.00000000000E+00
+gfc   40   40 -1.00000000000E-09 +5.00000000000E-10

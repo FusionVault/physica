@@ -245,20 +245,16 @@ mod tests {
         assert_eq!((sigma.c(2, 1), sigma.s(2, 1)), (2.45322715392e-11, 1.62793405520e-11));
     }
 
-    /// Swarm: `comment` lines, a stray `WARNING:` line, `errors no`.
+    /// Swarm layout: `comment` lines, a stray `WARNING:` line, `errors no`. The fixture is
+    /// synthetic: ESA's terms do not allow redistributing Swarm data in a public package.
     #[test]
-    fn swarm_monthly() {
-        // ESA data: kept in the repository but out of the published package, because its
-        // redistribution terms were not confirmed. Skipped where the file is absent.
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/swarm_2025-12_n10.gfc");
-        let Ok(text) = std::fs::read_to_string(path) else {
-            eprintln!("skipped: {path} is not in this package");
-            return;
-        };
-        let g = read_gfc(&text).unwrap();
+    fn swarm_style_header() {
+        let g = read_gfc(include_str!("../tests/data/swarm_style_synthetic.gfc")).unwrap();
         let b = &g.model.base;
+        assert_eq!(g.name.as_deref(), Some("SYNTHETIC_SWARM_STYLE_2025-12"));
         assert_eq!(b.max_degree(), 40);
-        assert_eq!((b.c(2, 1), b.s(2, 1)), (-8.08481517811e-10, 1.48254384135e-9));
+        assert_eq!((b.c(2, 1), b.s(2, 1)), (-1e-10, 2e-9));
+        assert_eq!((b.c(40, 40), b.s(40, 40)), (-1e-9, 5e-10));
         assert!(g.sigma.is_none());
     }
 
