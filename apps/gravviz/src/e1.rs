@@ -25,6 +25,8 @@ pub struct Outcome {
     pub report: String,
     pub svg: String,
     pub csv: String,
+    /// Regional frames for the viewer: every month's gravity with trend and seasons removed.
+    pub frames: String,
 }
 
 fn distance_km(a: (f64, f64), b: (f64, f64)) -> f64 {
@@ -114,7 +116,33 @@ pub fn run(months_dir: &str, baseline_dir: &str, tn14: &str, tn13: &str) -> Resu
     }
     let fitted: Vec<f64> = x.iter().map(|r| r.iter().zip(&beta).map(|(a, b)| a * b).sum()).collect();
     let svg = figure(&lats, &lons, &step, &rings, &spans, &series, &fitted, te, (blat, blon), &null, observed, &rep);
-    Ok(Outcome { report: rep, svg, csv })
+
+    // Frames: observation minus the fitted trend and seasons, keeping the step and ramp, so the
+    // earthquake appears when it happened.
+    let region: Vec<usize> = (0..cells).filter(|&c| { let (la, lo) = coord(c); (40.0..66.0).contains(&la) && (140.0..180.0).contains(&lo) }).collect();
+    let mut frames = vec![vec![0.0; region.len()]; grids.len()];
+    for (k, &c) in region.iter().enumerate() {
+        let y: Vec<f64> = grids.iter().map(|g| g[c]).collect();
+        let (b, _) = ols(&x, &y)?;
+        for (i, row) in x.iter().enumerate() {
+            frames[i][k] = y[i] - row[..8].iter().zip(&b[..8]).map(|(a, b)| a * b).sum::<f64>();
+        }
+    }
+    let (la0, lo0) = coord(region[0]);
+    let nlon = region.iter().filter(|&&c| coord(c).0 == la0).count();
+    let list = |v: &mut dyn Iterator<Item = f64>| v.map(|x| format!("{x:.2}")).collect::<Vec<_>>().join(",");
+    let months_json: Vec<String> = spans.iter().map(|sp| { let (y, m) = crate::calendar(sp.mid()); format!(r#"{{"label":"{y}-{m:02}","t":{:.4}}}"#, sp.mid()) }).collect();
+    let frames = format!(
+        r#"{{"lat0":{la0},"lon0":{lo0},"step":1,"nlat":{},"nlon":{nlon},"epicentre":[{},{}],"event":{te:.5},"radius_km":{RADIUS_KM},
+"unit":"µGal","processing":"COST-G gravity anomaly minus the 2004–2009 mean; degree ≤ 60, 300 km Gaussian, no destriping; each cell's trend and seasons removed","best":[{blat},{blon}],"observed":{observed:.3},"null_q95":{:.3},"null":[{}],
+"months":[{}],
+"step_map":[{}],
+"frames":[{}]}}
+"#,
+        region.len() / nlon, EPICENTRE.0, EPICENTRE.1, quantile(&null, 0.95), list(&mut null.iter().copied()), months_json.join(","),
+        list(&mut region.iter().map(|&c| step[c])), frames.iter().map(|f| format!("[{}]", list(&mut f.iter().copied()))).collect::<Vec<_>>().join(",\n")
+    );
+    Ok(Outcome { report: rep, svg, csv, frames })
 }
 
 #[allow(clippy::too_many_arguments)] // one-off figure; the pieces have nothing in common to bundle

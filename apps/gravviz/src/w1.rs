@@ -59,6 +59,8 @@ pub struct Outcome {
     pub svg: String,
     pub csv: String,
     pub forecast_csv: String,
+    /// Month, observed Niño 3.4 and the level model's forecast quantiles, for the viewer.
+    pub monthly_csv: String,
 }
 
 pub fn run(months: &[Month], lats: &[f64], lons: &[f64], nino_path: &Path) -> Result<Outcome> {
@@ -218,7 +220,21 @@ pub fn run(months: &[Month], lats: &[f64], lons: &[f64], nino_path: &Path) -> Re
     for i in 0..t.len() {
         let _ = writeln!(csv, "{:.4},{},{:.1},{:.1},{:.1}", t[i], months[i].mission, s[i], sp[i], fit[i]);
     }
-    Ok(Outcome { report: rep, svg, csv, forecast_csv: fc })
+    let mut monthly_csv = String::from("month,nino34,forecast_q05,forecast_q50,forecast_q95\n");
+    let mut cm = (2002, 1);
+    while cm <= TARGETS[TARGETS.len() - 1] {
+        let n = nino.get(&cm).map(|v| format!("{v:.2}")).unwrap_or_default();
+        let h = months_between(start, cm);
+        let q = if h >= 1 && h as usize <= horizon {
+            let v = at(&lev_paths, h as usize);
+            format!("{:.0},{:.0},{:.0}", quantile(&v, 0.05), quantile(&v, 0.5), quantile(&v, 0.95))
+        } else {
+            ",,".into()
+        };
+        let _ = writeln!(monthly_csv, "{}-{:02},{n},{q}", cm.0, cm.1);
+        cm = shift(cm, 1);
+    }
+    Ok(Outcome { report: rep, svg, csv, forecast_csv: fc, monthly_csv })
 }
 
 /// OLS fit, then a moving-block bootstrap (fitted values plus resampled residual blocks, refit).
@@ -281,7 +297,9 @@ fn figure(t: &[f64], sp: &[f64], fit: &[f64], nino: &HashMap<Cal, f64>, cone: &[
 <text x="{left}" y="72" class="subtitle">Black: observed. Blue: trend plus the Niño 3.4 level model (in-sample fit), then its forecast median and 90% range to June 2027,</text>
 <text x="{left}" y="90" class="subtitle">committed as a git tag before those months were observed.</text>
 "#);
-    for (&(yr, mo), &v) in nino {
+    let mut shaded: Vec<(&Cal, &f64)> = nino.iter().collect();
+    shaded.sort_by_key(|(cm, _)| **cm); // stable output across runs
+    for (&(yr, mo), &v) in shaded {
         let tm = yr as f64 + (mo as f64 - 1.0) / 12.0;
         if v > 1.0 && (x0..x1).contains(&tm) {
             let _ = writeln!(s, r#"<rect x="{:.1}" y="{top}" width="{:.1}" height="{:.1}" fill="var(--s2)" opacity="0.15"/>"#, x(tm), x(tm + 1.0 / 12.0) - x(tm) + 0.3, bottom - top);

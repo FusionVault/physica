@@ -58,25 +58,38 @@ pub fn on_land(rings: &[Vec<(f64, f64)>], lon: f64, lat: f64) -> bool {
     inside
 }
 
-/// Area (km²) of land each 2° cell contributes to "land outside the ice sheets": the land fraction
-/// from 4×4 sub-samples, with Antarctica (south of 60°S) and a Greenland box (north of 58°N, 80°W
-/// to 10°W, which also drops Baffin and Ellesmere Islands and Iceland, where Greenland's signal
-/// leaks) set to zero.
-pub fn land_area_km2(lats: &[f64], lons: &[f64]) -> Vec<f64> {
+/// Land fraction of each 2° cell, from 4×4 sub-samples.
+pub fn land_fraction(lats: &[f64], lons: &[f64]) -> Vec<f64> {
     let rings = land_rings();
-    let r = 6371.0;
     let mut out = Vec::with_capacity(lats.len() * lons.len());
     for &lat in lats {
-        let (la, step) = (lat.to_degrees(), 2.0_f64);
-        let cell = r * r * step.to_radians() * ((la + 1.0).to_radians().sin() - (la - 1.0).to_radians().sin());
         for &lon in lons {
-            let lo = lon.to_degrees();
-            let excluded = la < -60.0 || (la > 58.0 && (-80.0..=-10.0).contains(&lo));
+            let (la, lo) = (lat.to_degrees(), lon.to_degrees());
             let hits = (0..16).filter(|k| {
                 let (dy, dx) = ((k / 4) as f64 * 0.5 - 0.75, (k % 4) as f64 * 0.5 - 0.75);
                 on_land(&rings, lo + dx, la + dy)
             }).count();
-            out.push(if excluded { 0.0 } else { cell * hits as f64 / 16.0 });
+            out.push(hits as f64 / 16.0);
+        }
+    }
+    out
+}
+
+/// Area (km²) of land each 2° cell contributes to "land outside the ice sheets": the land fraction
+/// times the cell area, with Antarctica (south of 60°S) and a Greenland box (north of 58°N, 80°W
+/// to 10°W, which also drops Baffin and Ellesmere Islands and Iceland, where Greenland's signal
+/// leaks) set to zero.
+pub fn land_area_km2(lats: &[f64], lons: &[f64]) -> Vec<f64> {
+    let fraction = land_fraction(lats, lons);
+    let r = 6371.0;
+    let mut out = Vec::with_capacity(fraction.len());
+    for (i, &lat) in lats.iter().enumerate() {
+        let la = lat.to_degrees();
+        let cell = r * r * 2f64.to_radians() * ((la + 1.0).to_radians().sin() - (la - 1.0).to_radians().sin());
+        for (j, &lon) in lons.iter().enumerate() {
+            let lo = lon.to_degrees();
+            let excluded = la < -60.0 || (la > 58.0 && (-80.0..=-10.0).contains(&lo));
+            out.push(if excluded { 0.0 } else { cell * fraction[i * lons.len() + j] });
         }
     }
     out
@@ -144,6 +157,86 @@ pub fn ols(x: &[Vec<f64>], y: &[f64]) -> Result<(Vec<f64>, Vec<f64>)> {
     let beta: Vec<f64> = (0..p).map(|i| a[i * (p + 1) + p] / a[i * (p + 1) + i]).collect();
     let resid = x.iter().zip(y).map(|(row, yi)| yi - row.iter().zip(&beta).map(|(a, b)| a * b).sum::<f64>()).collect();
     Ok((beta, resid))
+}
+
+/// Inverse of a small symmetric positive-definite matrix (Gauss–Jordan with partial pivoting).
+pub fn inverse(a: &[Vec<f64>]) -> Result<Vec<Vec<f64>>> {
+    let p = a.len();
+    let mut m: Vec<Vec<f64>> = a.iter().enumerate().map(|(i, row)| {
+        let mut r = row.clone();
+        r.extend((0..p).map(|j| if i == j { 1.0 } else { 0.0 }));
+        r
+    }).collect();
+    for c in 0..p {
+        let piv = (c..p).max_by(|&i, &j| m[i][c].abs().total_cmp(&m[j][c].abs())).unwrap_or(c);
+        if m[piv][c].abs() < 1e-12 {
+            return Err("singular matrix".into());
+        }
+        m.swap(c, piv);
+        let d = m[c][c];
+        m[c].iter_mut().for_each(|v| *v /= d);
+        for i in (0..p).filter(|&i| i != c) {
+            let f = m[i][c];
+            let pivot_row = m[c].clone();
+            m[i].iter_mut().zip(&pivot_row).for_each(|(v, w)| *v -= f * w);
+        }
+    }
+    Ok(m.into_iter().map(|r| r[p..].to_vec()).collect())
+}
+
+/// OLS with Newey–West (HAC) standard errors, Bartlett weights up to `lags`. Rows must be in time
+/// order. Returns (coefficients, standard errors, residuals).
+pub fn ols_hac(x: &[Vec<f64>], y: &[f64], lags: usize) -> Result<(Vec<f64>, Vec<f64>, Vec<f64>)> {
+    let (beta, resid) = ols(x, y)?;
+    let p = beta.len();
+    let mut xtx = vec![vec![0.0; p]; p];
+    for row in x {
+        for i in 0..p {
+            for j in 0..p {
+                xtx[i][j] += row[i] * row[j];
+            }
+        }
+    }
+    let bread = inverse(&xtx)?;
+    let mut meat = vec![vec![0.0; p]; p];
+    for l in 0..=lags.min(x.len() - 1) {
+        let w = if l == 0 { 1.0 } else { 2.0 * (1.0 - l as f64 / (lags + 1) as f64) };
+        for t in l..x.len() {
+            let e = resid[t] * resid[t - l];
+            for i in 0..p {
+                for j in 0..p {
+                    // The symmetrised lag-l term: (x_t x_{t−l}ᵀ + x_{t−l} x_tᵀ) / 2, doubled by w.
+                    meat[i][j] += w * e * (x[t][i] * x[t - l][j] + x[t - l][i] * x[t][j]) / 2.0;
+                }
+            }
+        }
+    }
+    let se = (0..p).map(|k| {
+        (0..p).map(|i| (0..p).map(|j| bread[k][i] * meat[i][j] * bread[j][k]).sum::<f64>()).sum::<f64>().sqrt()
+    }).collect();
+    Ok((beta, se, resid))
+}
+
+/// Two-sided normal p-value of a z statistic (Abramowitz & Stegun 7.1.26, |error| < 1.5e-7).
+pub fn normal_p(z: f64) -> f64 {
+    let x = z.abs() / std::f64::consts::SQRT_2;
+    let t = 1.0 / (1.0 + 0.327_591_1 * x);
+    let poly = t * (0.254_829_592 + t * (-0.284_496_736 + t * (1.421_413_741 + t * (-1.453_152_027 + t * 1.061_405_429))));
+    (poly * (-x * x).exp()).clamp(0.0, 1.0)
+}
+
+/// Benjamini–Hochberg adjusted q-values, in input order.
+pub fn bh(p: &[f64]) -> Vec<f64> {
+    let m = p.len();
+    let mut order: Vec<usize> = (0..m).collect();
+    order.sort_by(|&a, &b| p[a].total_cmp(&p[b]));
+    let mut q = vec![0.0; m];
+    let mut running = 1.0f64;
+    for (rank, &i) in order.iter().enumerate().rev() {
+        running = running.min(p[i] * m as f64 / (rank + 1) as f64);
+        q[i] = running;
+    }
+    q
 }
 
 /// A small deterministic random generator (SplitMix64) for bootstraps and ensembles.
@@ -228,6 +321,22 @@ mod tests {
         std::fs::remove_file(&path).unwrap();
         assert_eq!(rows.len(), 14);
         assert_eq!(rows[13], ((2025, 2), -2.0));
+    }
+
+    #[test]
+    fn hac_and_p_values() {
+        assert!((normal_p(1.959_964) - 0.05).abs() < 1e-6 && (normal_p(0.0) - 1.0).abs() < 1e-6);
+        let inv = inverse(&[vec![4.0, 2.0], vec![2.0, 3.0]]).unwrap();
+        assert!((inv[0][0] - 0.375).abs() < 1e-12 && (inv[0][1] + 0.25).abs() < 1e-12 && (inv[1][1] - 0.5).abs() < 1e-12);
+        // With lags = 0, HAC is White's estimator; for a pure intercept that is sd/√n · √((n−0)/n).
+        let y: Vec<f64> = (0..100).map(|i| if i % 2 == 0 { 1.0 } else { -1.0 }).collect();
+        let x: Vec<Vec<f64>> = y.iter().map(|_| vec![1.0]).collect();
+        let (_, se, _) = ols_hac(&x, &y, 0).unwrap();
+        assert!((se[0] - 0.1).abs() < 1e-12, "{se:?}");
+        // Alternating residuals are negatively autocorrelated, so lags shrink the HAC error.
+        assert!(ols_hac(&x, &y, 4).unwrap().1[0] < 0.1);
+        let q = bh(&[0.01, 0.04, 0.03, 0.5]);
+        assert!(q.iter().zip([0.04, 0.16 / 3.0, 0.16 / 3.0, 0.5]).all(|(a, b)| (a - b).abs() < 1e-12), "{q:?}");
     }
 
     #[test]

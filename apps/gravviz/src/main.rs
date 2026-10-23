@@ -10,6 +10,7 @@
 //! gravviz w1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt NINO34.data OUT_DIR
 //! gravviz e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR
 //! gravviz screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR
+//! gravviz q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR
 //! ```
 //!
 //! `noise` writes `noise_spectra.svg` and `.csv` (Zingerle et al. 2024, Fig. 1). `water-map`
@@ -17,23 +18,31 @@
 //! mean of every `.gfc` in BASELINE_DIR, all from ICGEM GSM-2 files (`GSM-2_YYYYDDD-YYYYDDD_…`).
 //! `series` does the same for every month in MONTHS_DIR on a 2° grid and writes `tws_grids.json`
 //! (zlib-compressed little-endian i16 millimetres, `[month][lat][lon]`, base64 in JSON because
-//! artifact hosting serves no raw binary), `tws_index.json` and the coastlines (`coast.txt`) for the
-//! browser viewer in `viewer/`. `triangle` writes `error_triangle_<yyyy-mm>.svg`: the month's calibrated
-//! coefficient errors as water height. `gradiometry` writes `gradiometry_errors.svg` and `.csv`:
-//! gradiometer mission errors against the static model's signal (e.g. GOCO06s). `sst` runs the
-//! closed-loop simulation of four GRACE-type mission classes and writes `sst_closed_loop.svg` and
-//! `.csv`, with a real month's calibrated errors as reference if given. `w1` runs the pre-registered
-//! El Niño test on global land storage (NOAA PSL Niño 3.4 anomaly file) and writes `w1_report.txt`,
-//! `w1_land_storage.svg` and `.csv`, and `w1_forecast.csv`. `e1` looks for the 2025 Kamchatka
-//! earthquake in GRACE-FO gravity against a random-location null and writes `e1_kamchatka.svg`,
-//! `e1_report.txt` and `e1_step.csv`. `screen` reruns the W1 level model with every NOAA PSL index in
-//! INDEX_DIR, QBO and solar flux as negative controls, and writes `screen_indices.svg` and `.txt`.
+//! artifact hosting serves no raw binary), `tws_index.json`, `flow_grids.json` (the minimum-norm
+//! transport potential of each month's change, i16 × `flow_scale` Gt/yr) and the coastlines
+//! (`coast.txt`) for the browser viewer in `viewer/`. `triangle` writes
+//! `error_triangle_<yyyy-mm>.svg`: the month's calibrated coefficient errors as water height.
+//! `gradiometry` writes `gradiometry_errors.svg` and `.csv`: gradiometer mission errors against
+//! the static model's signal (e.g. GOCO06s). `sst` runs the closed-loop simulation of four
+//! GRACE-type mission classes and writes `sst_closed_loop.svg` and `.csv`, with a real month's
+//! calibrated errors as reference if given.
+//!
+//! The research tests: `w1` runs the pre-registered El Niño test on global land storage (NOAA PSL
+//! Niño 3.4 anomaly file) and writes `w1_report.txt`, `w1_land_storage.svg` and `.csv`,
+//! `w1_forecast.csv` and `w1_monthly.csv`. `e1` looks for the 2025 Kamchatka earthquake in
+//! GRACE-FO gravity against a random-location null and writes `e1_kamchatka.svg`,
+//! `e1_report.txt`, `e1_step.csv` and `e1_frames.json`. `screen` reruns the W1 level model with
+//! every NOAA PSL index in INDEX_DIR, QBO and solar flux as negative controls, and writes
+//! `screen_indices.svg`, `.txt` and `.csv`. `q0` regresses each month's noise on solar flux, Ap,
+//! mission phase and centre weights (GFZ `Kp_ap_Ap_SN_F107_since_1932.txt`) and writes
+//! `q0_noise.svg` and `.csv`, `q0_effects.csv` and `q0_report.txt`.
 
 mod e1;
 mod gradiometry;
 mod lab;
 mod map;
 mod noise;
+mod q0;
 mod screen;
 mod sst;
 mod svg;
@@ -90,31 +99,43 @@ fn main() -> Result<()> {
         }
         ["w1", months, baseline, tn14, tn13, nino, out] => {
             let (lats, lons, fields) = lab::load_months(months, baseline, tn14, tn13)?;
-            let w1::Outcome { report, svg, csv, forecast_csv } = w1::run(&fields, &lats, &lons, Path::new(nino))?;
+            let w1::Outcome { report, svg, csv, forecast_csv, monthly_csv } = w1::run(&fields, &lats, &lons, Path::new(nino))?;
             print!("{report}");
             write(out, "w1_report.txt", &report)?;
             write(out, "w1_land_storage.svg", &svg)?;
             write(out, "w1_land_storage.csv", &csv)?;
-            write(out, "w1_forecast.csv", &forecast_csv)
+            write(out, "w1_forecast.csv", &forecast_csv)?;
+            write(out, "w1_monthly.csv", &monthly_csv)
         }
         ["e1", months, baseline, tn14, tn13, out] => {
-            let e1::Outcome { report, svg, csv } = e1::run(months, baseline, tn14, tn13)?;
+            let e1::Outcome { report, svg, csv, frames } = e1::run(months, baseline, tn14, tn13)?;
             print!("{report}");
             write(out, "e1_report.txt", &report)?;
             write(out, "e1_kamchatka.svg", &svg)?;
-            write(out, "e1_step.csv", &csv)
+            write(out, "e1_step.csv", &csv)?;
+            write(out, "e1_frames.json", &frames)
         }
         ["screen", csv, indices, out] => {
-            let screen::Outcome { report, svg } = screen::run(Path::new(csv), Path::new(indices))?;
+            let screen::Outcome { report, svg, csv } = screen::run(Path::new(csv), Path::new(indices))?;
             print!("{report}");
             write(out, "screen_indices.txt", &report)?;
-            write(out, "screen_indices.svg", &svg)
+            write(out, "screen_indices.svg", &svg)?;
+            write(out, "screen_indices.csv", &csv)
+        }
+        ["q0", months, baseline, tn14, tn13, kp, out] => {
+            let q0::Outcome { report, svg, csv, effects } = q0::run(months, baseline, tn14, tn13, Path::new(kp))?;
+            print!("{report}");
+            write(out, "q0_report.txt", &report)?;
+            write(out, "q0_noise.svg", &svg)?;
+            write(out, "q0_noise.csv", &csv)?;
+            write(out, "q0_effects.csv", &effects)
         }
         _ => Err("usage: gravviz noise OUT_DIR | water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | \
             series MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | triangle MONTH.gfc OUT_DIR | \
             gradiometry STATIC_MODEL.gfc OUT_DIR | sst OUT_DIR [REFERENCE_MONTH.gfc] | \
             w1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt NINO34.data OUT_DIR | \
-            e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR".into()),
+            e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR | \
+            q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR".into()),
     }
 }
 
@@ -204,11 +225,25 @@ fn baseline_mean(dir: &str, tn14: &[SlrC20C30], tn13: &[Degree1]) -> Result<(Coe
 /// Equivalent water height (cm) of `field − mean` on `lats × lons` (radians), through the GRACE
 /// Tellus chain (Landerer & Swenson 2012): degree 60, destriping, 300 km Gaussian.
 fn ewh_cm(field: &Coefficients, mean: &Coefficients, lats: &[f64], lons: &[f64]) -> Result<Vec<f64>> {
-    let nmax = 60;
-    let anomaly = gravimetry::destripe(&gravimetry::anomaly(field, mean).truncated(nmax));
-    let anomaly = gravimetry::smooth(&anomaly, &gravimetry::gaussian_weights(300e3, field.radius, nmax));
-    let love = gravimetry::love_numbers(nmax).ok_or("degree above the Love-number table")?;
-    Ok(anomaly.grid(&Functional::WaterHeight { love: &love }, field.radius, lats, lons).into_iter().map(|m| m * 100.0).collect())
+    let love = gravimetry::love_numbers(60).ok_or("degree above the Love-number table")?;
+    Ok(filtered(field, mean).grid(&Functional::WaterHeight { love: &love }, field.radius, lats, lons).into_iter().map(|m| m * 100.0).collect())
+}
+
+/// `field − mean` through the Tellus filters: degree 60, destriping, 300 km Gaussian.
+fn filtered(field: &Coefficients, mean: &Coefficients) -> Coefficients {
+    let anomaly = gravimetry::destripe(&gravimetry::anomaly(field, mean).truncated(60));
+    gravimetry::smooth(&anomaly, &gravimetry::gaussian_weights(300e3, field.radius, 60))
+}
+
+/// Minimum-norm mass transport (M2): the potential φ whose gradient is the smallest horizontal
+/// mass flux that carries the observed change, ∇²φ = −σ̇ on the sphere, so φ_nm = R²σ̇_nm/(n(n+1)).
+/// `rate` is the change of the filtered field per year; returns φ on the grid in Gt/yr (its
+/// gradient divided by R is the flux in Gt per metre per year).
+fn transport_potential(rate: &Coefficients, love: &[f64], lats: &[f64], lons: &[f64]) -> Vec<f64> {
+    let r = rate.radius;
+    let weights: Vec<f64> = (0..=rate.max_degree()).map(|n| if n == 0 { 0.0 } else { r * r / (n * (n + 1)) as f64 }).collect();
+    // WaterHeight gives metres of water per year; × ρ_w = 1000 kg/m³ and ÷ 1e12 for Gt.
+    gravimetry::smooth(rate, &weights).grid(&Functional::WaterHeight { love }, r, lats, lons).into_iter().map(|v| v * 1000.0 / 1e12).collect()
 }
 
 /// Cell centres of a regular `step`-degree grid, radians: (latitudes south to north, longitudes from −180°).
@@ -277,7 +312,8 @@ fn series(months: &str, baseline: &str, tn14: &str, tn13: &str, out: &str) -> Re
     let (tn14, tn13) = read_technotes(tn14, tn13)?;
     let (mean, baseline_label) = baseline_mean(baseline, &tn14, &tn13)?;
     let (lats, lons) = grid_axes(2.0);
-    let (mut bin, mut entries) = (Vec::new(), Vec::new());
+    let love = gravimetry::love_numbers(60).ok_or("degree above the Love-number table")?;
+    let (mut bin, mut entries, mut fields) = (Vec::new(), Vec::new(), Vec::new());
     for path in gfc_files(months)? {
         let field = match corrected_month(&path, &tn14, &tn13) {
             Ok(f) => f,
@@ -288,29 +324,72 @@ fn series(months: &str, baseline: &str, tn14: &str, tn13: &str, out: &str) -> Re
         };
         let sp = span(&path)?;
         let (year, mon) = calendar(sp.mid());
-        for v in ewh_cm(&field, &mean, &lats, &lons)? {
-            bin.extend_from_slice(&encode_mm(v).to_le_bytes());
+        let anomaly = filtered(&field, &mean);
+        for v in anomaly.grid(&Functional::WaterHeight { love: &love }, field.radius, &lats, &lons) {
+            bin.extend_from_slice(&encode_mm(v * 100.0).to_le_bytes());
         }
-        entries.push(format!(r#"{{"label":"{year}-{mon:02}","t":{:.4},"mission":"{}"}}"#, sp.mid(),
-            if path.to_string_lossy().contains("_GRFO_") { "GRACE-FO" } else { "GRACE" }));
+        entries.push((format!("{year}-{mon:02}"), sp.mid(), if path.to_string_lossy().contains("_GRFO_") { "GRACE-FO" } else { "GRACE" }));
+        fields.push(anomaly);
     }
+
+    // Transport potential from the change between neighbouring months (central where both lie
+    // within 45 days, one-sided where only one does, none across longer gaps).
+    let near = 45.0 / 365.25;
+    let mut phi: Vec<Option<Vec<f64>>> = Vec::with_capacity(fields.len());
+    for i in 0..fields.len() {
+        let prev = (i > 0 && entries[i].1 - entries[i - 1].1 < near).then(|| i - 1);
+        let next = (i + 1 < fields.len() && entries[i + 1].1 - entries[i].1 < near).then(|| i + 1);
+        let (a, b) = match (prev, next) {
+            (Some(p), Some(n)) => (p, n),
+            (Some(p), None) => (p, i),
+            (None, Some(n)) => (i, n),
+            (None, None) => { phi.push(None); continue; }
+        };
+        let dt = entries[b].1 - entries[a].1;
+        let mut rate = Coefficients::zeros(mean.gm, mean.radius, 60);
+        for n in 0..=60 {
+            for m in 0..=n {
+                rate.set(n, m, (fields[b].c(n, m) - fields[a].c(n, m)) / dt, (fields[b].s(n, m) - fields[a].s(n, m)) / dt);
+            }
+        }
+        phi.push(Some(transport_potential(&rate, &love, &lats, &lons)));
+    }
+    // One i16 scale for every month: twice the 99.9th percentile of |φ|, clamping the rare beyond.
+    let mut mags: Vec<f64> = phi.iter().flatten().flatten().map(|v| v.abs()).collect();
+    mags.sort_by(f64::total_cmp);
+    let scale = 2.0 * mags.get(mags.len() * 999 / 1000).copied().unwrap_or(1.0) / 32767.0;
+    let mut flow = Vec::new();
+    for p in &phi {
+        for k in 0..lats.len() * lons.len() {
+            let v = p.as_ref().map_or(0.0, |p| p[k]);
+            flow.extend_from_slice(&((v / scale).round().clamp(-32767.0, 32767.0) as i16).to_le_bytes());
+        }
+    }
+
+    let months_json: Vec<String> = entries.iter().zip(&phi).map(|((label, t, mission), p)| {
+        format!(r#"{{"label":"{label}","t":{t:.4},"mission":"{mission}","flow":{}}}"#, p.is_some())
+    }).collect();
     let index = format!(
         r#"{{"source":"COST-G RL02.1 monthly fields (ICGEM, CC BY 4.0, doi:10.5880/COST-G.ICGEM_02_L2); C20/C30 from TN-14, degree 1 from TN-13",
 "processing":"equivalent water height relative to the {baseline_label}; degree 60, destriped, 300 km Gaussian; GIA not removed",
 "unit":"mm","lat0":{},"lon0":{},"step":2.0,"nlat":{},"nlon":{},
+"flow":"minimum-norm transport potential φ (∇²φ = −dσ/dt) from the change between neighbouring months","flow_unit":"Gt/yr","flow_scale":{scale:e},
 "months":[{}]}}
 "#,
-        lats[0].to_degrees(), lons[0].to_degrees(), lats.len(), lons.len(), entries.join(",\n")
+        lats[0].to_degrees(), lons[0].to_degrees(), lats.len(), lons.len(), months_json.join(",\n")
     );
     eprintln!("{} months", entries.len());
-    let mut z = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
-    std::io::Write::write_all(&mut z, &bin)?;
-    write(out, "tws_grids.json", format!(r#"{{"encoding":"zlib+base64","data":"{}"}}"#, svg::base64(&z.finish()?)))?;
+    let pack = |bytes: &[u8]| -> Result<String> {
+        let mut z = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+        std::io::Write::write_all(&mut z, bytes)?;
+        Ok(format!(r#"{{"encoding":"zlib+base64","data":"{}"}}"#, svg::base64(&z.finish()?)))
+    };
+    write(out, "tws_grids.json", pack(&bin)?)?;
+    write(out, "flow_grids.json", pack(&flow)?)?;
     write(out, "coast.txt", include_str!("../data/coastline_110m.txt"))?;
     write(out, "tws_index.json", index)
 }
 
-/// Equivalent water height in cm → i16 millimetres, saturating (±32.7 m covers any real month).
 fn encode_mm(cm: f64) -> i16 {
     (cm * 10.0).round().clamp(f64::from(i16::MIN), f64::from(i16::MAX)) as i16
 }
@@ -342,6 +421,24 @@ mod tests {
         let w2 = gravimetry::gaussian_weights(300e3, r, 2)[2];
         let expect = r * 5517.0 / 3000.0 * 5.0 / (1.0 - 0.303) * 5f64.sqrt() * 1e-10 * w2 * 100.0;
         assert!((cm - expect).abs() < 1e-12 && (cm - 1.87).abs() < 0.01, "{cm} cm");
+    }
+
+    #[test]
+    fn transport_potential_inverts_the_laplacian() {
+        // ∇²φ = −σ̇: check with a finite-difference spherical Laplacian at 30°N, 20°E.
+        let mut rate = Coefficients::zeros(3.986004415e14, 6_378_136.3, 12);
+        for (n, m, c, sn) in [(2, 0, 3e-10, 0.0), (3, 1, -2e-10, 1e-10), (5, 4, 1e-10, 2e-10), (11, 7, -5e-11, 4e-11)] {
+            rate.set(n, m, c, sn);
+        }
+        let love = gravimetry::love_numbers(12).unwrap();
+        let (lat, lon, h) = (30f64.to_radians(), 20f64.to_radians(), 0.2f64.to_radians());
+        let phi = |dlat: f64, dlon: f64| transport_potential(&rate, &love, &[lat + dlat], &[lon + dlon])[0];
+        let r = rate.radius;
+        let d_lat = (lat + h / 2.0).cos() * (phi(h, 0.0) - phi(0.0, 0.0)) - (lat - h / 2.0).cos() * (phi(0.0, 0.0) - phi(-h, 0.0));
+        let laplacian = (d_lat / (h * h * lat.cos()) + (phi(0.0, h) - 2.0 * phi(0.0, 0.0) + phi(0.0, -h)) / (h * h * lat.cos().powi(2))) / (r * r);
+        let ewh_rate = rate.grid(&Functional::WaterHeight { love: &love }, r, &[lat], &[lon])[0]; // m/yr
+        let sigma_dot = ewh_rate * 1000.0 / 1e12; // Gt m⁻² yr⁻¹
+        assert!((laplacian + sigma_dot).abs() < 1e-4 * sigma_dot.abs(), "{laplacian:e} vs {:e}", -sigma_dot);
     }
 
     #[test]

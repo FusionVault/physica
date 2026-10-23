@@ -1,0 +1,28 @@
+index,control,months,parameter,gamma_km3_per_sd,z,p,q
+Niño 3.4,false,259,positive,-437.9,-2.975,0.0010,0.0270
+Niño 3.4,false,259,negative,-156.8,-0.783,0.4486,0.8559
+Niño 3.4,false,259,asymmetry,-281.0,-0.922,0.3526,0.7635
+Indian Ocean Dipole,false,259,positive,-213.1,-1.119,0.3077,0.7635
+Indian Ocean Dipole,false,259,negative,279.4,1.513,0.1309,0.5048
+Indian Ocean Dipole,false,259,asymmetry,-492.5,-1.596,0.1039,0.5048
+Pacific Decadal Osc.,false,250,positive,-730.9,-2.502,0.0370,0.3327
+Pacific Decadal Osc.,false,250,negative,262.8,1.120,0.2717,0.7635
+Pacific Decadal Osc.,false,250,asymmetry,-993.7,-2.367,0.0220,0.2967
+Atlantic Multidecadal Osc.,false,219,positive,210.2,0.526,0.4755,0.8559
+Atlantic Multidecadal Osc.,false,219,negative,-902.9,-1.658,0.0929,0.5048
+Atlantic Multidecadal Osc.,false,219,asymmetry,1113.1,1.485,0.1279,0.5048
+North Atlantic Osc.,false,259,positive,-82.0,-0.359,0.7403,0.8690
+North Atlantic Osc.,false,259,negative,102.7,0.372,0.6484,0.8690
+North Atlantic Osc.,false,259,asymmetry,-184.7,-0.440,0.6234,0.8690
+Arctic Osc.,false,259,positive,243.2,1.062,0.2797,0.7635
+Arctic Osc.,false,259,negative,42.5,0.212,0.8422,0.9098
+Arctic Osc.,false,259,asymmetry,200.7,0.599,0.5614,0.8690
+Southern Annular Mode,false,257,positive,10.8,0.063,0.9590,0.9590
+Southern Annular Mode,false,257,negative,86.0,0.363,0.7203,0.8690
+Southern Annular Mode,false,257,asymmetry,-75.2,-0.169,0.8531,0.9098
+QBO (control),true,256,positive,78.0,0.411,0.6953,0.8690
+QBO (control),true,256,negative,123.7,0.818,0.5115,0.8631
+QBO (control),true,256,asymmetry,-45.7,-0.193,0.8761,0.9098
+Solar flux (control),true,240,positive,56.6,0.418,0.7113,0.8690
+Solar flux (control),true,240,negative,-365.2,-1.299,0.3237,0.7635
+Solar flux (control),true,240,asymmetry,421.8,1.253,0.3676,0.7635

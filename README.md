@@ -15,7 +15,7 @@ change the errors.
 | [`gravimetry`](https://crates.io/crates/gravimetry) ([docs](https://docs.rs/gravimetry)) | GRACE processing: Love numbers, baseline means, stripe removal, Gaussian smoothing |
 | [`satgrav`](https://crates.io/crates/satgrav) ([docs](https://docs.rs/satgrav)) | Missions and sensors:<br>• accelerometer and laser-ranging noise models<br>• atom-interferometer physics<br>• error propagation<br>• a closed-loop simulation of a GRACE-type satellite pair |
 | [`gravviz`](apps/gravviz) | Command-line tool that makes the figures below and the viewer's data (not published) |
-| [`viewer`](viewer) | A web page for exploring every month from 2002 to 2026 on a map or globe |
+| [`viewer`](viewer) | The GRACE Mass Atlas: one web page for the water maps with animated mass flow and the research results |
 
 [`geo5d`](https://crates.io/crates/geo5d) (normal gravity, height systems, relativistic geodesy) uses
 `geopotential` for its gravity synthesis.
@@ -114,6 +114,8 @@ mkdir -p indices && curl -L -o indices/nina34.anom.data https://psl.noaa.gov/dat
 # More indices for the climate screen (QBO and solar flux are the negative controls).
 for f in pdo amon.us nao ao aao qbo solar; do curl -L -o indices/$f.data https://psl.noaa.gov/data/correlation/$f.data; done
 curl -L -o indices/dmi.had.long.data https://psl.noaa.gov/gcos_wgsp/Timeseries/Data/dmi.had.long.data
+# Daily F10.7 and Ap from GFZ Potsdam (CC BY 4.0), for the Q0 noise test.
+curl -L -o indices/Kp_ap_Ap_SN_F107_since_1932.txt https://kp.gfz-potsdam.de/app/files/Kp_ap_Ap_SN_F107_since_1932.txt
 cd ..
 ```
 
@@ -129,19 +131,31 @@ and the map):
 | `cargo run --release -p gravviz -- sst figures data/costg/GSM-2_2026182-2026212_GRFO_COSTG_BF01_0201.gfc` | [`sst_closed_loop.svg`](figures/sst_closed_loop.svg): closed-loop simulation of four mission classes (about 5 minutes and 1 GB of memory per class) |
 | `cargo run --release -p gravviz -- w1 data/costg data/baseline data/TN-14_C30_C20_GSFC_SLR.txt data/TN-13_GEOC_CSR_RL0603.txt data/indices/nina34.anom.data figures` | [`w1_land_storage.svg`](figures/w1_land_storage.svg): global land water storage against El Niño, with the [pre-registered forecast](prereg/W1-2026-10-24.md) to June 2027 |
 | `cargo run --release -p gravviz -- screen figures/w1_land_storage.csv data/indices figures` | [`screen_indices.svg`](figures/screen_indices.svg): the W1 model with every climate index, QBO and solar flux as negative controls (needs the index files listed in `apps/gravviz/src/screen.rs`) |
+| `cargo run --release -p gravviz -- q0 data/costg data/baseline data/TN-14_C30_C20_GSFC_SLR.txt data/TN-13_GEOC_CSR_RL0603.txt data/indices/Kp_ap_Ap_SN_F107_since_1932.txt figures` | [`q0_noise.svg`](figures/q0_noise.svg): what makes a month noisy, against solar flux, Ap, mission phase and centre weights ([notes](results/Q0-2026-10-24.md)) |
 | `cargo run --release -p gravviz -- e1 data/costg data/baseline data/TN-14_C30_C20_GSFC_SLR.txt data/TN-13_GEOC_CSR_RL0603.txt figures` | [`e1_kamchatka.svg`](figures/e1_kamchatka.svg): the 2025 Kamchatka earthquake in GRACE-FO gravity against a random-location null ([notes](results/E1-2026-10-24.md)) |
 
 ## Run the viewer
 
-The viewer is a single web page that reads precomputed monthly grids:
+The viewer, the **GRACE Mass Atlas**, is a single web page with five views:
+
+- **Water:** every month on a map or globe, with an "average year" mode, a change-per-month layer
+  and animated mass flow (the M2 transport field).
+- **El Niño:** the W1 result and its registered forecast cone, with the climate-index screen.
+- **Earthquake:** an animated map of the Kamchatka signal, a series for any cell, and the null.
+- **Noise:** the Q0 results.
+- **Missions:** the instrument figures.
+
+It reads precomputed data. `series` writes the monthly grids and the flow; the research outputs
+come from the `figures/` folder:
 
 ```bash
 cargo run --release -p gravviz -- series data/costg data/baseline data/TN-14_C30_C20_GSFC_SLR.txt data/TN-13_GEOC_CSR_RL0603.txt viewer/data
+cp figures/{w1_land_storage.csv,w1_monthly.csv,w1_forecast.csv,screen_indices.csv,e1_frames.json,q0_noise.csv,q0_effects.csv,noise_spectra.svg,sst_closed_loop.svg,gradiometry_errors.svg,error_triangle_2026-07.svg} viewer/data/
 python3 -m http.server --directory viewer 8000
 ```
 
 Then open <http://localhost:8000>. A local server is needed because browsers block a page opened
-straight from disk from reading files next to it.
+straight from disk from reading files next to it. Stop the server with Ctrl-C when you are done.
 
 ## What is checked
 
@@ -189,6 +203,10 @@ Results so far:
   autocorrelation and 27 tests are accounted for. El Niño drains land, p = 0.001, q = 0.03. La Niña
   and the claimed asymmetry do not hold up. The QBO and solar-flux controls are null, as they
   should be.
+- **[Q0](results/Q0-2026-10-24.md):** solar activity raises the short-wavelength noise of a month
+  by 30% per standard deviation of F10.7. GRACE-FO's wide-pointing mode triples the disagreement
+  of its C₂₀ with laser ranging. At the 300 km scale the other tests use, no factor matters
+  significantly, so solar maximum does not explain W1 or E1.
 
 ## Limits
 
@@ -211,6 +229,7 @@ Data credits:
 - **GOCO06s:** CC BY 4.0, doi:10.5880/ICGEM.2019.002.
 - **GRACE technical notes:** NASA, no use constraints.
 - **Coastlines and land:** Natural Earth, public domain.
-- **Niño 3.4 index:** NOAA PSL.
+- **Niño 3.4 and other climate indices:** NOAA PSL.
+- **F10.7 and Ap:** GFZ Potsdam, CC BY 4.0 (doi:10.5880/Kp.0001).
 - **Stripe removal:** ported from [gravity-toolkit](https://github.com/polargeodesy/gravity-toolkit)
   (MIT).

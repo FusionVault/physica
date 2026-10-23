@@ -13,7 +13,7 @@ use std::fmt::Write;
 use std::path::Path;
 
 use crate::Result;
-use crate::lab::{Rng, ols, read_psl_index, ym};
+use crate::lab::{Rng, bh, ols, read_psl_index, ym};
 use crate::svg::{esc, open};
 
 type Cal = (i32, u32);
@@ -45,6 +45,7 @@ struct Row {
 pub struct Outcome {
     pub report: String,
     pub svg: String,
+    pub csv: String,
 }
 
 /// S′ from the W1 CSV: (epoch, km³).
@@ -132,21 +133,13 @@ pub fn run(w1_csv: &Path, index_dir: &Path) -> Result<Outcome> {
     let controls_null = rows.iter().enumerate().filter(|(_, r)| r.control).all(|(i, _)| (0..3).all(|k| q[3 * i + k] >= 0.1));
     let _ = writeln!(rep, "negative controls (QBO, solar flux): {}", if controls_null { "null, as required" } else { "NOT null: the pipeline leaks" });
     let svg = figure(&rows, &q);
-    Ok(Outcome { report: rep, svg })
-}
-
-/// Benjamini–Hochberg adjusted q-values, in input order.
-fn bh(p: &[f64]) -> Vec<f64> {
-    let m = p.len();
-    let mut order: Vec<usize> = (0..m).collect();
-    order.sort_by(|&a, &b| p[a].total_cmp(&p[b]));
-    let mut q = vec![0.0; m];
-    let mut running = 1.0f64;
-    for (rank, &i) in order.iter().enumerate().rev() {
-        running = running.min(p[i] * m as f64 / (rank + 1) as f64);
-        q[i] = running;
+    let mut csv = String::from("index,control,months,parameter,gamma_km3_per_sd,z,p,q\n");
+    for (i, r) in rows.iter().enumerate() {
+        for (k, name) in ["positive", "negative", "asymmetry"].iter().enumerate() {
+            let _ = writeln!(csv, "{},{},{},{name},{:.1},{:.3},{:.4},{:.4}", r.label, r.control, r.months, r.gamma[k], r.z[k], r.p[k], q[3 * i + k]);
+        }
     }
-    q
+    Ok(Outcome { report: rep, svg, csv })
 }
 
 fn figure(rows: &[Row], q: &[f64]) -> String {
@@ -181,16 +174,4 @@ fn figure(rows: &[Row], q: &[f64]) -> String {
     }
     s.push_str("</svg>\n");
     s
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn benjamini_hochberg() {
-        let q = bh(&[0.01, 0.04, 0.03, 0.5]);
-        let expect = [0.04, 0.16 / 3.0, 0.16 / 3.0, 0.5];
-        assert!(q.iter().zip(expect).all(|(a, b)| (a - b).abs() < 1e-12), "{q:?}");
-    }
 }

@@ -21,42 +21,42 @@ text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(
 <text x="72" y="54" class="subtitle">Land outside the ice sheets, seasons removed: COST-G GRACE and GRACE-FO, km³ relative to 2004–2009. Shading: Niño 3.4 above +1 °C.</text>
 <text x="72" y="72" class="subtitle">Black: observed. Blue: trend plus the Niño 3.4 level model (in-sample fit), then its forecast median and 90% range to June 2027,</text>
 <text x="72" y="90" class="subtitle">committed as a git tag before those months were observed.</text>
-<rect x="634.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="343.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="522.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="527.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="894.1" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
 <rect x="100.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="813.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="525.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="636.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
 <rect x="102.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="804.6" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="340.4" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="519.4" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="891.3" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="541.7" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="796.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="533.4" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="530.6" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="237.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="334.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
 <rect x="337.6" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="340.4" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="343.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="516.6" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="519.4" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="522.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="525.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="527.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="530.6" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="533.4" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="536.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="539.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="541.7" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="544.5" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="547.3" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="550.1" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="634.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="636.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="639.6" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="796.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="799.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="801.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="804.6" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="807.4" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="810.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="813.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
 <rect x="815.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
 <rect x="888.5" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="516.6" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="539.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="801.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="810.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="891.3" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
+<rect x="894.1" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
 <rect x="896.9" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="547.3" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="334.8" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="639.6" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="536.2" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="544.5" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
 <rect x="899.7" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="550.1" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="807.4" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="799.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
-<rect x="237.0" y="110" width="3.1" height="370.0" fill="var(--s2)" opacity="0.15"/>
 <line x1="72" y1="480.0" x2="936" y2="480.0" class="grid"/><text x="64.0" y="484.0" class="tick" text-anchor="end">-3000</text>
 <line x1="72" y1="406.0" x2="936" y2="406.0" class="grid"/><text x="64.0" y="410.0" class="tick" text-anchor="end">-2000</text>
 <line x1="72" y1="332.0" x2="936" y2="332.0" class="grid"/><text x="64.0" y="336.0" class="tick" text-anchor="end">-1000</text>

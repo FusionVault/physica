@@ -1,0 +1,31 @@
+259 months (2002-04 to 2026-07), 4850 open-ocean cells; F10.7 and Ap from GFZ daily values over each month's span
+effects as % change in the metric (dummies: against early GRACE; F10.7, Ap, evenness: per standard deviation); Newey–West errors, 12 lags
+
+ocean residual RMS (median 23.10mm; R² = 0.24)
+  GRACE from 2011      +15.3%  [-3.7, +38.1]  p = 0.121
+  GRACE transplant     +40.1%  [+1.3, +93.7]  p = 0.041, q = 0.103
+  GRACE-FO             -17.1%  [-36.3, +8.0]  p = 0.165
+  wide-pointing        +10.5%  [-8.3, +33.1]  p = 0.295, q = 0.491
+  F10.7                 +6.2%  [-0.7, +13.7]  p = 0.080, q = 0.167
+  Ap                    -0.7%  [-5.0, +3.8]  p = 0.759, q = 0.950
+  centre evenness       -3.1%  [-14.6, +10.1]  p = 0.631, q = 0.947
+
+degrees 61–90 (median 4.26mm; R² = 0.44)
+  GRACE from 2011      -46.3%  [-59.5, -28.9]  p = 0.000
+  GRACE transplant     -34.7%  [-53.3, -8.7]  p = 0.013, q = 0.038
+  GRACE-FO             +26.6%  [-10.5, +78.9]  p = 0.182
+  wide-pointing        -54.6%  [-68.1, -35.4]  p = 0.000, q = 0.000
+  F10.7                +29.9%  [+19.1, +41.6]  p = 0.000, q = 0.000
+  Ap                    -0.1%  [-6.0, +6.2]  p = 0.979, q = 0.979
+  centre evenness       -0.9%  [-12.3, +12.0]  p = 0.886, q = 0.950
+
+C₂₀ offset (median 0.75×10⁻¹⁰; R² = 0.15)
+  GRACE from 2011      +13.4%  [-36.7, +103.1]  p = 0.672
+  GRACE transplant    +248.8%  [+33.3, +812.8]  p = 0.011, q = 0.038
+  GRACE-FO             -75.4%  [-90.9, -33.4]  p = 0.006
+  wide-pointing       +198.4%  [+38.2, +544.4]  p = 0.005, q = 0.027
+  F10.7                 -2.7%  [-19.4, +17.4]  p = 0.771, q = 0.950
+  Ap                    +1.9%  [-13.7, +20.3]  p = 0.823, q = 0.950
+  centre evenness      -30.4%  [-54.2, +5.7]  p = 0.089, q = 0.167
+
+q < 0.1: GRACE transplant → degrees 61–90; wide-pointing → degrees 61–90; F10.7 → degrees 61–90; GRACE transplant → C₂₀ offset; wide-pointing → C₂₀ offset
