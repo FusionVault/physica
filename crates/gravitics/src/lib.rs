@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 pub mod anomalies;
+pub mod electrodes;
 pub mod electrogravity;
 pub mod gem;
 pub mod hfgw;

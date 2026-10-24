@@ -66,6 +66,7 @@ assert!((near * 1e3 - 13.28).abs() < 0.01);
 | Podkletnov: weight change above a spinning superconductor | up to −2.1% | a weight increase of at most 3×10⁻⁹ | no change above 2×10⁻⁸ (NASA Marshall) |
 | Li–Baker: a GHz gravitational-wave detector | a signal in 3×10³ s | one signal photon in 3×10¹⁸ s, against the reference beam's shot noise (JASON's argument) | none built |
 | Pais: 10²⁴ W/m² from a charged disc | σ = 5×10⁴ C/m² | a surface field 5.6×10⁶ times the breakdown limit his patent states | Navy test (2016–19): effect not shown |
+| Zhang: a varying field makes gravity (US 12,417,870) | a ring weighs ±1 g at 55 kV: 2.6×10⁻² m/s²; his own field is the carriers' acceleration, under 10⁻⁵ m/s² | the live wire's polarisation pull, 0.1–0.7 g toward whichever side is live; general relativity: 10⁻²⁷ m/s² | not independently replicated; the live-end and screening tests not done |
 | EmDrive | 1.2 mN/kW (Eagleworks) | a photon rocket gives 3.3 µN/kW | nothing above 10–30 nN (Dresden) |
 | Mach-effect thruster | "a couple of µN" | the authors' own formula in SI: about 0.1 µN; general relativity suppresses the Machian term by 10⁻³⁶ | vibration artefacts (Dresden) |
 | Lifters ("electrogravitics") | lift | ion wind, `F = I·d/μ` | no force in vacuum |
@@ -89,6 +90,9 @@ assert!((near * 1e3 - 13.28).abs() < 0.01);
 
 | Module | What it computes |
 |---|---|
+| `electrogravity` | The pulsed-field gravity claims against the forces in the same rig: dielectrophoresis (dilute and on a sphere), the Pauthenier charge, the polarisation-torque ceiling and a thread's torsion, field angular momentum, the Thomson–Purcell kink field that Zhang's theory relabels, the carriers' drift (the theory's own bound), the gravity of field energy, and the mass-independence discriminator |
+| `electrodes` | Coaxial ring electrodes for coil and wire rigs: potential and field from the complete elliptic integrals, and the charge on each ring for given potentials |
+| `gem` | Gravitoelectromagnetism in three conventions with the spin-2 factor, the gravitomagnetic dipole as a `Field`, the extremal charge-to-mass ratio, and Blackett's magnetism-from-spin |
 | `anomalies` | CODATA 2022's sixteen G measurements with their correlations, their generalised-least-squares mean and Birge ratio; Anderson's flyby formula; column densities and shielding against Majorana and lunar laser ranging; Pioneer's thermal decay |
 | `modified` | The radial acceleration relation ([McGaugh et al. 2016](https://arxiv.org/abs/1609.05917)), Tully–Fisher velocity and MOND radius; Yukawa forces with the current limits ([Lee et al. 2020](https://arxiv.org/abs/2002.11761)), the dark-energy length and boson mass; Einstein–Cartan density; Weber-like perihelion and mass shift |
 | `quantum` | Bose–Marletto–Vedral entanglement phases ([Bose et al. 2017](https://arxiv.org/abs/1707.06050)); the Diósi–Penrose X-ray rate ([Donadi et al. 2021](https://arxiv.org/abs/2111.13490)) |
@@ -119,7 +123,8 @@ and [where gravity physics is still open](https://github.com/FusionVault/quantum
 - **Evaluating a proposal.** Compute a claim in its authors' own terms, the standard prediction
   for the same apparatus, and the measurement, as agency reviews have done; the gap is the
   answer. `examples/electrogravity_claim.rs` does this for the pulsed-field gravity claims and
-  names the experiment that would settle them.
+  names the experiment that would settle them; `physica`'s `gravity_patent` example rebuilds the
+  rig of US 12,417,870 with `electrodes` and sets every force beside the claim.
 - **Designing an experiment.** `anomalies::tension` and `magnets`-style systematics show what a
   precision gravity measurement must control; `modified` carries the current short-range bounds.
 - **Planning a strong-field campaign.** `strong_field` gives the Schwinger field, the quantum

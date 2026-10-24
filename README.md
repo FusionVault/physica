@@ -28,6 +28,10 @@ the data tests are registered before the data decides them.
 [`geo5d`](https://crates.io/crates/geo5d) (heights, normal gravity, relativistic geodesy) uses
 `geopotential` for its gravity.
 
+[`web/`](web) holds 3D models of the physics, computed in the browser with the crates' equations.
+The first one rebuilds the rig of US 12,417,870 (a ball between high-voltage coils, claimed to
+move by a gravitational field), with its computed field lines and every force on the ball.
+
 ## Quick start
 
 ```bash

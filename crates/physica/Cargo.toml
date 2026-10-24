@@ -23,5 +23,9 @@ plasmoid = { path = "../plasmoid", version = "0.3.0" }
 name = "three_fields_one_engine"
 test = true
 
+[[example]]
+name = "gravity_patent"
+test = true
+
 [lints]
 workspace = true

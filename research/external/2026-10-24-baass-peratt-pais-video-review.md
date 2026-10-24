@@ -134,6 +134,14 @@ torque to the apparatus. For E ≈ 10⁶ V/m, B ≈ 10⁻³ T, lever arm 0.05 m,
 suspended body with no new physics. Residual electrostatics on a "neutral" ball (patch charge,
 induced dipole in the offset field) add more.
 
+> **Correction (2026-10-24), after reading the primary sources.** See
+> [the review of Zhang's sources](2026-10-24-zhang-unified-field-theory-review.md#7-corrections-to-the-batch-2-review).
+> Zhang's own accounts say Setup 1's sheet moves toward the positive wire, and does so again after
+> the leads are swapped, so it changes direction. Dielectrophoresis still explains it, through
+> which side is live rather than through polarity independence. Setup 2's open coils pass about
+> 10 µA, about 7×10⁻¹¹ T, so field angular momentum is negligible there. The rotation budget is
+> the polarisation torque, `gravitics::electrogravity::rotation_torque`.
+
 ### The discriminator the crate should encode
 
 A genuine gravito-electric field `E_g` gives `a = E_g`, **independent of material**. The

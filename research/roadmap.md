@@ -110,6 +110,30 @@ automated filter, so they are left for the user to add from that specification.
 
 303 workspace tests pass; clippy and rustdoc clean.
 
+## Phase E: Zhang's unified field theory and US 12,417,870 — done 2026-10-24
+
+Asked for by the user: a 3D rebuild of the patent's rig from real physics, and the physics the
+patent needs. Reviewed in
+[`external/2026-10-24-zhang-unified-field-theory-review.md`](external/2026-10-24-zhang-unified-field-theory-review.md),
+with the theory's 18 equations and four rigs computed both ways.
+
+- `gravitics::electrodes` (new): coaxial ring electrodes, the field and charges of coil and wire
+  rigs.
+- `gravitics::electrogravity`: the sphere's dielectrophoresis, the Pauthenier charge, the
+  polarisation-torque ceiling, a thread's torsion, the Thomson–Purcell kink field (Zhang's
+  `E_θ/e_r`), the carriers' drift (the theory's own bound), the gravity of field energy, the
+  electric pressure, and the five-constant identity.
+- `plasmoid::discharge` (new): Paschen breakdown, the mean free path, Peek's corona onset.
+- `physica/examples/gravity_patent.rs`, and the 3D model [`web/gravity-patent.html`](../web/gravity-patent.html).
+- Two statements in the batch-2 review corrected from the primary sources (Setup 1's polarity,
+  Setup 2's magnetic field).
+- Still open: the constant `k` in `∇×A = B/k` (perhaps in the "mass–charge conversion constant"
+  paper), the seven-cable ratio of the weighing rig (×7.1 against ×4.4 from a cage model; it
+  needs the real layout in 3D), and the Michelson and 80 V rigs, which have no published details.
+
+Not yet published: the new modules wait for the next release of `gravitics`, `plasmoid` and
+`physica`.
+
 ## Open
 
 - **Retired crates:** `satgrav`, `gravity-field` and `gravity-claims` are deleted; `gwsens` was

@@ -94,7 +94,12 @@ single domain, depend on that crate alone.
 
 Every analogy above is a doc test, so `cargo test` asserts each identity to 10⁻¹² or its stated
 tolerance. The `examples/` directory evaluates three fields of the Earth through one trait and
-reproduces NOAA's published WMM2025 value at 100 km altitude.
+reproduces NOAA's published WMM2025 value at 100 km altitude. It also rebuilds the rig of
+US 12,417,870 (a ball between high-voltage coils, claimed to move by a gravitational field) and
+asserts every force on it: the coils' field, the polarisation pull and torque, the gas in its
+vacuum, the theory's own bound, and general relativity's. A 3D model of the same rig, computed
+with the same equations, is in the repository's
+[`web/`](https://github.com/FusionVault/quantum-gravimeter/tree/main/web) directory.
 
 One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
 [`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
