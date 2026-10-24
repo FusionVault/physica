@@ -11,6 +11,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
+geopotential = { path = "../geopotential", version = "0.2.0" }
 gravitational = { path = "../gravitational", version = "0.1.0" }
 metrology = { path = "../metrology", version = "0.1.0" }
 

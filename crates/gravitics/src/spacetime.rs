@@ -172,7 +172,7 @@ mod tests {
         // The cosmological horizon at H₀ = 67.4 km/s/Mpc: 2.7×10⁻³⁰ K.
         assert!(close(gibbons_hawking_temperature(67.4e3 / 3.085_677_581e22), 2.655e-30, 2e-3));
         // Zero-point energy to the electron's Compton frequency: 1.8×10²² J/m³.
-        let compton = 9.109_383_701_5e-31 * C * C / HBAR;
+        let compton = metrology::M_E * C * C / HBAR;
         assert!(close(zero_point_energy_density(compton), 1.801e22, 2e-3));
     }
 
@@ -180,7 +180,7 @@ mod tests {
     fn schwinger_is_a_boltzmann_factor_at_twice_the_unruh_temperature() {
         // πE_S/E = m_ec²/(2k_B T_U) for an electron accelerated by E: exactly, at any field.
         use crate::strong_field::{E_SCHWINGER, schwinger_exponent};
-        let (m_e, e) = (9.109_383_701_5e-31, 1.602_176_634e-19);
+        let (m_e, e) = (metrology::M_E, metrology::E_CHARGE);
         for f in [1.0, 0.1, 1e-3] {
             let field = f * E_SCHWINGER;
             let t_u = unruh_temperature(e * field / m_e);

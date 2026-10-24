@@ -16,14 +16,14 @@ The plan is the "What goes into the crates" section of the
 - Runnable examples, run by `cargo test`, in geopotential, gravimetry, gravitational, gravitics,
   plasmoid and magnetics.
 
-Still to do:
+Also done in Phase A: `gravitics::gem` (the gravitomagnetic dipole as a `Field`, three
+conventions, Blackett, the extremal charge-to-mass ratio), `plasmoid::tokamak` (q95, Greenwald,
+Troyon, IPB98 with ITER and SPARC), and the `physica` umbrella crate (re-exports, seven tested
+analogies, the three-fields example). The last duplicated constants now come from `metrology`.
 
-1. **The rest of `magnetics`:** the `devices`, `astro` and `frontier` modules.
-2. **`gravitics::gem`** (a gravitomagnetic dipole implementing `Field`, the three GEM
-   conventions, Blackett, the extremal charge-to-mass ratio) and **`plasmoid::tokamak`** (q95,
-   Greenwald, Troyon, IPB98).
-3. **The `physica` umbrella crate:** re-exports of all seven crates and the tested `analogies`
-   module.
+Left out of Phase A: `magnetics::{devices, astro, frontier}`. Writing them was stopped twice
+by an automated safety filter, so they wait; their items can be revisited in Phase C at the
+level of general published physics.
 
 ## Phase B: review the external research (in this session)
 

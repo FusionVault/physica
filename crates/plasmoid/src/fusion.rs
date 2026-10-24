@@ -17,7 +17,7 @@
 
 use core::f64::consts::PI;
 
-use metrology::{ALPHA, AMU, C, HBAR, KEV, M_E};
+use metrology::{ALPHA, AMU, C, G, HBAR, K_B, KEV, M_E, MU_0};
 
 /// `e²/4πε₀ = αħc`, keV fm.
 pub const E2: f64 = ALPHA * HBAR * C / KEV * 1e15;
@@ -218,8 +218,7 @@ pub fn charged_sphere(q: f64, r: f64) -> (f64, f64, f64) {
 /// Magnetic field (T) at the centre of a spherical shell of charge `q` (C) and radius `r` (m)
 /// spinning at `omega` (rad/s): `(2/3)μ₀Qω/(4πR)`.
 pub fn spinning_shell_field(q: f64, r: f64, omega: f64) -> f64 {
-    const MU0: f64 = 1.256_637_062_12e-6;
-    2.0 / 3.0 * MU0 * q * omega / (4.0 * PI * r)
+    2.0 / 3.0 * MU_0 * q * omega / (4.0 * PI * r)
 }
 
 /// The Widom–Larsen electron-capture rate as its authors give it, `1.86×10⁻³(β − β₀)²` Hz, for
@@ -254,13 +253,13 @@ pub fn lane_emden(n: f64) -> (f64, f64, f64) {
 /// Kelvin–Helmholtz time (s): how long gravity alone could power a star of mass `m` (kg),
 /// radius `r` (m) and luminosity `l` (W), `GM²/(2RL)`.
 pub fn kelvin_helmholtz(m: f64, r: f64, l: f64) -> f64 {
-    6.674_30e-11 * m * m / (2.0 * r * l)
+    G * m * m / (2.0 * r * l)
 }
 
 /// Virial temperature (K) of a star of mass `m` (kg) and radius `r` (m) with mean molecular
 /// weight `mu`: `GMμm_u/(k_B R)`.
 pub fn virial_temperature(m: f64, r: f64, mu: f64) -> f64 {
-    6.674_30e-11 * m * mu * 1.660_539_066_60e-27 / (1.380_649e-23 * r)
+    G * m * mu * AMU / (K_B * r)
 }
 
 #[cfg(test)]

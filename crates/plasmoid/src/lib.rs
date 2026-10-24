@@ -5,3 +5,4 @@ pub mod conversion;
 pub mod fusion;
 pub mod pinch;
 pub mod relaxation;
+pub mod tokamak;

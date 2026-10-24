@@ -24,7 +24,8 @@ use gravimetry::noise::fft;
 use crate::Result;
 use crate::svg::{esc, open, pow10};
 
-const G: f64 = 6.674_30e-11;
+use metrology::G;
+
 const GM: f64 = 3.986_004_418e14;
 const R_EARTH: f64 = 6_371e3;
 const LAMB_SPEED: f64 = 318.2;
