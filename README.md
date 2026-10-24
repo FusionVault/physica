@@ -15,7 +15,7 @@ sensors of future missions.
 | [`gravimetry`](crates/gravimetry) · [docs](https://docs.rs/gravimetry) | GRACE processing (smoothing, stripe removal, water height), earthquake gravity models and mass transport |
 | [`satgrav`](crates/satgrav) · [docs](https://docs.rs/satgrav) | Gravity missions and quantum sensors: noise models, error predictions, a satellite-pair simulator, and the sensors as gravitational-wave detectors |
 | [`gwsens`](crates/gwsens) · [docs](https://docs.rs/gwsens) | Gravitational-wave sensitivity: strain conventions, LIGO, Einstein Telescope and LISA noise curves, horizons, stochastic backgrounds, high-frequency limits and lab-gravity reality checks |
-| [`gravity-claims`](crates/gravity-claims) · [docs](https://docs.rs/gravity-claims) | Reality checks for extraordinary gravity claims (Li–Baker, Pais, Tajmar, Podkletnov, EmDrive, warp drives): published numbers reproduced and set against general relativity |
+| [`gravitics`](crates/gravitics) · [docs](https://docs.rs/gravitics) | Gravity control and exotic propulsion computed both ways: each proposal's own model (Li–Baker, Pais, Tajmar, Podkletnov, EmDrive, warp drives, the polarizable vacuum) next to general relativity and the measurements |
 | [`gravviz`](apps/gravviz) | The command-line tool that makes every figure here (not published) |
 | [`viewer`](viewer) | The GRACE Mass Atlas, an interactive web page for all of it |
 

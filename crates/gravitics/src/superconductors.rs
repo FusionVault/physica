@@ -1,26 +1,27 @@
-//! Gravity and superconductors: Tajmar's gravitomagnetic London moment, Podkletnov's shielding
-//! and impulse generator, and what general relativity predicts instead.
+//! Gravity and superconductors: Tajmar's gravitomagnetic London moment, Podkletnov's shield and
+//! impulse generator, and what general relativity predicts for the same set-ups.
 //!
-//! **Status: refuted.**
-//! - **Tajmar & de Matos (2006–2007)** reported frame dragging near spinning niobium rings of
-//!   k ≈ 2.6×10⁻⁵ of the ring's rotation. General relativity gives `k = 4GM/(c²(R_o + R_i))`
-//!   ≈ 7×10⁻²⁷, so the claim is 3.6×10²¹ times larger. Tajmar's own later work set a limit
-//!   800× below the earlier signal and traced it to vibration.
-//! - **Podkletnov (1997)** reported 0.3–2.1% weight loss above a spinning superconducting disc.
-//!   Replications bound any effect below 2×10⁻⁸ (NASA Marshall), 10⁶ times smaller. A shield
-//!   would have to cast a shadow that shrinks with height as `1 − cos³θ`; he reported none.
-//! - **Podkletnov's impulse generator** reproduces from pendulum geometry alone, but the energy
-//!   it implies needs 40× the charge his own Marx bank holds, and the swing's momentum is 10⁹
-//!   times too large for any radiation of that energy.
+//! - **Tajmar & de Matos (2006–2007)** measured frame dragging near spinning niobium rings of
+//!   k ≈ 2.6×10⁻⁵ of the ring's rotation, and modelled it as `B_g = 2ω·ρ*/ρ` with the Cooper-pair
+//!   mass density ρ*. General relativity gives `k = 4GM/(c²(R_o + R_i))` ≈ 7×10⁻²⁷ for the same
+//!   ring (at its centre; the sensor sat at 3.6 cm, which changes this by a factor of order one).
+//!   Tajmar's later measurements set a limit 800× below the first signal and traced it to vibration.
+//! - **Podkletnov (1997)** reported a 0.3–2.1% weight loss above a spinning superconducting disc.
+//!   General relativity gives a weight increase of at most 3×10⁻⁹; replications saw no change
+//!   above 2×10⁻⁸ (NASA Marshall). A shield would cast a shadow that shrinks with height as
+//!   `1 − cos³θ`.
+//! - **Podkletnov's impulse generator.** Its tables follow from pendulum geometry. The energy it
+//!   implies needs 40× the charge its own Marx bank holds, and the swing carries 10⁹ times the
+//!   momentum of radiation with that energy.
 //!
-//! The legitimate physics is the London moment, `B = 2m_eω/e`, measured to ppm precision.
+//! The established physics here is the London moment, `B = 2m_eω/e`, measured to ppm precision.
 //!
 //! ```
-//! use gravity_claims::superconductors::{TAJMAR_CLAIM, ring_frame_dragging};
+//! use gravitics::superconductors::{TAJMAR_REPORTED, ring_frame_dragging};
 //!
 //! // Tajmar's 0.349 kg niobium ring (radii 75 and 69 mm).
 //! let gr = ring_frame_dragging(0.349, 0.075, 0.069);
-//! println!("GR {gr:.1e}, claim {TAJMAR_CLAIM:.1e}, ratio {:.1e}", TAJMAR_CLAIM / gr); // 3.6e21
+//! println!("reported {TAJMAR_REPORTED:.1e}, general relativity {gr:.1e}"); // 2.6e-5, 7.2e-27
 //! ```
 
 use core::f64::consts::PI;
@@ -29,10 +30,10 @@ use crate::{C, E_CHARGE, G, G0, M_E, MU_0};
 
 /// The frame-dragging ratio k (frame rotation over ring rotation) Tajmar & de Matos reported,
 /// from a coupling of −9.64×10⁻⁸ s² at r = 3.6 cm.
-pub const TAJMAR_CLAIM: f64 = 2.63e-5;
+pub const TAJMAR_REPORTED: f64 = 2.63e-5;
 
 /// Podkletnov's largest reported weight loss, as a fraction (1997, while braking).
-pub const PODKLETNOV_CLAIM: f64 = 2.1e-2;
+pub const PODKLETNOV_REPORTED: f64 = 2.1e-2;
 
 /// Upper limits on the fractional weight change above a spinning superconductor.
 pub const WEIGHT_BOUNDS: [(&str, f64); 4] = [
@@ -55,7 +56,8 @@ pub fn ring_frame_dragging(mass: f64, r_out: f64, r_in: f64) -> f64 {
 }
 
 /// The Cooper-pair mass density `ρ* = m_e²/(μ₀e²λ_L²)` (kg/m³) of a superconductor with London
-/// depth `london_depth` (m). Tajmar & de Matos predicted `k = ρ*/ρ`.
+/// depth `london_depth` (m). Tajmar & de Matos's model gives a gravitomagnetic field
+/// `B_g = 2ω·ρ*/ρ`.
 pub fn cooper_pair_density(london_depth: f64) -> f64 {
     M_E * M_E / (MU_0 * E_CHARGE * E_CHARGE * london_depth * london_depth)
 }
@@ -111,9 +113,11 @@ mod tests {
     fn tajmar_against_general_relativity() {
         let gr = ring_frame_dragging(0.349, 0.075, 0.069);
         assert!(close(gr, 7.20e-27, 2e-3));
-        assert!(close(TAJMAR_CLAIM / gr, 3.65e21, 5e-3));
-        // Their predicted ρ*/ρ for niobium with λ_L = 27.6 nm.
-        assert!(close(cooper_pair_density(27.6e-9) / 8570.0, 3.94e-6, 2e-3));
+        assert!(close(TAJMAR_REPORTED / gr, 3.65e21, 5e-3));
+        // Niobium (λ_L = 39 nm, ρ = 8570 kg/m³): ρ*/ρ = 1.97×10⁻⁶, so their field is
+        // B_g = 2ωρ*/ρ = 3.9×10⁻⁶·ω, as Tajmar 2007 quotes.
+        assert!(close(cooper_pair_density(39e-9) / 8570.0, 1.974e-6, 2e-3));
+        assert!(close(2.0 * cooper_pair_density(39e-9) / 8570.0, 3.947e-6, 2e-3));
         // With λ_L = 39 nm the gravitational London depth is 8×10¹³ m.
         assert!(close(gravitational_london_depth(cooper_pair_density(39e-9)), 7.96e13, 5e-3));
         // The London moment, 1.137×10⁻¹¹ T s: 7.39 nT at 650 rad/s.
@@ -123,7 +127,7 @@ mod tests {
     #[test]
     fn podkletnov_against_replications_and_geometry() {
         let strictest = WEIGHT_BOUNDS.iter().map(|b| b.1).fold(f64::INFINITY, f64::min);
-        assert!(close(PODKLETNOV_CLAIM / strictest, 1.05e6, 1e-9));
+        assert!(close(PODKLETNOV_REPORTED / strictest, 1.05e6, 1e-9));
         // A perfect 275 mm shield blocks 0.31% of the pull 3 m above it, all of it right above.
         assert!(close(shadow_fraction(0.1375, 3.0), 3.14e-3, 2e-3));
         assert!((shadow_fraction(0.1375, 1e-9) - 1.0).abs() < 1e-12);

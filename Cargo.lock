@@ -64,7 +64,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gravity-claims"
+name = "gravitics"
 version = "0.1.0"
 dependencies = [
  "gwsens",
@@ -84,15 +84,16 @@ dependencies = [
  "flate2",
  "geopotential",
  "gravimetry",
- "gravity-claims",
+ "gravitics",
  "gravity-field",
+ "gwsens",
  "png",
  "satgrav",
 ]
 
 [[package]]
 name = "gwsens"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "miniz_oxide"
@@ -113,6 +114,10 @@ dependencies = [
  "adler2",
  "simd-adler32",
 ]
+
+[[package]]
+name = "plasmoid"
+version = "0.1.0"
 
 [[package]]
 name = "png"
@@ -147,7 +152,7 @@ dependencies = [
 
 [[package]]
 name = "satgrav"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "geopotential",
 ]

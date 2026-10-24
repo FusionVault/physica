@@ -1,6 +1,6 @@
 [package]
 name = "satgrav"
-version = "0.2.0"
+version = "0.3.0"
 description = "Model gravity-mapping satellites and quantum sensors: accelerometer and laser-ranging noise, cold-atom interferometers, gradiometry errors and a satellite-pair simulator."
 keywords = ["geodesy", "gravimetry", "grace", "atom-interferometry", "noise"]
 categories = ["science::geo", "simulation"]

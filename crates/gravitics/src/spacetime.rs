@@ -1,14 +1,14 @@
 //! Warp drives, wormholes, negative energy and Puthoff's polarizable vacuum: the closed forms
 //! behind the DIA "DIRD" papers on spacetime engineering, from the mainstream literature.
 //!
-//! **Status: mainstream physics, with no engineering path.** The formulas are standard general
-//! relativity and quantum field theory. What they say is that a warp bubble needs a large mass of
-//! negative energy, while quantum field theory allows negative energy only in tiny amounts for
-//! short times. Puthoff's polarizable-vacuum metric matches general relativity at first order and
-//! differs from it at second order, by 0.73 µas for light grazing the Sun.
+//! The formulas are standard general relativity and quantum field theory. A warp bubble needs a
+//! large mass of negative energy, while quantum field theory allows negative energy only in tiny
+//! amounts for short times (the quantum inequalities). Puthoff's polarizable-vacuum metric is a
+//! genuine alternative: it matches general relativity at first order and differs at second order,
+//! by 0.73 µas for light grazing the Sun, so it is testable in principle.
 //!
 //! ```
-//! use gravity_claims::spacetime::alcubierre_energy;
+//! use gravitics::spacetime::alcubierre_energy;
 //!
 //! // A 100 m warp bubble at light speed with a 1 m wall needs half a Sun of negative energy.
 //! let sun = 1.989e30;
@@ -21,7 +21,9 @@ use crate::{C, G, HBAR};
 
 /// Total energy of an Alcubierre warp bubble of `radius` (m) and wall thickness `wall` (m) moving
 /// at `speed` (in units of c), as a mass (kg): `−(v²/12)(R²/Δ)·c²/G`
-/// ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026)). Negative.
+/// ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026), Eq. 28). Negative. (Their text's
+/// worked numbers, "6.2×10⁶⁵ g" and "a quarter of a solar mass", disagree with their Eq. 28,
+/// which gives 6.9×10⁶² kg and 0.56 solar masses for the same inputs.)
 pub fn alcubierre_energy(radius: f64, wall: f64, speed: f64) -> f64 {
     -speed * speed / 12.0 * radius * radius / wall * C * C / G
 }

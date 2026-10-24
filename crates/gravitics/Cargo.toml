@@ -1,0 +1,17 @@
+[package]
+name = "gravitics"
+version = "0.1.0"
+description = "Gravitics: the physics of gravity control and exotic propulsion, computed both ways. Each proposal's own model (Li–Baker gravitational-wave detectors, Pais, Tajmar and Podkletnov superconductors, EmDrive, Mach-effect and ion-wind thrusters, warp drives, the polarizable vacuum) next to general relativity and the measurements."
+keywords = ["gravity", "physics", "general-relativity", "propulsion", "gravitational-waves"]
+categories = ["science"]
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+gwsens = { path = "../gwsens", version = "0.2.0" }
+
+[lints]
+workspace = true

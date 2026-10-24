@@ -124,16 +124,21 @@ mod tests {
             let v = lisa(f, Confusion::None).sqrt();
             assert!((v / expect - 1.0).abs() < 0.01, "{f}: {v:e} vs {expect:e}");
         }
-        // Confusion noise only adds, and mostly below a few mHz.
-        assert!(lisa(1e-3, Confusion::FourYears) > lisa(1e-3, Confusion::None));
+        // Confusion noise only adds, and mostly below a few mHz: S_c(1 mHz) is 6.662×10⁻³⁸ after four
+        // years and 1.6635×10⁻³⁷ after one (Robson Eq. 14, Table 1).
+        assert!(((lisa(1e-3, Confusion::FourYears) - lisa(1e-3, Confusion::None)) / 6.662e-38 - 1.0).abs() < 2e-3);
+        assert!(((lisa(1e-3, Confusion::OneYear) - lisa(1e-3, Confusion::None)) / 1.6635e-37 - 1.0).abs() < 2e-3);
         assert!((lisa(5e-2, Confusion::FourYears) / lisa(5e-2, Confusion::None) - 1.0).abs() < 1e-3);
     }
 
     #[test]
     fn ground_fits_have_the_right_shape() {
-        // The aLIGO fit bottoms out near 200 Hz at 1.9×10⁻²⁴ Hz⁻¹ᐟ²; ET is about ten times better.
+        // The aLIGO fit is 1.871×10⁻²⁴ Hz⁻¹ᐟ² at 200 Hz and bottoms out at 1.800×10⁻²⁴ near 228 Hz;
+        // ET is about ten times better.
         let (a, e) = (aligo(200.0).sqrt(), einstein_telescope(200.0).sqrt());
         assert!((a / 1.871e-24 - 1.0).abs() < 1e-3, "{a:e}");
+        let bottom = (100..400).map(|f| aligo(f64::from(f)).sqrt()).fold(f64::INFINITY, f64::min);
+        assert!((bottom / 1.800e-24 - 1.0).abs() < 2e-3, "{bottom:e}");
         assert!(aligo(100.0) > aligo(200.0) && aligo(500.0) > aligo(200.0));
         assert!((e / 1.631e-25 - 1.0).abs() < 1e-3, "{e:e}");
         assert!(aligo(10.0).is_infinite() && einstein_telescope(5.0).is_infinite());

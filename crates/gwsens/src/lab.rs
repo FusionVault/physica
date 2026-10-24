@@ -24,10 +24,11 @@ pub fn beam_acceleration(power: f64, rho: f64) -> f64 {
     4.0 * G * power / (C.powi(3) * rho)
 }
 
-/// Tidal curvature next to the beam, `R₀ₓ₀ₓ ≃ −4GP/(c⁵ρ²)` in s⁻²
-/// ([Spengler, Rätzel & Braun 2022](https://arxiv.org/abs/2104.09209)).
+/// Tidal acceleration gradient next to the beam, s⁻²: `−4GP/(c³ρ²)`. This is
+/// [Spengler, Rätzel & Braun 2022](https://arxiv.org/abs/2104.09209)'s Eq. 1, `R₀ₓ₀ₓ ≃ −4GP/(c⁵ρ²)`
+/// in m⁻² (with x⁰ = ct), times c².
 pub fn beam_tidal(power: f64, rho: f64) -> f64 {
-    -4.0 * G * power / (C.powi(5) * rho * rho)
+    -4.0 * G * power / (C.powi(3) * rho * rho)
 }
 
 /// Velocity kick from a pulse of energy `energy` (J) passing at distance `rho` (m): the
@@ -72,7 +73,9 @@ mod tests {
         assert!((beam_acceleration(3.8e12, 1e-4) / 3.77e-19 - 1.0).abs() < 2e-3);
         // A 100 J pulse at 1 mm: about 10⁻³⁰ m/s.
         assert!((beam_velocity_kick(100.0, 1e-3) / 9.9e-31 - 1.0).abs() < 0.01);
-        assert!(beam_tidal(1e15, 1e-3) < 0.0);
+        // 1 PW at 1 mm: −1.10×10⁻³¹ m⁻², i.e. −9.91×10⁻¹⁵ s⁻²; the gradient of the acceleration.
+        assert!((beam_tidal(1e15, 1e-3) / -9.91e-15 - 1.0).abs() < 2e-3);
+        assert!((beam_tidal(1e15, 1e-3) * 1e-3 / -beam_acceleration(1e15, 1e-3) - 1.0).abs() < 1e-12);
     }
 
     #[test]
@@ -88,6 +91,7 @@ mod tests {
 
     #[test]
     fn flux_scales_as_h_squared() {
+        assert!((wave_flux(1e-21, 100.0) / 1.5853e-3 - 1.0).abs() < 1e-4);
         assert!((wave_flux(2e-21, 100.0) / wave_flux(1e-21, 100.0) - 4.0).abs() < 1e-12);
     }
 }

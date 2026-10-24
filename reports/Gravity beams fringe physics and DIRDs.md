@@ -358,8 +358,8 @@ The second insight is historical, and it points back at this project. Seventy ye
 
 ## What goes into the crates
 
-> **As built (2026-10-24).** The labelled calculators went into a new crate,
-> [`gravity-claims`](../crates/gravity-claims), not a `gwsens::claims` module, because
+> **As built (2026-10-24).** The labelled calculators went into a new crate, first published as
+> `gravity-claims` and renamed [`gravitics`](../crates/gravitics), not a `gwsens::claims` module, because
 > propulsion, superconductors and warp drives are not gravitational-wave sensitivity. It has four
 > modules: `hfgw`, `superconductors`, `propulsion` and `spacetime`. Each test asserts the
 > published value and its gap to general relativity or the replications. The Gertsenshtein

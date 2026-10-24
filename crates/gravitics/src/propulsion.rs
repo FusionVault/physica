@@ -1,20 +1,22 @@
 //! "Propellantless" thrust: asymmetric capacitors ("lifters"), the EmDrive and Mach-effect
-//! thrusters, against ion wind, the photon rocket and the balance artefacts that mimic them.
+//! thrusters, with ion wind, the photon rocket and the balance effects that a measurement must
+//! separate from them.
 //!
-//! **Status: refuted.**
 //! - **Lifters** fly on ion wind, `F = I·d/μ`, and stop in vacuum. The Army Research Laboratory
 //!   ([Bahder & Fazi 2003](https://arxiv.org/abs/physics/0211001)) and NASA (Canning et al. 2004)
 //!   used the same law.
-//! - **The EmDrive.** Eagleworks claimed 1.2 mN/kW, 360 times the photon rocket's `1/c`.
-//!   Dresden's balances saw nothing above 10–30 nN and reproduced the earlier signals as thermal
-//!   artefacts ([Tajmar et al. 2022](https://doi.org/10.1007/s12567-021-00385-1)). A 1 K warming of
-//!   a 15 cm cavity in air gives 150 µN of buoyancy alone.
-//! - **Mach-effect thrusters.** Woodward's own formula predicts ~7 nN for his device, against
-//!   ~100 µN reported; Dresden traced the signal to vibration
+//! - **The EmDrive.** Shawyer's model gives `F = 2PQD_f/c`; Eagleworks reported 1.2 mN/kW, 360
+//!   times the photon rocket's `1/c`. Dresden's balances saw nothing above 10–30 nN and showed how
+//!   heating produces signals of the reported size
+//!   ([Tajmar et al. 2022](https://doi.org/10.1007/s12567-021-00385-1)). A 1 K warming of a 15 cm
+//!   cavity in air gives 150 µN of buoyancy alone.
+//! - **Mach-effect thrusters.** Woodward's formula, in SI units, predicts about 0.1 µN for the
+//!   device of [Fearn & Woodward 2013](https://arxiv.org/abs/1301.6178), which reported "a couple
+//!   of microNewtons"; Dresden's balances traced such signals to vibration
 //!   ([Monette et al. 2021](https://doi.org/10.1016/j.actaastro.2021.02.037)).
 //!
 //! ```
-//! use gravity_claims::propulsion::photon_thrust;
+//! use gravitics::propulsion::photon_thrust;
 //!
 //! // Anything that beats light per watt needs artefact checks: Eagleworks claimed 360× it.
 //! assert!((1.2e-3 / photon_thrust(1e3) - 360.0).abs() < 1.0);
@@ -60,12 +62,13 @@ pub fn buoyancy_force(air_density: f64, volume: f64, warming: f64, temperature: 
     air_density * volume * G0 * warming / temperature
 }
 
-/// Woodward's predicted Mach-effect thrust (N), `ω⁶m₀K_p²K_e x₀³V₀⁴/(8πGρ₀c²)`
-/// ([Fearn & Woodward 2013](https://arxiv.org/abs/1301.6178), eq. 10), for drive frequency `omega`
-/// (rad/s), mass `m0` (kg), piezo and electrostriction constants `kp` (m/V) and `ke` (m/V²),
-/// stack length `x0` (m), drive voltage `v0` (V) and density `rho0` (kg/m³).
+/// Woodward's predicted Mach-effect thrust in SI units (N): Eq. 10 of
+/// [Fearn & Woodward 2013](https://arxiv.org/abs/1301.6178), `ω⁶m₀K_p²K_e x₀³V₀⁴/(8πGρ₀c²)`, times
+/// the 4π the authors say it needs for SI units. For drive frequency `omega` (rad/s), mass `m0`
+/// (kg), piezo and electrostriction constants `kp` (m/V) and `ke` (m/V²), stack length `x0` (m),
+/// drive voltage `v0` (V) and density `rho0` (kg/m³).
 pub fn mach_effect_thrust(omega: f64, m0: f64, kp: f64, ke: f64, x0: f64, v0: f64, rho0: f64) -> f64 {
-    omega.powi(6) * m0 * kp * kp * ke * x0.powi(3) * v0.powi(4) / (8.0 * PI * G * rho0 * C * C)
+    4.0 * PI * omega.powi(6) * m0 * kp * kp * ke * x0.powi(3) * v0.powi(4) / (8.0 * PI * G * rho0 * C * C)
 }
 
 #[cfg(test)]
@@ -100,10 +103,13 @@ mod tests {
     }
 
     #[test]
-    fn woodward_predicts_nanonewtons() {
-        // 32.35 kHz, 42 g, 19 mm stack at 100 V in brass: prefactor 1.71×10²¹, thrust ~7 nN.
+    fn woodward_predicts_a_tenth_of_a_micronewton() {
+        // 32.35 kHz, the 46 g stack (19 mm) at 100 V: Eq. 10's printed prefactor 1.87×10²¹ and
+        // "~8 nN"; with the SI 4π, about 0.1 µN, against "a couple of microNewtons" observed.
         let omega = 2.0 * PI * 32_350.0;
-        assert!(close(mach_effect_thrust(omega, 0.042, 1.0, 1.0, 0.019, 100.0, 7.9e3), 1.71e21, 5e-3));
-        assert!(close(mach_effect_thrust(omega, 0.042, 3.2e-10, 4e-11, 0.019, 100.0, 7.9e3), 7.0e-9, 5e-3));
+        let printed = mach_effect_thrust(omega, 0.046, 1.0, 1.0, 0.019, 100.0, 7.9e3) / (4.0 * PI);
+        assert!(close(printed, 1.87e21, 5e-3));
+        let si = mach_effect_thrust(omega, 0.046, 3.2e-10, 4e-11, 0.019, 100.0, 7.9e3);
+        assert!(close(si / (4.0 * PI), 7.66e-9, 5e-3) && close(si, 9.62e-8, 5e-3));
     }
 }

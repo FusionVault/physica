@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn nanograv_amplitude() {
-        // NANOGrav 15-yr: A = 2.4×10⁻¹⁵ at f = 1/yr gives Ω h² = 3.62×10⁻⁹.
+        // NANOGrav 15-yr quotes A = 2.4×10⁻¹⁵; at f = 1/yr that is Ω h² = 3.62×10⁻⁹ (computed here).
         let f = 1.0 / crate::YEAR;
         assert!((omega_from_hc(2.4e-15, f, 1.0, Convention::OneSided) / 3.62e-9 - 1.0).abs() < 2e-3);
     }

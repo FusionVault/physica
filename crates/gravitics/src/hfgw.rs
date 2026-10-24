@@ -1,23 +1,30 @@
-//! The Li–Baker high-frequency gravitational-wave detector and the Pais patents.
+//! High-frequency gravitational waves: the Li–Baker detector and generators, and the Pais patents.
 //!
-//! **Status: refuted.** [JASON (2008)](https://web.archive.org/web/2010/http://www.fas.org/irp/agency/dod/jason/gravwaves.pdf)
-//! found the Li–Baker sensitivity claim too optimistic by more than 20 orders of magnitude. The
-//! detector's published "signal" is the interference term between its reference beam and the
-//! photons a wave converts, `2√(Ṅ₀Ṅ_GW)`. The reference beam's own shot noise cancels that gain,
-//! so the time to see a wave is about `1/Ṅ_GW` whatever the beam power. The Li–Baker papers also
-//! use a wave energy flux `c³ω²A²/(8πG)`, four times the standard one for a single polarization.
+//! **The proposals.** Li, Baker and colleagues proposed detecting GHz waves by their conversion
+//! to photons in a magnet threaded by a Gaussian laser beam. Their published "signal" is the
+//! interference term between the reference beam and the converted photons, `2√(Ṅ₀Ṅ_GW)`, which
+//! grows with the beam power. Their papers use a wave energy flux `c³ω²A²/(8πG)`, four times the
+//! standard one for a single polarization, which makes their conversion rate eight times the
+//! standard one. Pais's patents give radiated fluxes `f_G(σ²/ε₀)v` from charged spinning or
+//! vibrating surfaces.
 //!
-//! The Pais patents' headline numbers come from `f_G(σ²/ε₀)v`, which reproduces them only with
-//! surface fields millions of times above the vacuum breakdown limit his own patent states. A
-//! Navy test (NAWCAD, 2016–2019, $508k) could not show the "Pais Effect".
+//! **Standard physics.** [JASON (2008)](https://web.archive.org/web/2010/http://www.fas.org/irp/agency/dod/jason/gravwaves.pdf)
+//! showed (§4.1) that the reference beam's own shot noise cancels the interference gain: the time
+//! to see a wave is about `1/Ṅ_GW` whatever the beam power, and the sensitivity claim is "more than
+//! 20 orders of magnitude" too optimistic. Pais's fluxes need surface fields millions of times
+//! above the vacuum breakdown limit his own patent states.
+//!
+//! **Measured.** No Li–Baker detector was built. A Navy test of a Pais device (NAWCAD, 2016–2019)
+//! did not show the effect.
 //!
 //! ```
-//! use gravity_claims::hfgw::{interference_rate, shot_noise_time};
+//! use gravitics::hfgw::{interference_rate, shot_noise_time};
 //!
-//! // Li et al.'s parameters convert 2.56×10⁻¹⁸ photons/s. Their "signal" at x = 3.5 cm is the
-//! // interference with 1.24×10²² background photons/s: 357/s (published 354/s).
+//! // Li et al.'s parameters convert 2.56×10⁻¹⁸ photons/s in their convention. Their "signal" at
+//! // x = 3.5 cm is the interference with 1.24×10²² background photons/s: 357/s (published 354/s).
 //! assert!((interference_rate(1.24e22, 2.56e-18) / 354.0 - 1.0).abs() < 0.01);
-//! // Read against the background's shot noise, one signal photon takes 3.9×10¹⁷ s, not 3×10³ s.
+//! // Against the background's shot noise, one signal photon takes 3.9×10¹⁷ s at their rate
+//! // (3.1×10¹⁸ s at the standard rate), against the 3×10³ s claimed.
 //! assert!(shot_noise_time(2.56e-18, 2.0) / 3e3 > 1e14);
 //! ```
 
@@ -82,8 +89,10 @@ pub fn surface_field(sigma: f64) -> f64 {
 }
 
 /// Gravitational-wave power (W) from light of `power` (W) crossing a field `b` (T) over `l` (m),
-/// returned as (Pais's use, SI). Pais applies JASON's Gaussian-unit formula `(4πG/c⁴)B²L²·P`
-/// to SI numbers; the SI first-order result is [`gwsens::hf::gertsenshtein_probability`]·P.
+/// returned as (Pais's use, SI). Pais applies JASON's formula `(4πG/c⁴)B²L²·P` (Eq. 3-14, written
+/// in Heaviside–Lorentz form; the Gaussian factor is `GB²L²/c⁴`) to SI numbers; the SI
+/// first-order result is [`gwsens::hf::gertsenshtein_probability`]·P. His US 10,322,827 gives an
+/// input flux of 10³³ W/m² and no length: reproducing his "10¹⁰ W" needs 1 m and 1 m².
 pub fn pais_conversion(b: f64, l: f64, power: f64) -> (f64, f64) {
     let si = gwsens::hf::gertsenshtein_probability(b, l) * power;
     (si * gwsens::MU_0, si)
@@ -111,8 +120,14 @@ mod tests {
         assert!(close(graviton_rate(flux, PI * 0.05 * 0.05, 5e9), 3.77e16, 5e-3));
         // Table I's signal at x = 3.5 cm is the interference term (ratio 1.007).
         assert!(close(interference_rate(1.24e22, 2.56e-18), 3.54e2, 1e-2));
-        // JASON: one signal photon in 3.9×10¹⁷ s; Li et al. claimed 3×10³ s.
+        // Li's rate is 8× the standard one for the same 3 T, 6 m, 0.01 m², 5 GHz and h = 10⁻³⁰.
+        let standard = gwsens::hf::coherent_photon_rate(1.0, 0.01, 3.0, 6.0, 5e9, 1e-30);
+        assert!(close(standard, 3.20e-19, 2e-3));
+        assert!(close(2.56e-18 / standard, 8.0, 0.01));
+        // JASON's shot-noise argument: one signal photon in 3.9×10¹⁷ s at Li's rate, 3.1×10¹⁸ s at
+        // the standard rate; Li et al. claimed 3×10³ s.
         assert!(close(shot_noise_time(2.56e-18, 2.0), 3.9e17, 1e-2));
+        assert!(close(shot_noise_time(standard, 2.0), 3.12e18, 1e-2));
     }
 
     #[test]

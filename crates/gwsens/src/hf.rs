@@ -5,7 +5,7 @@
 //! The main reference is the 2025 Living Review by
 //! [Aggarwal et al.](https://arxiv.org/abs/2501.11723). Its key message is in [`CEILING_BBN_CMB`]:
 //! any background from the early Universe is capped at Ω h² ≈ 10⁻⁶, about 10⁻³⁰ strain at 1 GHz,
-//! while the best laboratory limits sit 18–31 orders of magnitude above it.
+//! while the best laboratory limits sit about 19–26 orders of magnitude above it.
 //!
 //! ```
 //! use gwsens::hf;
@@ -40,8 +40,11 @@ pub fn gertsenshtein_probability(b: f64, l: f64) -> f64 {
 
 /// Photons per second from a flat stochastic background of characteristic strain `hc` over a
 /// bandwidth `df` (Hz), for a magnet of field `b` (T), length `l` (m) and aperture `area` (m²)
-/// with detection efficiency `eff`: `Ṅ = ε A B² L² h_c² 2πΔf/(4μ₀cħ)` (Ejlli et al. 2019).
-/// G cancels: the conversion probability times the wave's energy flux.
+/// with detection efficiency `eff`: `Ṅ = ε A B² L² h_c² 2πΔf/(4μ₀cħ)` (Ejlli et al. 2019, Eqs. 3–4).
+/// G cancels: the conversion probability times the wave's energy flux. Like Ejlli et al., this
+/// treats the isotropic background as a beam along the magnet; the 2025 Living Review's
+/// field-of-view correction weakens the resulting limits to h_c ≈ 4×10⁻²³ (OSQAR II) and
+/// 8×10⁻²⁶ (CAST).
 pub fn stochastic_photon_rate(eff: f64, area: f64, b: f64, l: f64, hc: f64, df: f64) -> f64 {
     eff * area * b * b * l * l * hc * hc * 2.0 * PI * df / (4.0 * MU_0 * C * HBAR)
 }
@@ -58,12 +61,14 @@ pub fn coherent_photon_rate(eff: f64, area: f64, b: f64, l: f64, f: f64, h0: f64
     eff * area * b * b * l * l * 2.0 * PI * f * h0 * h0 / (8.0 * MU_0 * C * HBAR)
 }
 
-/// Strain noise of a resonant microwave cavity in a magnetic field (Review 2025 Eq. 113 in SI):
-/// `S_h = 2 k_B T μ₀ c²/(ω³ η² Q B² L⁵)`, Hz⁻¹, with system temperature `t` (K), frequency `f`,
-/// coupling `eta`, quality factor `q`, field `b` (T) and size `l` (m).
+/// One-sided strain noise of a resonant microwave cavity in a magnetic field, Hz⁻¹: twice the
+/// Living Review 2025's two-sided Eq. 113 in SI, `S_h = 4 k_B T μ₀ c²/(ω³ η² Q B² L⁵)`, with system
+/// temperature `t` (K), frequency `f`, coupling `eta`, quality factor `q`, field `b` (T) and
+/// size `l` (m). One-sided like the rest of this crate, so it can go into
+/// [`omega_from_sh`](crate::strain::omega_from_sh).
 pub fn cavity_noise(t: f64, f: f64, eta: f64, q: f64, b: f64, l: f64) -> f64 {
     let w = 2.0 * PI * f;
-    2.0 * K_B * t * MU_0 * C * C / (w.powi(3) * eta * eta * q * b * b * l.powi(5))
+    4.0 * K_B * t * MU_0 * C * C / (w.powi(3) * eta * eta * q * b * b * l.powi(5))
 }
 
 /// Gravitational-wave line from a superradiant cloud of bosons of mass `mass_ev` (eV) around a
@@ -112,11 +117,11 @@ pub struct Limit {
 /// cites; values as quoted there).
 pub const REGISTRY: [Limit; 7] = [
     Limit { name: "QUEST (twin Michelsons, Cardiff)", band: (13e6, 80e6), value: 3e-20, quantity: "√S_h Hz⁻¹ᐟ² near 40 MHz", status: Status::PublishedLimit, source: "https://arxiv.org/abs/2410.09175" },
-    Limit { name: "Fermilab Holometer", band: (1e6, 13e6), value: 2.4e-19, quantity: "√S_h Hz⁻¹ᐟ² at 13 MHz", status: Status::PublishedLimit, source: "https://arxiv.org/abs/1611.05560" },
+    Limit { name: "Fermilab Holometer", band: (1e6, 13e6), value: 1e-21, quantity: "√S_h Hz⁻¹ᐟ² (better than, 1–13 MHz)", status: Status::PublishedLimit, source: "https://arxiv.org/abs/1611.05560" },
     Limit { name: "CAPP-12T axion haloscope", band: (5.310e9, 5.312e9), value: 3.9e-21, quantity: "h₀ (90% CL)", status: Status::Recast, source: "https://arxiv.org/abs/2511.17817" },
-    Limit { name: "Light shining through a wall (OSQAR, ALPS)", band: (2e14, 6e14), value: 6e-26, quantity: "h_c", status: Status::Contested, source: "https://arxiv.org/abs/1908.00232" },
-    Limit { name: "Helioscopes, X-ray (CAST)", band: (2e17, 3e18), value: 5e-28, quantity: "h_c", status: Status::Contested, source: "https://arxiv.org/abs/1908.00232" },
-    Limit { name: "MAGE quartz resonators", band: (5e6, 7e6), value: 6.6e-21, quantity: "√S_h Hz⁻¹ᐟ² in narrow bands", status: Status::PublishedLimit, source: "https://arxiv.org/abs/2307.00715" },
+    Limit { name: "Light shining through a wall (OSQAR, ALPS)", band: (2.7e14, 1.4e15), value: 6e-26, quantity: "h_c", status: Status::Contested, source: "https://arxiv.org/abs/1908.00232" },
+    Limit { name: "Helioscopes, X-ray (CAST)", band: (5e18, 1.2e19), value: 5e-28, quantity: "h_c", status: Status::Contested, source: "https://arxiv.org/abs/1908.00232" },
+    Limit { name: "MAGE quartz resonators", band: (4.993e6, 5.505e6), value: 1.35e-20, quantity: "√S_h Hz⁻¹ᐟ² measured at 4.993 MHz (1.10×10⁻²⁰ at 5.505 MHz)", status: Status::PublishedLimit, source: "https://arxiv.org/abs/2307.00715" },
     Limit { name: "2021 quartz-resonator rare events", band: (5.5e6, 5.5e6), value: 1e8, quantity: "Ω_GW needed to explain them", status: Status::Disputed, source: "https://arxiv.org/abs/2110.13319" },
 ];
 
@@ -129,7 +134,8 @@ mod tests {
     fn ceiling_in_strain() {
         let hc = hc_from_omega(CEILING_BBN_CMB, 1e9, 1.0, Convention::OneSided);
         assert!((hc / 1.33e-30 - 1.0).abs() < 0.01, "{hc:e}");
-        assert!((ceiling_from_delta_neff(0.18) / CEILING_BBN_CMB - 1.0).abs() < 0.1);
+        // Ω h² < 5.6×10⁻⁶ ΔN_eff: ΔN_eff = 0.2 gives the quoted 1.1×10⁻⁶ (1.12 before rounding).
+        assert!((ceiling_from_delta_neff(0.2) / CEILING_BBN_CMB - 1.0).abs() < 0.02);
     }
 
     #[test]
@@ -144,11 +150,23 @@ mod tests {
 
     #[test]
     fn cavity_and_sources() {
-        // ADMX-like cavity: 0.8 GHz, η = 0.1, Q = 8×10⁴, 7.5 T, 0.51 m, 0.6 K.
+        // ADMX-like cavity: 0.8 GHz, η = 0.1, Q = 8×10⁴, 7.5 T, 0.51 m, 0.6 K. The Review quotes
+        // 9.7×10⁻²³ two-sided; one-sided is √2 larger.
         let asd = cavity_noise(0.6, 0.8e9, 0.1, 8e4, 7.5, 0.51).sqrt();
-        assert!((asd / 9.7e-23 - 1.0).abs() < 0.01, "{asd:e}");
+        assert!((asd / (9.74e-23 * 2f64.sqrt()) - 1.0).abs() < 0.01, "{asd:e}");
         assert!((superradiance_frequency(1.0) / 4.836e14 - 1.0).abs() < 1e-3);
         assert!((phase_transition_shape(1.0) - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn registry_values_are_the_published_ones() {
+        let value = |name: &str| REGISTRY.iter().find(|l| l.name.starts_with(name)).map(|l| l.value);
+        assert_eq!(value("QUEST"), Some(3e-20));
+        assert_eq!(value("Fermilab Holometer"), Some(1e-21)); // "better than 10⁻²¹/√Hz"
+        assert_eq!(value("CAPP-12T"), Some(3.9e-21));
+        assert_eq!(value("MAGE"), Some(1.35e-20)); // measured, not the 6.6×10⁻²¹ prediction
+        assert_eq!(value("Light shining"), Some(6e-26));
+        assert_eq!(value("Helioscopes"), Some(5e-28));
     }
 
     #[test]

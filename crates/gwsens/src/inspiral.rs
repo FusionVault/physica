@@ -39,7 +39,9 @@ pub fn frequency_drift(f: f64, chirp: f64) -> f64 {
 }
 
 /// Fourier amplitude of an optimally placed and oriented inspiral at distance `d` (m):
-/// `|h̃(f)| = √(5/24) π^(−2/3) (c/d) (G M_c/c³)^(5/6) f^(−7/6)`, Hz⁻¹.
+/// `|h̃(f)| = √(5/24) π^(−2/3) (c/d) (G M_c/c³)^(5/6) f^(−7/6)`, Hz⁻¹. With a sky-averaged
+/// sensitivity such as [`lisa`](crate::curves::lisa) (Robson et al.), multiply by 4/5 for the
+/// inclination average (Robson Eq. 16), or the SNR comes out too high.
 pub fn amplitude(f: f64, chirp: f64, d: f64) -> f64 {
     (5.0f64 / 24.0).sqrt() * PI.powf(-2.0 / 3.0) * (C / d) * (G * chirp / C.powi(3)).powf(5.0 / 6.0) * f.powf(-7.0 / 6.0)
 }
@@ -53,9 +55,14 @@ pub fn snr(h: impl Fn(f64) -> f64, s_n: impl Fn(f64) -> f64, f_lo: f64, f_hi: f6
 /// Horizon distance (m): the distance at which an optimally placed and oriented binary of masses
 /// `m1`, `m2` (kg) reaches SNR `threshold`, integrating from `f_lo` to the ISCO frequency.
 /// The sky- and orientation-averaged range is [`HORIZON_TO_RANGE`] times smaller.
+/// Zero when the binary merges below `f_lo`.
 pub fn horizon(m1: f64, m2: f64, threshold: f64, s_n: impl Fn(f64) -> f64, f_lo: f64) -> f64 {
     let chirp = chirp_mass(m1, m2);
-    snr(|f| amplitude(f, chirp, 1.0), s_n, f_lo, f_isco(m1 + m2)) / threshold
+    let f_hi = f_isco(m1 + m2);
+    if f_lo >= f_hi {
+        return 0.0;
+    }
+    snr(|f| amplitude(f, chirp, 1.0), s_n, f_lo, f_hi) / threshold
 }
 
 /// Horizon over range for a single interferometer (Chen et al. 2021): 2.264.
@@ -91,5 +98,12 @@ mod tests {
         // Chen et al.; the fit is for quick estimates).
         let d = horizon(1.4 * SOLAR_MASS, 1.4 * SOLAR_MASS, 8.0, curves::aligo, 20.0) / MPC;
         assert!((d / 496.5 - 1.0).abs() < 1e-3, "{d}");
+    }
+
+    #[test]
+    fn heavy_binaries_that_merge_below_the_band_have_no_horizon() {
+        // 500 + 500 M☉ merges at 4.4 Hz, below a 10 Hz cut: horizon 0, not NaN.
+        let m = 500.0 * crate::SOLAR_MASS;
+        assert_eq!(horizon(m, m, 8.0, crate::curves::aligo, 10.0), 0.0);
     }
 }

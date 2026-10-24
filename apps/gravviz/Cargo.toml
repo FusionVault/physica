@@ -13,7 +13,8 @@ repository.workspace = true
 geopotential = { path = "../../crates/geopotential" }
 gravity-field = { path = "../../crates/gravity-field" }
 gravimetry = { path = "../../crates/gravimetry" }
-gravity-claims = { path = "../../crates/gravity-claims" }
+gravitics = { path = "../../crates/gravitics" }
+gwsens = { path = "../../crates/gwsens" }
 satgrav = { path = "../../crates/satgrav" }
 png = "0.18.1"
 flate2 = "1.1.10"

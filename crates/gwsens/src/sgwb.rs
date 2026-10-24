@@ -76,6 +76,8 @@ mod tests {
         let omega_eff = omega_from_sh(s_eff(100.0), 100.0, 1.0);
         let flat = omega_eff / (2.0 * YEAR * (500.0 - 20.0)).sqrt();
         assert!(pi.iter().all(|&v| v >= flat * (1.0 - 1e-9)), "{pi:?} vs {flat:e}");
+        // At the reference frequency the β = 0 law sets the curve: exactly the flat value (√(2T)).
+        assert!((pi[1] / flat - 1.0).abs() < 1e-6, "{}", pi[1] / flat);
         assert!(pi[1] < pi[0] && pi[1] < pi[2]);
     }
 }

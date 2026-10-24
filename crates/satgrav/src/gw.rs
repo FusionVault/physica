@@ -36,7 +36,7 @@ pub struct AtomGwDetector {
     pub phase_noise: f64,
     /// Laser wavenumber, m⁻¹ (e.g. [`K_SR87`]).
     pub k: f64,
-    /// Number of diamond sequences Q in resonant mode (1 for broadband).
+    /// Number of diamond sequences Q in resonant mode (1 for broadband); a whole number.
     pub diamonds: f64,
 }
 
@@ -81,16 +81,19 @@ pub fn gradiometer_strain(gradient_asd: f64, f: f64) -> f64 {
 }
 
 /// Strain noise of two satellites whose separation `separation` (m) is measured with noise
-/// `range_asd` (m Hz⁻¹ᐟ²): `h = x/x₀` (as in [Ross et al. 2020](https://arxiv.org/abs/2002.02044)
-/// for GRACE-FO).
+/// `range_asd` (m Hz⁻¹ᐟ²): `h = 2x/x₀`, because a wave changes a length by `δL = ½hL` (the same
+/// convention as [`tidal_acceleration`] and [`gradiometer_strain`]).
+/// [Ross et al. 2020](https://arxiv.org/abs/2002.02044) quote GRACE-FO with `h = x/x₀`, half this.
 pub fn pair_strain(range_asd: f64, separation: f64) -> f64 {
-    range_asd / separation
+    2.0 * range_asd / separation
 }
 
-/// Shot-noise strain limit of an optical-clock detector
-/// ([Kolkowitz et al. 2016](https://arxiv.org/abs/1606.01859)): `√Δ/(ν√(2πτN))`, Hz⁻¹ᐟ², for
-/// clock frequency `nu` (Hz), linewidth `linewidth` (Hz), interrogation time `tau` (s) and
-/// `atoms`.
+/// Shot-noise limit of an optical-clock detector
+/// ([Kolkowitz et al. 2016](https://arxiv.org/abs/1606.01859), Eq. 2): `σ_min = √Δ/(ν√(2πτN))`,
+/// Hz⁻¹ᐟ², the minimum detectable fractional frequency difference for clock frequency `nu` (Hz),
+/// linewidth `linewidth` (Hz), interrogation time `tau` (s) and `atoms`. It sets the strain
+/// sensitivity scale; the paper turns it into strain with the baseline's transfer function, and
+/// Eq. 2 holds at the optimal Ramsey time.
 pub fn clock_strain(nu: f64, linewidth: f64, tau: f64, atoms: f64) -> f64 {
     linewidth.sqrt() / (nu * (2.0 * PI * tau * atoms).sqrt())
 }
@@ -105,11 +108,12 @@ mod tests {
 
     #[test]
     fn published_design_strains() {
-        // Badurina et al. 2020 (AION) and Baynham et al. 2025 (AICE), δφ/(2nkL).
+        // δφ/(2nkL) for the published designs (parameters from AION Table 1, Badurina et al. 2020,
+        // and AICE Table 1, Baynham et al. 2025, with Δz = 50 m); the strains are recomputed here.
         assert!((design(2000.0, 5.0, 40_000.0, 3e-6).peak_strain() / 2.08e-21 - 1.0).abs() < 0.01);
         assert!((design(50.0, 1.4, 5494.0, 1e-5).peak_strain() / 2.02e-18 - 1.0).abs() < 0.01);
         assert!((design(100.0, 1.4, 1000.0, 1e-4).peak_strain() / 5.55e-17 - 1.0).abs() < 0.01);
-        assert!((design(10.0, 1.4, 100.0, 1e-3).peak_strain() / 5.6e-14 - 1.0).abs() < 0.01);
+        assert!((design(10.0, 1.4, 100.0, 1e-3).peak_strain() / 5.558e-14 - 1.0).abs() < 1e-3);
     }
 
     #[test]
@@ -132,10 +136,10 @@ mod tests {
         // A GOCE-class 10 mE/√Hz gradiometer read as a wave detector.
         assert!((gradiometer_strain(1e-11, 0.01) / 5.07e-9 - 1.0).abs() < 2e-3);
         assert!((gradiometer_strain(1e-11, 0.1) / 5.07e-11 - 1.0).abs() < 2e-3);
-        // Kolkowitz et al.: Sr at 429.2 THz, 1 mHz linewidth, 7×10⁶ atoms.
-        assert!((clock_strain(429.2e12, 1e-3, 1.0, 7e6) / 1.11e-20 - 1.0).abs() < 2e-3);
-        // GRACE-FO: about 1 nm/√Hz of ranging over 220 km.
-        assert!((pair_strain(1e-9, 2.2e5) - 4.5e-15).abs() < 1e-16);
+        // Kolkowitz et al.: 1 mHz linewidth, 7×10⁶ atoms; the paper's 430 THz gives 1.1×10⁻²⁰.
+        assert!((clock_strain(430e12, 1e-3, 1.0, 7e6) / 1.109e-20 - 1.0).abs() < 2e-3);
+        // GRACE-FO: about 1 nm/√Hz of ranging over 220 km is 9.1×10⁻¹⁵ strain (Ross et al.: 4.5×10⁻¹⁵).
+        assert!((pair_strain(1e-9, 2.2e5) / 9.09e-15 - 1.0).abs() < 1e-3);
         // Tidal acceleration and gradiometer strain are consistent: Δa/L = ½ω²h.
         let h = gradiometer_strain(1e-11, 0.1);
         assert!((tidal_acceleration(h, 0.1, 1.0) / 1e-11 - 1.0).abs() < 1e-12);
