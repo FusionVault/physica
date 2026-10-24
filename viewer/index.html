@@ -310,6 +310,37 @@ footer a { color: var(--ink-2); }
         </div>
       </div>
     </section>
+    <section class="panel" aria-label="Global detector">
+      <div>
+        <h3 id="m1Title">A blind search of the whole record (M1)</h3>
+        <p class="sub">Every month, a likelihood-ratio test looks for a sudden gain or loss of mass, 400 or 800 km across, anywhere on Earth, using every coefficient weighted by its calibrated error. The earthquake catalogue is not used in the search; it is shown only to score it.</p>
+      </div>
+      <div class="findings" id="m1Findings"></div>
+      <div class="bar">
+        <button id="m1Play" type="button" aria-label="Play through the months">Play</button>
+        <div class="month" aria-live="polite"><span class="label" id="m1Label">Loading…</span><span class="mission" id="m1When">&nbsp;</span></div>
+        <div class="slider">
+          <input id="m1Slider" type="range" min="0" max="0" value="0" aria-label="Month">
+          <div class="ticks" id="m1Ticks"></div>
+        </div>
+      </div>
+      <div class="mapwrap"><canvas id="m1Map" aria-label="Map of the detector's statistic for the selected month"></canvas></div>
+      <div class="legend">
+        <span>mass lost</span>
+        <div><div class="ramp" aria-hidden="true"></div><div class="ramp-ticks" id="m1Ramp"></div></div>
+        <span>mass gained</span>
+        <span><span class="swatch" style="background: var(--warm)"></span>earthquake of magnitude 8+ this month</span>
+      </div>
+      <div>
+        <h3 id="m1TimelineTitle">The strongest step each month</h3>
+        <p class="sub">Standardised |Z| of the month's strongest step anywhere. Dashed: the threshold from time-shuffled data (1% false alarms per month). Lines: earthquakes of magnitude 8.5 or more.</p>
+      </div>
+      <div class="chartwrap" id="m1Wrap"><svg id="m1Chart" role="img" aria-labelledby="m1TimelineTitle"></svg><div class="tip" hidden></div></div>
+      <details>
+        <summary>Every magnitude 8+ earthquake, scored</summary>
+        <div class="tablewrap"><table id="m1Table"></table></div>
+      </details>
+    </section>
     <div class="prose">
       <p>Gravity anomaly to degree 60 with a 300 km Gaussian and no destriping, because destriping removes north–south structure like this arc. Each cell's trend and seasons are fitted with a step at the event time and a ramp afterwards, weighting each month by its noise. The model is the USGS finite-fault solution in an elastic half-space (Okubo 1992), with the water pushed aside by the rising seafloor removed, filtered exactly like the data. Notes: <a href="https://github.com/FusionVault/quantum-gravimeter/blob/main/results/E1-2026-10-24.md">E1 results</a>.</p>
     </div>
@@ -1040,6 +1071,7 @@ async function initQuake() {
     qs.cell = cellAt(lat, lon); drawQuake(); drawQuakeSeries();
   });
   setQuakeMonth(quake.months.length - 1);
+  initM1().catch((err) => { $("m1Label").textContent = "The global scan did not load"; $("m1When").textContent = err.message; });
 }
 function cellAt(lat, lon) {
   const i = Math.max(0, Math.min(quake.nlat - 1, Math.round(lat - quake.lat0))), j = Math.max(0, Math.min(quake.nlon - 1, Math.round(lon - quake.lon0)));
@@ -1138,7 +1170,106 @@ function drawNull() {
   };
   svg.onpointerleave = () => { tip.hidden = true; };
 }
-function redrawQuake() { if (quake) { drawQuake(); drawQuakeSeries(); } }
+function redrawQuake() { if (quake) { drawQuake(); drawQuakeSeries(); } if (m1) { drawM1Map(); drawM1Chart(); } }
+
+// ---- M1: the blind global detector ------------------------------------------------------------
+let m1 = null;
+const m1s = { k: 0, playing: null };
+async function initM1() {
+  const data = await get("data/m1_scan.json", "json");
+  const buf = await inflate(data.zmaps);
+  m1 = data; m1.z = new Int8Array(buf); m1.cells = data.nlat * data.nlon;
+  if (m1.z.length !== m1.cells * data.epochs.length) throw new Error("the scan maps do not match their epochs");
+  // Score each catalogue event: the largest |Z'| within 600 km and two months.
+  const dist = (a, b, c, d) => 6371 * Math.acos(Math.min(1, Math.sin(a * RAD) * Math.sin(c * RAD) + Math.cos(a * RAD) * Math.cos(c * RAD) * Math.cos((b - d) * RAD)));
+  for (const q of m1.quakes) {
+    q.best = null;
+    m1.epochs.forEach((e, k) => {
+      if (Math.abs(e.t - q.t) > 2 / 12) return;
+      for (let c = 0; c < m1.cells; c++) {
+        const la = m1.lat0 + Math.floor(c / m1.nlon) * m1.step, lo = m1.lon0 + (c % m1.nlon) * m1.step;
+        if (dist(la, lo, q.lat, q.lon) > 600) continue;
+        const z = Math.abs(m1.z[k * m1.cells + c]) / 10;
+        if (!q.best || z > q.best.z) q.best = { z, k };
+      }
+    });
+  }
+  const scored = m1.quakes.filter((q) => q.best), hits = scored.filter((q) => q.best.z >= m1.threshold);
+  const unmatched = m1.detections.filter((d) => !m1.quakes.some((q) => Math.abs(q.t - m1.epochs[d.epoch].t) < 2.5 / 12 && dist(q.lat, q.lon, d.lat, d.lon) < 1000));
+  const big = scored.filter((q) => q.mag >= 8.5), bigHits = big.filter((q) => q.best.z >= m1.threshold);
+  $("m1Findings").innerHTML = [
+    finding("Great earthquakes found", `${bigHits.length} of ${big.length}`, `Magnitude 8.5 or more, found blind: ${bigHits.map((q) => q.name.replace(/ Earthquake.*/, "")).join(", ") || "none"}.`, bigHits.length ? "yes" : "no"),
+    finding("All magnitude 8+", `${hits.length} of ${scored.length}`, "Smaller and deeper earthquakes move too little mass for monthly fields.", "no"),
+    finding("Other detections", `${unmatched.length}`, `Months whose strongest change is not an earthquake: water, ice or noise (${(unmatched.length / ((m1.epochs[m1.epochs.length - 1].t - m1.epochs[0].t) || 1)).toFixed(2)} per year).`, "warn"),
+  ].join("");
+  $("m1Table").innerHTML = `<thead><tr><th>Earthquake</th><th>Magnitude</th><th>Depth (km)</th><th>Largest |Z'|</th><th></th></tr></thead><tbody>` +
+    m1.quakes.map((q) => `<tr><td>${q.name}</td><td>${q.mag.toFixed(1)}</td><td>${q.depth.toFixed(0)}</td><td>${q.best ? q.best.z.toFixed(1) : "no data"}</td><td>${q.best && q.best.z >= m1.threshold ? '<span class="chip sig">found</span>' : ""}</td></tr>`).join("") + "</tbody>";
+  $("m1Slider").max = m1.epochs.length - 1;
+  const n = m1.epochs.length;
+  $("m1Ticks").innerHTML = [0, Math.floor(n / 2), n - 1].map((k) => `<span>${m1.epochs[k].label.slice(0, 4)}</span>`).join("");
+  $("m1Ramp").innerHTML = ["≤ −6", "−3", "0", "+3", "≥ +6 σ"].map((t) => `<span>${t}</span>`).join("");
+  let scrubTo = null;
+  $("m1Slider").addEventListener("input", (e) => { const idle = scrubTo === null; scrubTo = +e.target.value; if (idle) requestAnimationFrame(() => { const k = scrubTo; scrubTo = null; setM1(k, true); }); });
+  $("m1Play").addEventListener("click", () => {
+    if (m1s.playing) { clearInterval(m1s.playing); m1s.playing = null; $("m1Play").textContent = "Play"; return; }
+    if (m1s.k >= n - 1) setM1(0);
+    $("m1Play").textContent = "Pause";
+    m1s.playing = setInterval(() => { if (m1s.k >= n - 1) { $("m1Play").click(); return; } setM1(m1s.k + 1); }, 200);
+  });
+  const tohoku = m1.epochs.findIndex((e) => e.label === "2011-04");
+  setM1(tohoku >= 0 ? tohoku : 0);
+}
+function setM1(k, fromSlider = false) {
+  m1s.k = Math.max(0, Math.min(m1.epochs.length - 1, k));
+  const e = m1.epochs[m1s.k];
+  $("m1Label").textContent = monthName(e.label);
+  const quakes = m1.quakes.filter((q) => q.t >= e.t - 1 / 12 && q.t < e.t + 1 / 24);
+  $("m1When").textContent = `step at the start of the month · strongest |Z'| ${m1.peak[m1s.k].toFixed(1)}${m1.peak[m1s.k] >= m1.threshold ? " · detection" : ""}${quakes.length ? ` · ${quakes.map((q) => q.name.replace(/ Earthquake.*/, "")).join(", ")}` : ""}`;
+  if (!fromSlider) $("m1Slider").value = m1s.k;
+  drawM1Map(); drawM1Chart();
+}
+function drawM1Map() {
+  const cv = $("m1Map"), cssW = cv.parentElement.clientWidth;
+  if (!cssW || !m1) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), cssH = cssW * 0.5;
+  cv.style.height = cssH + "px"; cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+  const c = cv.getContext("2d"), { nlat, nlon } = m1;
+  const small = document.createElement("canvas"); small.width = nlon; small.height = nlat;
+  const sc = small.getContext("2d"), img = sc.createImageData(nlon, nlat), surf = rgb(css("--surface")), wet = [42, 120, 214], dry = [227, 73, 72];
+  const o = m1s.k * m1.cells;
+  for (let i = 0; i < nlat; i++) for (let j = 0; j < nlon; j++) {
+    const v = m1.z[o + i * nlon + j] / 10, t = Math.max(-1, Math.min(1, v / 6)), pole = t >= 0 ? wet : dry, a = Math.abs(t), p = ((nlat - 1 - i) * nlon + j) * 4;
+    img.data[p] = surf[0] + (pole[0] - surf[0]) * a; img.data[p + 1] = surf[1] + (pole[1] - surf[1]) * a; img.data[p + 2] = surf[2] + (pole[2] - surf[2]) * a; img.data[p + 3] = 255;
+  }
+  sc.putImageData(img, 0, 0);
+  c.imageSmoothingEnabled = true; c.drawImage(small, 0, 0, cv.width, cv.height);
+  const x = (lon) => (lon + 180) / 360 * cv.width, y = (lat) => (90 - lat) / 180 * cv.height;
+  c.strokeStyle = css("--ink-2"); c.lineWidth = 0.7 * dpr; c.globalAlpha = 0.7; c.beginPath();
+  for (const seg of coast) { let prev = null; for (const [lon, lat] of seg) { if (prev !== null && Math.abs(prev - lon) < 180) c.lineTo(x(lon), y(lat)); else c.moveTo(x(lon), y(lat)); prev = lon; } }
+  c.stroke(); c.globalAlpha = 1;
+  const e = m1.epochs[m1s.k];
+  for (const q of m1.quakes) {
+    const now = q.t >= e.t - 1 / 12 && q.t < e.t + 1 / 24;
+    c.beginPath(); c.arc(x(q.lon), y(q.lat), (now ? 4 + (q.mag - 7.8) * 6 : 2.5) * dpr, 0, 2 * Math.PI);
+    c.fillStyle = css("--warm"); c.globalAlpha = now ? 0.95 : 0.35; c.fill(); c.globalAlpha = 1;
+  }
+  for (const d of m1.detections.filter((d) => d.epoch === m1s.k)) {
+    c.beginPath(); c.arc(x(d.lon), y(d.lat), 14 * dpr, 0, 2 * Math.PI); c.strokeStyle = css("--ink"); c.lineWidth = 2 * dpr; c.stroke();
+  }
+}
+function drawM1Chart() {
+  if (!m1 || !$("m1Wrap").clientWidth) return;
+  const pts = m1.epochs.map((e, k) => ({ t: e.t + 1 / 24, v: m1.peak[k], label: e.label }));
+  const top = Math.ceil(Math.max(m1.threshold, ...m1.peak)) + 1;
+  timeChart($("m1Chart"), {
+    h: 200, t0: 2002, t1: 2026.8, y0: 0, y1: top,
+    lines: [{ pts: pts.map((p) => [p.t, p.v]), color: "var(--ink)", w: 1.4, gap: 0.3 }, { pts: [[2002, m1.threshold], [2026.8, m1.threshold]], color: "var(--ink-2)", w: 1, dash: "5 4", gap: 99 }],
+    vlines: m1.quakes.filter((q) => q.mag >= 8.5).map((q) => ({ t: q.t, label: q.mag.toFixed(1) })),
+    marks: [{ t: pts[m1s.k].t, v: pts[m1s.k].v, color: "var(--accent)" }],
+    hover: (t) => { const k = nearest(pts, t), p = pts[k]; return { t: p.t, k, html: `<b>${p.label}</b> · strongest |Z'| ${p.v.toFixed(2)}${p.v >= m1.threshold ? " · detection" : ""}`, dots: [{ v: p.v, color: "var(--ink)" }] }; },
+    click: (info) => setM1(info.k),
+  });
+}
 
 // ======================================================================= Noise view
 let noise = null;
@@ -1183,6 +1314,7 @@ function showView(name) {
   try { localStorage.setItem("atlas-view", name); } catch (e) { /* storage may be blocked */ }
   if (name !== "water") stopPlay();
   if (name !== "quake" && qs.playing) $("quakePlay").click();
+  if (name !== "quake" && m1s.playing) $("m1Play").click();
   flow.active = name === "water";
   if (!started[name]) {
     started[name] = VIEWS[name][0]().catch((err) => {

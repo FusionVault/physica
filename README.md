@@ -68,6 +68,7 @@ miss.
 | [Q0](results/Q0-2026-10-24.md) | What makes a monthly field noisy? | Solar activity and satellite modes |
 | [Screen](figures/screen_indices.svg) | Which climate patterns move global land water? | Only El Niño, once 27 tests are accounted for |
 | [Q2](results/Q2-2026-10-24.md) | Are the stated errors of the monthly fields right? | Too small, by about 2× above degree 10 |
+| [M1](results/M1-2026-10-24.md) | Can a blind search of every month and place find earthquakes? | Sumatra and Tohoku, with no false alarms; smaller ones need a targeted test |
 
 **Findings so far:**
 - **El Niño drains the land.** Global land loses about 620 km³ of water per °C of El Niño
@@ -82,6 +83,9 @@ miss.
 - **The sun adds noise.** Solar activity raises the short-wavelength noise of a month by 30% per
   standard deviation of solar flux. At the 300 km scale used above, no factor matters, so solar
   maximum does not explain those results.
+- **A blind search finds the two biggest earthquakes and nothing false.** Searching every month
+  and place, with no catalogue, found Sumatra 2004 and Tohoku 2011 and no false alarms in 254
+  months. No flood or drought made a step that sudden.
 - **The stated errors are too small.** Above degree 10, the monthly fields scatter 2 to 2.5 times
   more than their stated errors. Scaled up, a Kalman smoother predicts withheld months with
   calibrated errors (rms 1.07), so it can fill the gaps in the record and map its uncertainty.
@@ -115,6 +119,9 @@ done
 curl -L -o indices/dmi.had.long.data https://psl.noaa.gov/gcos_wgsp/Timeseries/Data/dmi.had.long.data
 curl -L -o indices/Kp_ap_Ap_SN_F107_since_1932.txt https://kp.gfz-potsdam.de/app/files/Kp_ap_Ap_SN_F107_since_1932.txt
 
+# Every earthquake of magnitude 8 or more since 2002 (USGS)
+curl -L -o usgs_m8_2002_2026.csv "https://earthquake.usgs.gov/fdsnws/event/1/query?format=csv&starttime=2002-04-01&endtime=2026-08-01&minmagnitude=8.0&orderby=time-asc"
+
 # The USGS fault model of the 2025 Kamchatka earthquake
 mkdir -p usgs_us6000qw60
 for f in coulomb.inp surface_deformation.disp; do
@@ -145,6 +152,7 @@ TN13=data/TN-13_GEOC_CSR_RL0603.txt
 | `q0 data/costg data/baseline $TN14 $TN13 data/indices/Kp_ap_Ap_SN_F107_since_1932.txt figures` | [Noise](figures/q0_noise.svg) |
 | `e1 data/costg data/baseline $TN14 $TN13 data/usgs_us6000qw60 figures/q0_noise.csv figures` | [Kamchatka earthquake](figures/e1_kamchatka.svg) |
 | `kalman data/costg data/baseline $TN14 $TN13 figures viewer/data` | [Are COST-G's errors right?](figures/kalman.svg), plus the gap-free record for the viewer |
+| `m1 data/costg data/baseline $TN14 $TN13 figures/kalman_degrees.csv data/usgs_m8_2002_2026.csv figures viewer/data` | [Blind search for sudden mass changes](figures/m1_detector.svg) |
 
 **3. Run the viewer.** The GRACE Mass Atlas has five views:
 - **Water:** every month on a map or globe, with animated mass flow and an average year. The

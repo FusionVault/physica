@@ -1,0 +1,37 @@
+259 monthly fields, 254 candidate epochs (2002-12 to 2026-02), caps of [400.0, 800.0] km, degrees 2–60
+noise: the M3 model (natural signal + file errors × κ); median robust spread of Z per cell 0.76 (1 = the model is exact)
+null: 320 circularly shifted epoch maxima (median 4.73, raw 99th percentile 11.08); Gumbel fit to the quartiles gives the 1%-per-month threshold |Z'| = 7.71
+
+catalogue events (USGS Mw ≥ 8.0, 26):
+  2003 Tokachi-Oki Earthquake                      Mw 8.2   27 km deep: max |Z'|  2.57 at 2003-11 
+  2004 Tasman Sea Earthquake                       Mw 8.1   10 km deep: max |Z'|  2.31 at 2004-11 
+  2004 Sumatra - Andaman Islands Earthquake        Mw 9.1   30 km deep: max |Z'| 13.68 at 2005-01 DETECTED
+  78 km WSW of Singkil, Indonesia                  Mw 8.6   30 km deep: max |Z'|  8.57 at 2005-04 DETECTED
+  2006 Tonga Earthquake                            Mw 8.0   55 km deep: max |Z'|  2.88 at 2006-05 
+  2006 Kuril Islands Earthquake                    Mw 8.3   10 km deep: max |Z'|  2.81 at 2007-01 
+  2007 Kuril Islands Earthquake                    Mw 8.1   10 km deep: max |Z'|  2.91 at 2007-02 
+  2007 Solomon Islands Earthquake                  Mw 8.1   24 km deep: max |Z'|  2.14 at 2007-03 
+  41 km SW of San Vicente de Cañete, Peru          Mw 8.0   39 km deep: max |Z'|  2.55 at 2007-09 
+  122 km SW of Bengkulu, Indonesia                 Mw 8.4   34 km deep: max |Z'|  3.69 at 2007-10 
+  2009 Samoa Earthquake                            Mw 8.1   18 km deep: max |Z'|  3.73 at 2009-11 
+  2010 Maule, Chile Earthquake                     Mw 8.8   23 km deep: max |Z'|  3.85 at 2010-03 
+  2011 Great Tohoku Earthquake, Japan              Mw 9.1   29 km deep: max |Z'|  7.84 at 2011-03 DETECTED
+  2012 Wharton Basin Earthquake                    Mw 8.6   20 km deep: max |Z'|  6.38 at 2012-04 
+  2012 Wharton Basin Aftershock                    Mw 8.2   25 km deep: max |Z'|  6.69 at 2012-04 
+  2013 Santa Cruz Islands Earthquake               Mw 8.0   24 km deep: max |Z'|  3.45 at 2013-02 
+  2013 Sea of Okhotsk Earthquake                   Mw 8.3  598 km deep: max |Z'|  3.08 at 2013-07 
+  93 km NW of Iquique, Chile                       Mw 8.2   25 km deep: max |Z'|  2.98 at 2014-02 
+  48 km W of Illapel, Chile                        Mw 8.3   22 km deep: max |Z'|  3.31 at 2015-11 
+  2017 Tehuantepec, Mexico Earthquake              Mw 8.2   47 km deep: no field window
+  2018 Fiji Earthquake                             Mw 8.2  600 km deep: no field window
+  78 km NE of Navarro, Peru                        Mw 8.0  123 km deep: max |Z'|  2.57 at 2019-05 
+  2021 Kermadec Islands, New Zealand Earthquake    Mw 8.1   29 km deep: max |Z'|  1.83 at 2021-03 
+  2021 Chignik, Alaska Earthquake                  Mw 8.2   35 km deep: max |Z'|  3.56 at 2021-08 
+  2021 South Sandwich Islands Earthquake           Mw 8.1   23 km deep: max |Z'|  3.42 at 2021-08 
+  2025 Kamchatka Peninsula, Russia Earthquake      Mw 8.8   35 km deep: max |Z'|  4.72 at 2025-08 
+recovered 3 of 24 scorable events
+
+blind detections (global monthly maximum above the threshold), 2:
+  2005-01 at   7.0°,   95.0°: Z' -13.68 (400 km cap, raw Z -7.5) = 2004 Sumatra - Andaman Islands Earthquake (Mw 9.1)
+  2011-03 at  39.0°,  139.0°: Z' -7.84 (400 km cap, raw Z -7.8) = 2011 Great Tohoku Earthquake, Japan (Mw 9.1)
+2 of 2 detections match a catalogue earthquake; the other 0 are 0.00 per year (hydrology, ice or noise)
