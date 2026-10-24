@@ -1,0 +1,16 @@
+[package]
+name = "gwsens"
+version = "0.1.0"
+description = "Gravitational-wave sensitivity in one place: strain conventions, detector noise curves (LIGO, Einstein Telescope, LISA), signal-to-noise and horizons, stochastic backgrounds and pulsar timing, high-frequency limits and lab-gravity reality checks."
+keywords = ["gravitational-waves", "physics", "astronomy", "ligo", "lisa"]
+categories = ["science", "simulation"]
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

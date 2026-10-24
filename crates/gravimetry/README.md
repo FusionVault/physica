@@ -118,6 +118,7 @@ per degree, and how well withheld months are predicted.*
 | `mass_coefficients` | Spherical-harmonic coefficients of point masses |
 | `kalman` | A Kalman smoother for series with gaps and per-month errors, and a maximum-likelihood fit of its settings ([Rauch et al. 1965](https://doi.org/10.2514/3.3166)) |
 | `transport_weights` | The smallest mass flow that carries a change, the flow field in the [GRACE Mass Atlas](https://github.com/FusionVault/quantum-gravimeter#run-the-viewer) |
+| `atmosphere` | Sound, buoyancy and Lamb waves in the air (the acoustic-gravity dispersion relation), the mass of a pressure change, and the ocean's forced response to a fast pressure pulse ([Wright et al. 2022](https://doi.org/10.1038/s41586-022-05012-5); [Proudman 1929](https://doi.org/10.1111/j.2044-8312.1929.tb05286.x)) |
 
 ## How it is checked
 
@@ -134,6 +135,9 @@ per degree, and how well withheld months are predicted.*
   - it matches the exact Gaussian-process solution to 1e-10;
   - its fit recovers the settings of simulated data;
   - on the real record, withheld months are predicted with calibrated errors.
+- **Atmosphere:** the isothermal values at 250 K (sound 317 m/s, cut-off 0.0217 rad/s, buoyancy
+  0.0196 rad/s); the Lamb wave is trapped at every wavelength; the Tonga Lamb speed of 318.2 m/s
+  is sound at 252 K; a slow pressure pulse gives the inverse barometer.
 
 **Not included yet:** glacial isostatic adjustment, DDK filters, basin averages and leakage
 corrections.

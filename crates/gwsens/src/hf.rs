@@ -1,0 +1,163 @@
+//! High-frequency gravitational waves (above 10 kHz): the cosmological ceiling, conversion of
+//! waves into photons in a magnetic field, resonant-cavity noise, source frequencies, and a
+//! registry of published limits, each with its status.
+//!
+//! The main reference is the 2025 Living Review by
+//! [Aggarwal et al.](https://arxiv.org/abs/2501.11723). Its key message is in [`CEILING_BBN_CMB`]:
+//! any background from the early Universe is capped at Ω h² ≈ 10⁻⁶, about 10⁻³⁰ strain at 1 GHz,
+//! while the best laboratory limits sit 18–31 orders of magnitude above it.
+//!
+//! ```
+//! use gwsens::hf;
+//!
+//! // Probability that a wave turns into a photon over 9.26 m of a 9 T magnet (the CAST helioscope).
+//! let p = hf::gertsenshtein_probability(9.0, 9.26);
+//! assert!((p / 5.74e-34 - 1.0).abs() < 0.01);
+//! ```
+
+use crate::{C, G, HBAR, K_B, MU_0};
+use core::f64::consts::PI;
+
+/// Big-bang nucleosynthesis and CMB bound on any background present before nucleosynthesis:
+/// Ω_GW h² < 1.1 × 10⁻⁶ (ΔN_eff < 0.18; Review 2025 §4.2).
+pub const CEILING_BBN_CMB: f64 = 1.1e-6;
+/// CMB-only bound with homogeneous initial conditions: Ω_GW h² < 2.9 × 10⁻⁷.
+pub const CEILING_CMB: f64 = 2.9e-7;
+/// A future CMB measurement of N_eff to its theoretical precision: about 5.6 × 10⁻⁹.
+pub const CEILING_FUTURE: f64 = 5.6e-9;
+
+/// Ω_GW h² per unit ΔN_eff: 5.6 × 10⁻⁶.
+pub fn ceiling_from_delta_neff(delta_neff: f64) -> f64 {
+    5.6e-6 * delta_neff
+}
+
+/// Probability that a gravitational wave converts to a photon (inverse Gertsenshtein effect)
+/// crossing a transverse magnetic field `b` (T) over length `l` (m), for `l` ≫ wavelength:
+/// `P = 4πG B² L²/(μ₀ c⁴)`.
+pub fn gertsenshtein_probability(b: f64, l: f64) -> f64 {
+    4.0 * PI * G * b * b * l * l / (MU_0 * C.powi(4))
+}
+
+/// Photons per second from a flat stochastic background of characteristic strain `hc` over a
+/// bandwidth `df` (Hz), for a magnet of field `b` (T), length `l` (m) and aperture `area` (m²)
+/// with detection efficiency `eff`: `Ṅ = ε A B² L² h_c² 2πΔf/(4μ₀cħ)` (Ejlli et al. 2019).
+/// G cancels: the conversion probability times the wave's energy flux.
+pub fn stochastic_photon_rate(eff: f64, area: f64, b: f64, l: f64, hc: f64, df: f64) -> f64 {
+    eff * area * b * b * l * l * hc * hc * 2.0 * PI * df / (4.0 * MU_0 * C * HBAR)
+}
+
+/// The characteristic strain that gives `rate` photons per second (inverse of
+/// [`stochastic_photon_rate`]).
+pub fn stochastic_strain_for_rate(rate: f64, eff: f64, area: f64, b: f64, l: f64, df: f64) -> f64 {
+    (rate / stochastic_photon_rate(eff, area, b, l, 1.0, df)).sqrt()
+}
+
+/// Photons per second from a monochromatic wave of amplitude `h0` at frequency `f`:
+/// `Ṅ = ε A B² L² ω h₀²/(8μ₀cħ)`.
+pub fn coherent_photon_rate(eff: f64, area: f64, b: f64, l: f64, f: f64, h0: f64) -> f64 {
+    eff * area * b * b * l * l * 2.0 * PI * f * h0 * h0 / (8.0 * MU_0 * C * HBAR)
+}
+
+/// Strain noise of a resonant microwave cavity in a magnetic field (Review 2025 Eq. 113 in SI):
+/// `S_h = 2 k_B T μ₀ c²/(ω³ η² Q B² L⁵)`, Hz⁻¹, with system temperature `t` (K), frequency `f`,
+/// coupling `eta`, quality factor `q`, field `b` (T) and size `l` (m).
+pub fn cavity_noise(t: f64, f: f64, eta: f64, q: f64, b: f64, l: f64) -> f64 {
+    let w = 2.0 * PI * f;
+    2.0 * K_B * t * MU_0 * C * C / (w.powi(3) * eta * eta * q * b * b * l.powi(5))
+}
+
+/// Gravitational-wave line from a superradiant cloud of bosons of mass `mass_ev` (eV) around a
+/// black hole: `f = 2μc²/h`, Hz (binding corrections neglected).
+pub fn superradiance_frequency(mass_ev: f64) -> f64 {
+    2.0 * mass_ev * 1.602_176_634e-19 / (2.0 * PI * HBAR)
+}
+
+/// Spectral shape of a first-order phase transition's sound waves, `S(x) = x³[7/(4 + 3x²)]^(7/2)`,
+/// with x = f/f_peak (Review 2025 Eq. 101). S(1) = 1.
+pub fn phase_transition_shape(x: f64) -> f64 {
+    x.powi(3) * (7.0 / (4.0 + 3.0 * x * x)).powf(3.5)
+}
+
+/// How far a result is from being a real measurement.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Status {
+    /// A limit published by the experiment from its own data.
+    PublishedLimit,
+    /// A limit derived later from an experiment built for something else (e.g. axion searches).
+    Recast,
+    /// A recast whose interpretation is contested in the literature.
+    Contested,
+    /// A claimed signal not accepted as gravitational waves.
+    Disputed,
+}
+
+/// One entry of the high-frequency landscape.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Limit {
+    /// Experiment or analysis.
+    pub name: &'static str,
+    /// Frequency range, Hz.
+    pub band: (f64, f64),
+    /// The quoted sensitivity or limit, in the unit of `quantity`.
+    pub value: f64,
+    /// What `value` is.
+    pub quantity: &'static str,
+    /// Its status.
+    pub status: Status,
+    /// Where it comes from.
+    pub source: &'static str,
+}
+
+/// Published high-frequency limits and claims (from the 2025 Living Review and the papers it
+/// cites; values as quoted there).
+pub const REGISTRY: [Limit; 7] = [
+    Limit { name: "QUEST (twin Michelsons, Cardiff)", band: (13e6, 80e6), value: 3e-20, quantity: "√S_h Hz⁻¹ᐟ² near 40 MHz", status: Status::PublishedLimit, source: "https://arxiv.org/abs/2410.09175" },
+    Limit { name: "Fermilab Holometer", band: (1e6, 13e6), value: 2.4e-19, quantity: "√S_h Hz⁻¹ᐟ² at 13 MHz", status: Status::PublishedLimit, source: "https://arxiv.org/abs/1611.05560" },
+    Limit { name: "CAPP-12T axion haloscope", band: (5.310e9, 5.312e9), value: 3.9e-21, quantity: "h₀ (90% CL)", status: Status::Recast, source: "https://arxiv.org/abs/2511.17817" },
+    Limit { name: "Light shining through a wall (OSQAR, ALPS)", band: (2e14, 6e14), value: 6e-26, quantity: "h_c", status: Status::Contested, source: "https://arxiv.org/abs/1908.00232" },
+    Limit { name: "Helioscopes, X-ray (CAST)", band: (2e17, 3e18), value: 5e-28, quantity: "h_c", status: Status::Contested, source: "https://arxiv.org/abs/1908.00232" },
+    Limit { name: "MAGE quartz resonators", band: (5e6, 7e6), value: 6.6e-21, quantity: "√S_h Hz⁻¹ᐟ² in narrow bands", status: Status::PublishedLimit, source: "https://arxiv.org/abs/2307.00715" },
+    Limit { name: "2021 quartz-resonator rare events", band: (5.5e6, 5.5e6), value: 1e8, quantity: "Ω_GW needed to explain them", status: Status::Disputed, source: "https://arxiv.org/abs/2110.13319" },
+];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::strain::{Convention, hc_from_omega};
+
+    #[test]
+    fn ceiling_in_strain() {
+        let hc = hc_from_omega(CEILING_BBN_CMB, 1e9, 1.0, Convention::OneSided);
+        assert!((hc / 1.33e-30 - 1.0).abs() < 0.01, "{hc:e}");
+        assert!((ceiling_from_delta_neff(0.18) / CEILING_BBN_CMB - 1.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn photon_conversion_fixtures() {
+        assert!((gertsenshtein_probability(1.0, 1.0) / 8.263e-38 - 1.0).abs() < 1e-3);
+        assert!((gertsenshtein_probability(5.3, 106.0) / 2.61e-32 - 1.0).abs() < 0.01);
+        assert!((stochastic_photon_rate(1.0, 1.0, 1.0, 1.0, 1.0, 1.0) / 3.954e31 - 1.0).abs() < 1e-3);
+        // One photon per second: Ejlli et al.'s published prefactor 1.6×10⁻¹⁶.
+        assert!((stochastic_strain_for_rate(1.0, 1.0, 1.0, 1.0, 1.0, 1.0) / 1.590e-16 - 1.0).abs() < 1e-3);
+        assert!((coherent_photon_rate(1.0, 1.0, 1.0, 1.0, 1.0, 1.0) / 1.977e31 - 1.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn cavity_and_sources() {
+        // ADMX-like cavity: 0.8 GHz, η = 0.1, Q = 8×10⁴, 7.5 T, 0.51 m, 0.6 K.
+        let asd = cavity_noise(0.6, 0.8e9, 0.1, 8e4, 7.5, 0.51).sqrt();
+        assert!((asd / 9.7e-23 - 1.0).abs() < 0.01, "{asd:e}");
+        assert!((superradiance_frequency(1.0) / 4.836e14 - 1.0).abs() < 1e-3);
+        assert!((phase_transition_shape(1.0) - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn registry_sits_far_above_the_ceiling() {
+        // Every published √S_h limit, converted to Ω h², is ≥ 10¹⁰ times the ceiling.
+        for l in REGISTRY.iter().filter(|l| l.quantity.starts_with("√S_h")) {
+            let f = (l.band.0 * l.band.1).sqrt();
+            let omega = crate::strain::omega_from_sh(l.value * l.value, f, 1.0);
+            assert!(omega > 1e10 * CEILING_BBN_CMB, "{}: {omega:e}", l.name);
+        }
+    }
+}

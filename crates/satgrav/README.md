@@ -32,6 +32,23 @@ println!("quantum {quantum:.1e}, GRACE-FO {today:.1e}"); // 3.2e-10 against 1.0e
 assert!(quantum < today / 3.0);
 ```
 
+## Example: a gravity sensor as a gravitational-wave detector
+
+A gravitational wave of strain h stretches a baseline L, so two free masses feel a tidal
+acceleration ½ω²hL. Gradiometers, atom interferometers and satellite pairs all measure that; the
+baseline decides how well.
+
+```rust
+use satgrav::gw::{AtomGwDetector, K_SR87, gradiometer_strain};
+
+// AION-km: two strontium clouds 2 km apart (Badurina et al. 2020).
+let aion = AtomGwDetector { baseline: 2000.0, t: 5.0, lmt: 40_000.0, phase_noise: 3e-6, k: K_SR87, diamonds: 1.0 };
+println!("{:.1e} per √Hz at 0.1 Hz", aion.peak_strain()); // 2.1e-21
+
+// A GOCE-class gradiometer (10 mE/√Hz) read the same way: 5e-11 per √Hz at 0.1 Hz.
+assert!(gradiometer_strain(1e-11, 0.1) > 1e10 * aion.peak_strain());
+```
+
 ## What is inside
 
 | Item | What it does |
@@ -41,6 +58,7 @@ assert!(quantum < today / 3.0);
 | `gradiometry_errors` | The error of each coefficient a gradiometer mission like GOCE achieves |
 | `noise` | Noise with any spectrum, and its whitening |
 | `sim` | A closed-loop simulation of a GRACE-type pair: simulate, estimate the field back, and compare its errors with the predicted ones |
+| `gw` | The sensors as gravitational-wave detectors: atom-interferometer strain response ([Graham et al. 2016](https://arxiv.org/abs/1606.01860), Eq. 9), and the strain noise of gradiometers, optical clocks ([Kolkowitz et al. 2016](https://arxiv.org/abs/1606.01859)) and satellite pairs |
 
 ![Closed-loop simulation of four mission classes](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/sst_closed_loop.svg)
 
@@ -55,6 +73,8 @@ errors of a real month.*
 - **Gradiometry errors:** the closed form matches brute-force least squares.
 - **Simulator:** it recovers a known field exactly without noise. With noise, a χ² test confirms
   that its actual errors match its predicted ones.
+- **Gravitational waves:** the published peak strains of AION-10, AION-100, AION-km and AICE;
+  the response's low-frequency and resonant limits; Kolkowitz et al.'s clock strain.
 
 **Not modelled yet:**
 - time-variable gravity, and so temporal aliasing;

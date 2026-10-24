@@ -58,6 +58,7 @@ mod q0;
 mod screen;
 mod sst;
 mod svg;
+mod tonga;
 mod triangle;
 mod w1;
 
@@ -147,6 +148,12 @@ fn main() -> Result<()> {
             print!("{}", kalman::run(months, baseline, tn14, tn13, out, viewer)?);
             Ok(())
         }
+        ["tonga", out] => {
+            let (report, svg) = tonga::run()?;
+            print!("{report}");
+            write(out, "tonga_feasibility.txt", &report)?;
+            write(out, "tonga_lamb_wave.svg", &svg)
+        }
         ["m1", months, baseline, tn14, tn13, kalman, catalogue, out, viewer] => {
             print!("{}", m1::run(months, baseline, tn14, tn13, Path::new(kalman), Path::new(catalogue), out, viewer)?);
             Ok(())
@@ -158,7 +165,7 @@ fn main() -> Result<()> {
             e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt USGS_FAULT_DIR Q0_NOISE.csv OUT_DIR | screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR | \
             q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR | \
             kalman MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR VIEWER_DATA_DIR | \
-            m1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KALMAN_DEGREES.csv CATALOGUE.csv OUT_DIR VIEWER_DATA_DIR".into()),
+            m1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KALMAN_DEGREES.csv CATALOGUE.csv OUT_DIR VIEWER_DATA_DIR | tonga OUT_DIR".into()),
     }
 }
 

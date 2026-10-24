@@ -2,6 +2,7 @@
 
 mod atom;
 mod errors;
+pub mod gw;
 pub mod noise;
 pub mod sim;
 

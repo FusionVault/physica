@@ -13,7 +13,8 @@ sensors of future missions.
 | [`geopotential`](crates/geopotential) · [docs](https://docs.rs/geopotential) | Earth's gravity field from spherical harmonics: gravity, geoid and water height at a point or on a map |
 | [`gravity-field`](crates/gravity-field) · [docs](https://docs.rs/gravity-field) | Reads gravity-field files: ICGEM `.gfc` models and the GRACE technical notes |
 | [`gravimetry`](crates/gravimetry) · [docs](https://docs.rs/gravimetry) | GRACE processing (smoothing, stripe removal, water height), earthquake gravity models and mass transport |
-| [`satgrav`](crates/satgrav) · [docs](https://docs.rs/satgrav) | Gravity missions and quantum sensors: noise models, error predictions and a satellite-pair simulator |
+| [`satgrav`](crates/satgrav) · [docs](https://docs.rs/satgrav) | Gravity missions and quantum sensors: noise models, error predictions, a satellite-pair simulator, and the sensors as gravitational-wave detectors |
+| [`gwsens`](crates/gwsens) · [docs](https://docs.rs/gwsens) | Gravitational-wave sensitivity: strain conventions, LIGO, Einstein Telescope and LISA noise curves, horizons, stochastic backgrounds, high-frequency limits and lab-gravity reality checks |
 | [`gravviz`](apps/gravviz) | The command-line tool that makes every figure here (not published) |
 | [`viewer`](viewer) | The GRACE Mass Atlas, an interactive web page for all of it |
 
@@ -57,7 +58,9 @@ Each crate's README has more examples.
 ## Research
 
 The [research report](reports/Gravimetry%20frontiers%20and%20hidden%20connections.md) proposes
-new tests of how gravity data connects to climate and earthquakes. Each forecast is committed as a
+new tests of how gravity data connects to climate and earthquakes; a
+[second report](reports/Gravitational%20waves%20and%20gravity%20beams.md) covers gravitational
+waves, high-frequency waves and gravity beams. Each forecast is committed as a
 git tag before the data that decides it exists, and results are reported whether they hit or
 miss.
 
@@ -69,6 +72,7 @@ miss.
 | [Screen](figures/screen_indices.svg) | Which climate patterns move global land water? | Only El Niño, once 27 tests are accounted for |
 | [Q2](results/Q2-2026-10-24.md) | Are the stated errors of the monthly fields right? | Too small, by about 2× above degree 10 |
 | [M1](results/M1-2026-10-24.md) | Can a blind search of every month and place find earthquakes? | Sumatra and Tohoku, with no false alarms; smaller ones need a targeted test |
+| [T1](prereg/T1-2026-10-24.md) | Does GRACE-FO's laser ranging feel the 2022 Tonga eruption's pressure wave? | Registered 2026-10-24 before any data was fetched; feasible on paper (SNR 25–55 per good crossing) |
 
 **Findings so far:**
 - **El Niño drains the land.** Global land loses about 620 km³ of water per °C of El Niño
@@ -153,6 +157,7 @@ TN13=data/TN-13_GEOC_CSR_RL0603.txt
 | `e1 data/costg data/baseline $TN14 $TN13 data/usgs_us6000qw60 figures/q0_noise.csv figures` | [Kamchatka earthquake](figures/e1_kamchatka.svg) |
 | `kalman data/costg data/baseline $TN14 $TN13 figures viewer/data` | [Are COST-G's errors right?](figures/kalman.svg), plus the gap-free record for the viewer |
 | `m1 data/costg data/baseline $TN14 $TN13 figures/kalman_degrees.csv data/usgs_m8_2002_2026.csv figures viewer/data` | [Blind search for sudden mass changes](figures/m1_detector.svg) |
+| `tonga figures` | [The Tonga Lamb wave as GRACE-FO would see it](figures/tonga_lamb_wave.svg) |
 
 **3. Run the viewer.** The GRACE Mass Atlas has five views:
 - **Water:** every month on a map or globe, with animated mass flow and an average year. The

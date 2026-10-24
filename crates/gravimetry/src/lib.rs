@@ -2,6 +2,7 @@
 
 use geopotential::{Coefficients, Legendre};
 
+pub mod atmosphere;
 pub mod coseismic;
 pub mod kalman;
 
