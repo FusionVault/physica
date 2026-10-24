@@ -62,7 +62,8 @@ assert!(model / light > 800.0); // Dresden measured less than 0.03 µN
 | `hfgw` | High-frequency gravitational waves: the Li–Baker detector (flux conventions, graviton rate, the interference signal, the shot-noise time) and the Pais patents (radiated flux, surface field, magnetic conversion as he uses it and in SI) |
 | `superconductors` | The London moment; frame dragging of a ring in general relativity against Tajmar's report; the Cooper-pair density and gravitational London depth; a perfect shield's shadow; Podkletnov's pendulum and Marx bank; the measured bounds |
 | `propulsion` | Ion wind and ion mobility, the vacuum (ballistic) limit, the photon rocket, Shawyer's EmDrive formula, buoyancy on a balance, Woodward's Mach-effect thrust |
-| `spacetime` | Alcubierre warp-bubble energy ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026)), the quantum inequality, Casimir plates and spheres, wormhole tensions, and light bending in Puthoff's polarizable vacuum against general relativity |
+| `spacetime` | Alcubierre warp-bubble energy ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026)), the quantum inequality, Casimir plates and spheres, wormhole tensions, light bending in Puthoff's polarizable vacuum against general relativity, and horizon temperatures (Unruh, Hawking, Gibbons–Hawking) with black-hole lifetimes and zero-point energy |
+| `strong_field` | The Schwinger limit: the critical field, the pair-production and vacuum-decay rates, laser a₀ and the quantum parameter χ (with explicit intensity conventions), Ritus–Narozhny, Breit–Wheeler suppression, vacuum birefringence, Euler–Heisenberg, supercritical atoms, and the graphene analogue. The Schwinger exponent is exactly a Boltzmann factor at twice the Unruh temperature, and a test pins that identity |
 
 ![The energy a warp bubble needs](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/warp_energy.svg)
 
@@ -91,7 +92,10 @@ Every test reproduces a published number from the paper's own inputs, mostly to 
 - Pfenning & Ford's warp energy;
 - the quantum inequality;
 - the Casimir pressure at 1 µm;
-- the Sun's 1.7512″ light bending.
+- the Sun's 1.7512″ light bending;
+- the Schwinger field and pair rates, CoReLS's a₀, LUXE's χ, PVLAS's QED birefringence, and
+  Dirac binding for lead and uranium;
+- Unruh, Hawking and Gibbons–Hawking temperatures.
 
 The formulas were independently re-derived from their sources and every test value recomputed;
 the Casimir formulas are also checked against each other.

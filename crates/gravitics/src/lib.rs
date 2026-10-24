@@ -3,9 +3,10 @@
 pub mod hfgw;
 pub mod propulsion;
 pub mod spacetime;
+pub mod strong_field;
 pub mod superconductors;
 
-pub use gwsens::{C, G, HBAR, MU_0};
+pub use gwsens::{C, G, HBAR, K_B, MU_0};
 
 /// Elementary charge, C.
 pub const E_CHARGE: f64 = 1.602_176_634e-19;

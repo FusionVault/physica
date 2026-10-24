@@ -17,7 +17,7 @@
 
 use core::f64::consts::PI;
 
-use crate::{C, G, HBAR};
+use crate::{C, G, HBAR, K_B};
 
 /// Total energy of an Alcubierre warp bubble of `radius` (m) and wall thickness `wall` (m) moving
 /// at `speed` (in units of c), as a mass (kg): `−(v²/12)(R²/Δ)·c²/G`
@@ -59,6 +59,39 @@ pub fn wormhole_throat_tension(b0: f64) -> f64 {
 /// Line tension (J/m) of the exotic edges of Visser's cubical wormhole: `−c⁴/(8G)`.
 pub fn wormhole_edge_tension() -> f64 {
     -C.powi(4) / (8.0 * G)
+}
+
+/// Temperature (K) of a horizon of surface gravity `kappa` (s⁻¹): `ħκ/(2πk_B)`. With κ = a/c it is
+/// the Unruh temperature, with c³/(4GM) Hawking's, with the Hubble rate Gibbons–Hawking's.
+pub fn horizon_temperature(kappa: f64) -> f64 {
+    HBAR * kappa / (2.0 * PI * K_B)
+}
+
+/// Unruh temperature (K) seen by an observer accelerating at `a` (m/s²).
+pub fn unruh_temperature(a: f64) -> f64 {
+    horizon_temperature(a / C)
+}
+
+/// Hawking temperature (K) of a black hole of mass `m` (kg).
+pub fn hawking_temperature(m: f64) -> f64 {
+    horizon_temperature(C.powi(3) / (4.0 * G * m))
+}
+
+/// Gibbons–Hawking temperature (K) of the cosmological horizon for Hubble rate `h` (s⁻¹).
+pub fn gibbons_hawking_temperature(h: f64) -> f64 {
+    horizon_temperature(h)
+}
+
+/// Evaporation time (s) of a black hole of mass `m` (kg) radiating photons only:
+/// `5120πG²M³/(ħc⁴)`.
+pub fn hawking_lifetime(m: f64) -> f64 {
+    5120.0 * PI * G * G * m.powi(3) / (HBAR * C.powi(4))
+}
+
+/// Zero-point energy density (J/m³) of the electromagnetic field up to a cut-off `omega_c`
+/// (rad/s): `ħω_c⁴/(8π²c³)`.
+pub fn zero_point_energy_density(omega_c: f64) -> f64 {
+    HBAR * omega_c.powi(4) / (8.0 * PI * PI * C.powi(3))
 }
 
 /// A static, spherical metric.
@@ -117,6 +150,36 @@ mod tests {
     fn wormholes() {
         assert!(close(wormhole_throat_tension(10.0), 4.82e40, 5e-3));
         assert!(close(wormhole_edge_tension(), -1.513e43, 1e-3));
+    }
+
+    #[test]
+    fn horizons() {
+        // Unruh: 4.055×10⁻²¹ K per m/s²; 1 K needs 2.466×10²⁰ m/s².
+        assert!(close(unruh_temperature(1.0), 4.055e-21, 1e-3));
+        assert!(close(1.0 / unruh_temperature(1.0), 2.466e20, 1e-3));
+        // A solar-mass black hole: 61.7 nK, evaporating (photons only) in 2.1×10⁶⁷ years.
+        let sun = 1.327_124_4e20 / G;
+        assert!(close(hawking_temperature(sun), 6.17e-8, 2e-3));
+        assert!(close(hawking_lifetime(sun) / 3.155_76e7, 2.095e67, 3e-3));
+        // The cosmological horizon at H₀ = 67.4 km/s/Mpc: 2.7×10⁻³⁰ K.
+        assert!(close(gibbons_hawking_temperature(67.4e3 / 3.085_677_581e22), 2.655e-30, 2e-3));
+        // Zero-point energy to the electron's Compton frequency: 1.8×10²² J/m³.
+        let compton = 9.109_383_701_5e-31 * C * C / HBAR;
+        assert!(close(zero_point_energy_density(compton), 1.801e22, 2e-3));
+    }
+
+    #[test]
+    fn schwinger_is_a_boltzmann_factor_at_twice_the_unruh_temperature() {
+        // πE_S/E = m_ec²/(2k_B T_U) for an electron accelerated by E: exactly, at any field.
+        use crate::strong_field::{E_SCHWINGER, schwinger_exponent};
+        let (m_e, e) = (9.109_383_701_5e-31, 1.602_176_634e-19);
+        for f in [1.0, 0.1, 1e-3] {
+            let field = f * E_SCHWINGER;
+            let t_u = unruh_temperature(e * field / m_e);
+            assert!(close(schwinger_exponent(field), m_e * C * C / (2.0 * K_B * t_u), 1e-12));
+        }
+        // At the critical field itself, T_U = 9.44×10⁸ K (81.3 keV).
+        assert!(close(unruh_temperature(e * E_SCHWINGER / m_e), 9.438e8, 1e-3));
     }
 
     #[test]

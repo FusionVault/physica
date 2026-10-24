@@ -1,6 +1,6 @@
 [package]
 name = "gravitics"
-version = "0.1.0"
+version = "0.2.0"
 description = "Gravitics: the physics of gravity control and exotic propulsion, computed both ways. Each proposal's own model (Li–Baker gravitational-wave detectors, Pais, Tajmar and Podkletnov superconductors, EmDrive, Mach-effect and ion-wind thrusters, warp drives, the polarizable vacuum) next to general relativity and the measurements."
 keywords = ["gravity", "physics", "general-relativity", "propulsion", "gravitational-waves"]
 categories = ["science"]
