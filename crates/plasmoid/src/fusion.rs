@@ -135,8 +135,8 @@ pub fn pb11_reactivity(fit: Pb11Fit, t: f64) -> Option<f64> {
         Pb11Fit::NevinsSwain => ([4.4467e-14, -5.9357e-2, 2.0165e-1, 1.0404e-3, 2.7621e-3, -9.1653e-6, 9.8305e-7], 50.0),
         Pb11Fit::TentoriBelloni => ([9.7827e-14, -5.1610e-2, 1.3240e-1, 3.8446e-4, 1.2499e-3, -5.6715e-6, 1.1615e-6], 70.0),
     };
-    let mr = reduced_mass(M_P, M_B11);
-    (lo..=500.0).contains(&t).then(|| bosch_hale_form(gamow_energy(1.0, 5.0, mr), mr, &c, t))
+    // The fits' own constants (Nevins & Swain 2000): E_G = 22589 keV, m_rc² = 859526 keV.
+    (lo..=500.0).contains(&t).then(|| bosch_hale_form(22_589.0, 859_526.0, &c, t))
 }
 
 /// Bremsstrahlung coefficient `C_B` (W m³ keV^−½) of `P = C_B Z_eff n_e² √T`, as Wurzel & Hsu use.
