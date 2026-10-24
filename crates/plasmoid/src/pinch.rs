@@ -16,14 +16,7 @@
 
 use core::f64::consts::PI;
 
-const MU0: f64 = 1.256_637_062_12e-6;
-const E: f64 = 1.602_176_634e-19;
-const G: f64 = 6.674_30e-11;
-const K_B: f64 = 1.380_649e-23;
-const M_P: f64 = 1.672_621_923_69e-27;
-const M_E: f64 = 9.109_383_701_5e-31;
-const M_H: f64 = 1.673_532_838_3e-27;
-const HBAR: f64 = 1.054_571_817e-34;
+use metrology::{E_CHARGE as E, G, HBAR, K_B, M_E, M_H, M_P, MU_0 as MU0};
 
 /// Bennett temperature (eV) with `T_e = T_i`, for current `current` (A), ion line density
 /// `line_density` (m⁻¹) and ion charge `z`: `μ₀I²/(8πN(1 + z)e)`.

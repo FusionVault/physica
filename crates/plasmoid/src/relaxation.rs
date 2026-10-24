@@ -18,8 +18,7 @@
 
 use core::f64::consts::PI;
 
-const MU0: f64 = 1.256_637_062_12e-6;
-const M_P: f64 = 1.672_621_923_69e-27;
+use metrology::{M_P, MU_0 as MU0};
 
 /// First zero of J₁, the cylinder's radial eigenvalue.
 pub const J11: f64 = 3.831_705_970_207_512;

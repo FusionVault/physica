@@ -11,7 +11,9 @@
 //! assert!((best - 0.457).abs() < 0.002);
 //! ```
 
-use crate::fusion::{KEV, Pb11Fit, Reaction, bosch_hale, pb11_reactivity};
+use metrology::KEV;
+
+use crate::fusion::{ME_KEV, Pb11Fit, Reaction, bosch_hale, pb11_reactivity};
 
 /// Q-values (MeV) from NIST atomic masses.
 pub const Q_PB11: f64 = 8.6821;
@@ -30,7 +32,6 @@ pub const Q_DDP: f64 = 4.0327;
 const E_DD_NEUTRON: f64 = 2.45;
 const E_DT_NEUTRON: f64 = 14.07;
 
-const MEC2_KEV: f64 = 510.998_95;
 /// `W₀ = α r_e² m_e c³` (W m³), the bremsstrahlung scale.
 const W0: f64 = 1.4219e-36;
 
@@ -54,7 +55,7 @@ pub fn dhe3_neutron_fraction(t: f64, x_d: f64, burn_tritium: bool) -> Option<f64
 /// et al. 2019, Eq. 7, a fit to QED results within 1%). At low temperature it is
 /// `5.355×10⁻³⁷ Z_eff n_e² √T`.
 pub fn bremsstrahlung(ne: f64, te: f64, z_eff: f64) -> f64 {
-    let t = te / MEC2_KEV;
+    let t = te / ME_KEV;
     8.511 * W0 * ne * ne * t.sqrt() * (z_eff * (1.0 + 1.78 * t.powf(1.34)) + 2.12 * t * (1.0 + 1.1 * t + t * t - 1.25 * t.powf(2.5)))
 }
 
@@ -100,7 +101,7 @@ mod tests {
         let z_eff = (n_p + 25.0 * n_b) / ne_rel;
         let ne = 1e20;
         for (beta, expect) in [(1.0, 41.03), (0.1, 410.3)] {
-            let b2 = 2.0 * 1.256_637_062_12e-6 * (ne / ne_rel * 300.0 + ne * 150.0) * KEV / beta;
+            let b2 = 2.0 * metrology::MU_0 * (ne / ne_rel * 300.0 + ne * 150.0) * KEV / beta;
             assert!(close(synchrotron(b2.sqrt(), ne, 150.0) / bremsstrahlung(ne, 150.0, z_eff), expect, 0.005));
         }
     }

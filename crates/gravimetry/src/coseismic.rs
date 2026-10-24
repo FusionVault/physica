@@ -37,8 +37,8 @@
 
 use core::f64::consts::PI;
 
-/// Newtonian constant of gravitation (CODATA 2018), m³ kg⁻¹ s⁻².
-pub const G: f64 = 6.674_30e-11;
+use metrology::G;
+
 /// Normal free-air gravity gradient, s⁻².
 pub const FREE_AIR: f64 = 3.086e-6;
 const EARTH_RADIUS: f64 = 6_371_000.0;

@@ -16,7 +16,7 @@
 use core::f64::consts::PI;
 
 use crate::aneutronic::Q_PB11;
-use crate::fusion::KEV;
+use metrology::KEV;
 
 /// Best efficiency of an ideal `stages`-stage electrostatic collector on an ion flux
 /// `f(E) ∝ (E − s)e^(−(E − s))` (energies in units of the temperature, `shift` = s the potential

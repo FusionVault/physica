@@ -1,0 +1,14 @@
+[package]
+name = "metrology"
+version = "0.1.0"
+description = "The physical constants the quantum-gravimeter crates share: CODATA 2018 fundamental constants, standard gravity, and the astronomical units of mass, distance and time."
+keywords = ["constants", "physics", "codata", "si", "units"]
+categories = ["science"]
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true

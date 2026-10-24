@@ -15,18 +15,18 @@
 //! assert!((period_minutes - 4.83).abs() < 0.01);
 //! ```
 
+use metrology::R_GAS;
+
 /// Ratio of specific heats of dry air.
 pub const GAMMA: f64 = 1.4;
 /// Molar mass of dry air, kg/mol.
 pub const MOLAR_MASS: f64 = 0.028_964_4;
-/// Molar gas constant, J mol⁻¹ K⁻¹.
-pub const R: f64 = 8.314_462_618;
 /// Gravity used for the atmosphere, m/s².
 pub const G0: f64 = 9.81;
 
 /// Speed of sound in dry air at temperature `t` (K): `c = √(γRT/M)`, m/s.
 pub fn sound_speed(t: f64) -> f64 {
-    (GAMMA * R * t / MOLAR_MASS).sqrt()
+    (GAMMA * R_GAS * t / MOLAR_MASS).sqrt()
 }
 
 /// Acoustic cut-off frequency `ω_a = γg/(2c)`, rad/s.

@@ -17,16 +17,16 @@
 
 use core::f64::consts::PI;
 
-/// Fine-structure constant (CODATA 2018).
-pub const ALPHA: f64 = 7.297_352_569_3e-3;
-/// `e²/4πε₀`, keV fm.
-pub const E2: f64 = 1.439_964_548;
-/// keV in joules.
-pub const KEV: f64 = 1.602_176_634e-16;
+use metrology::{ALPHA, AMU, C, HBAR, KEV, M_E};
+
+/// `e²/4πε₀ = αħc`, keV fm.
+pub const E2: f64 = ALPHA * HBAR * C / KEV * 1e15;
 /// Atomic mass unit, keV.
-pub const AMU_KEV: f64 = 931_494.102_42;
+pub const AMU_KEV: f64 = AMU * C * C / KEV;
+/// Electron rest energy, keV.
+pub const ME_KEV: f64 = M_E * C * C / KEV;
 /// Nuclear masses (CODATA 2018), keV.
-pub const M_P: f64 = 938_272.088_16;
+pub const M_P: f64 = metrology::M_P * C * C / KEV;
 /// Deuteron, keV.
 pub const M_D: f64 = 1_875_612.942_4;
 /// Triton, keV.
@@ -34,7 +34,7 @@ pub const M_T: f64 = 2_808_921.132_5;
 /// Helion (³He nucleus), keV.
 pub const M_HE3: f64 = 2_808_391.607_4;
 /// ¹¹B nucleus: the atomic mass less five electrons and their 0.67 keV binding, keV.
-pub const M_B11: f64 = 11.009_305_166 * AMU_KEV - 5.0 * 510.998_95 + 0.6704;
+pub const M_B11: f64 = 11.009_305_166 * AMU_KEV - 5.0 * ME_KEV + 0.6704;
 
 /// Reduced mass of two particles, keV.
 pub fn reduced_mass(m1: f64, m2: f64) -> f64 {
@@ -44,7 +44,7 @@ pub fn reduced_mass(m1: f64, m2: f64) -> f64 {
 /// Height of the Coulomb barrier (keV) between charges `z1`, `z2` touching at `r_fm` (fm):
 /// `1.44 MeV fm · Z₁Z₂/R`. The radius is the caller's convention.
 pub fn coulomb_barrier(z1: f64, z2: f64, r_fm: f64) -> f64 {
-    E2 * 1e3 * z1 * z2 / r_fm
+    E2 * z1 * z2 / r_fm
 }
 
 /// Sommerfeld parameter `η = Z₁Z₂α√(m_rc²/2E)` for reduced mass `mr` and energy `e` (keV).
@@ -321,7 +321,7 @@ mod tests {
     #[test]
     fn cross_sections_average_to_the_reactivity() {
         // ∫σv over a Maxwellian matches the reactivity fit to about 1%.
-        let mr = 1_124_656.0 * KEV / (299_792_458.0f64).powi(2);
+        let mr = 1_124_656.0 * KEV / (C * C);
         let t = 10.0;
         let n = 20_000;
         let e_max = 40.0 * t;

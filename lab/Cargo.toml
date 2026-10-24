@@ -1,0 +1,22 @@
+[package]
+name = "lab"
+version = "0.0.0"
+description = "The research workbench behind quantum-gravimeter: regenerates every figure (SVG) and reruns every analysis from the crates. Not published."
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+geopotential = { path = "../crates/geopotential" }
+gravimetry = { path = "../crates/gravimetry" }
+gravitational = { path = "../crates/gravitational" }
+gravitics = { path = "../crates/gravitics" }
+metrology = { path = "../crates/metrology" }
+plasmoid = { path = "../crates/plasmoid" }
+png = "0.18.1"
+
+[lints]
+workspace = true

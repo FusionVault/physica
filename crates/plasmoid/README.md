@@ -20,7 +20,7 @@ bremsstrahlung, overunity plasmoids) are set against the limit they have to beat
 ## Install
 
 ```bash
-cargo add plasmoid
+cargo add plasmoid metrology
 ```
 
 ## Example: the Coulomb barrier, and how fusion gets past it
@@ -40,11 +40,12 @@ assert!((bosch_hale(Reaction::DT, 10.0).unwrap() / 1.1362e-22 - 1.0).abs() < 1e-
 ## Example: the pinch and its gravitational twin
 
 ```rust
+use metrology::{PARSEC, SOLAR_MASS};
 use plasmoid::pinch::{bennett_line_density, magnetic_over_gravitational, ostriker_line_mass};
 
 // The equation that holds a 1 MA Z-pinch together is the one that holds a molecular-cloud
 // filament together, with gravity in place of magnetism (Bennett 1934, Ostriker 1964).
-let cloud = ostriker_line_mass(10.0, 2.3) * 3.0857e16 / 1.989e30; // 16.6 solar masses per parsec
+let cloud = ostriker_line_mass(10.0, 2.3) * PARSEC / SOLAR_MASS; // 16.6 solar masses per parsec
 let pinch = bennett_line_density(1e6, 2000.0) * 3.3436e-27;     // deuterium at 2 keV, kg/m
 assert!((cloud - 16.6).abs() < 0.2);
 // In the pinch, magnetism beats the plasma's own gravity by 5.5×10²⁷.
@@ -62,8 +63,8 @@ assert!(magnetic_over_gravitational(1e6, pinch) > 1e27);
 | `conversion` | N-stage direct-collector efficiency, engineering gain of magnetic and inertial plants, pulsed inductive breakeven, laser p–¹¹B gain | Moir & Barr 1973 (Nucl. Fusion 13, 35); [Margarone et al. 2020](https://doi.org/10.3389/fphy.2020.00343) |
 
 The research behind it, with every claim's status, is in the reports on the
-[Coulomb barrier and the Schwinger limit](https://github.com/FusionVault/quantum-gravimeter/blob/main/reports/Coulomb%20barrier%20and%20Schwinger%20limit.md)
-and on [Z-pinches, plasmoids and aneutronic fusion](https://github.com/FusionVault/quantum-gravimeter/blob/main/reports/Z%20pinch%20plasmoids%20and%20aneutronic%20fusion.md).
+[Coulomb barrier and the Schwinger limit](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/coulomb-and-schwinger/report.md)
+and on [Z-pinches, plasmoids and aneutronic fusion](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/plasmoids-and-fusion/report.md).
 
 ## How it is checked
 
@@ -78,4 +79,10 @@ and on [Z-pinches, plasmoids and aneutronic fusion](https://github.com/FusionVau
 - **Aneutronic power:** NRL's bremsstrahlung limit and Putvinski's synchrotron ratios.
 - **Laser shots:** Margarone's and the PALS shots' energy returns.
 
-Part of [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter).
+One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`metrology`](https://crates.io/crates/metrology) (constants) ·
+[`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
+[`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
+[`gravitational`](https://crates.io/crates/gravitational) (waves) ·
+[`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).

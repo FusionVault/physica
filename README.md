@@ -1,8 +1,12 @@
 # quantum-gravimeter
 
-Rust tools for satellite gravimetry. Read the gravity fields measured by GRACE, GRACE-FO and
-GOCE, turn them into maps of water, ice and earthquakes, and simulate the quantum (cold-atom)
-sensors of future missions.
+Rust crates for gravity, from the satellites that weigh Earth's water to the edges of physics.
+Read the gravity fields measured by GRACE, GRACE-FO and GOCE and turn them into maps of water,
+ice and earthquakes; simulate the quantum (cold-atom) sensors of future missions; chart
+gravitational waves from nanohertz to terahertz; compute the frontier proposals for controlling
+gravity next to general relativity and the measurements; and model the plasmas and fusion
+reactions that come up along the way. Every formula is tested against published numbers, and
+the data tests are registered before the data decides them.
 
 ![Water storage anomaly in July 2026, from GRACE-FO](figures/water_2026-07.svg)
 
@@ -10,15 +14,13 @@ sensors of future missions.
 
 | Crate | What it does |
 |---|---|
-| [`geopotential`](crates/geopotential) · [docs](https://docs.rs/geopotential) | Earth's gravity field from spherical harmonics: gravity, geoid and water height at a point or on a map |
-| [`gravity-field`](crates/gravity-field) · [docs](https://docs.rs/gravity-field) | Reads gravity-field files: ICGEM `.gfc` models and the GRACE technical notes |
-| [`gravimetry`](crates/gravimetry) · [docs](https://docs.rs/gravimetry) | GRACE processing (smoothing, stripe removal, water height), earthquake gravity models and mass transport |
-| [`satgrav`](crates/satgrav) · [docs](https://docs.rs/satgrav) | Gravity missions and quantum sensors: noise models, error predictions, a satellite-pair simulator, and the sensors as gravitational-wave detectors |
-| [`gwsens`](crates/gwsens) · [docs](https://docs.rs/gwsens) | Gravitational-wave sensitivity: strain conventions, LIGO, Einstein Telescope and LISA noise curves, horizons, stochastic backgrounds, high-frequency limits and lab-gravity reality checks |
-| [`gravitics`](crates/gravitics) · [docs](https://docs.rs/gravitics) | Gravity control and exotic propulsion computed both ways: each proposal's own model (Li–Baker, Pais, Tajmar, Podkletnov, EmDrive, warp drives, the polarizable vacuum) next to general relativity and the measurements |
-| [`gravviz`](apps/gravviz) | The command-line tool that makes every figure here (not published) |
+| [`metrology`](crates/metrology) · [docs](https://docs.rs/metrology) | The physical constants every crate shares, defined once: SI, CODATA 2018, IERS and IAU values |
+| [`geopotential`](crates/geopotential) · [docs](https://docs.rs/geopotential) | Earth's gravity field from spherical harmonics: read ICGEM `.gfc` models, then gravity, geoid and water height at a point or on a map |
+| [`gravimetry`](crates/gravimetry) · [docs](https://docs.rs/gravimetry) | Gravity missions and quantum sensors (noise models, error predictions, a satellite-pair simulator), GRACE processing (technical notes, smoothing, stripe removal, water height, a Kalman smoother), earthquake gravity and the atmosphere's pressure waves |
+| [`gravitational`](crates/gravitational) · [docs](https://docs.rs/gravitational) | Gravitational waves: strain conventions, noise curves, inspirals and binary pulsars, energy, memory, propagation and the graviton, stochastic backgrounds, high-frequency limits, gravity sensors as detectors, and lab gravity |
+| [`gravitics`](crates/gravitics) · [docs](https://docs.rs/gravitics) | Frontier gravity computed three ways (each proposal's own model, general relativity, and the measurements): superconductors, high-frequency generators, propellantless thrust, warp drives, the Schwinger limit, gravity's anomalies, MOND and short-range forces, and tabletop quantum gravity |
 | [`plasmoid`](crates/plasmoid) · [docs](https://docs.rs/plasmoid) | Fusion and self-organising plasma: Coulomb barriers and Gamow peaks, Bosch–Hale and p–¹¹B reaction rates, Lawson, Z-pinches and the plasma focus, Taylor-relaxed plasmoids and reconnection, aneutronic power balance and direct energy conversion |
-| [`viewer`](viewer) | The GRACE Mass Atlas, an interactive web page for the data, and the Gravity Orrery, a 3D model of all the crates |
+| [`lab`](lab) | The research workbench: regenerates every figure and reruns every analysis here (not published) |
 
 [`geo5d`](https://crates.io/crates/geo5d) (heights, normal gravity, relativistic geodesy) uses
 `geopotential` for its gravity.
@@ -26,14 +28,14 @@ sensors of future missions.
 ## Quick start
 
 ```bash
-cargo add geopotential gravity-field
+cargo add geopotential
 ```
 
 Download a gravity model, for example `GOCO06s.gfc` from the
 [ICGEM model table](https://icgem.gfz.de/tom_longtime), then:
 
 ```rust
-use gravity_field::read_gfc;
+use geopotential::read_gfc;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let model = read_gfc(&std::fs::read_to_string("GOCO06s.gfc")?)?.model.base;
@@ -56,33 +58,25 @@ Each crate's README has more examples.
 | ![Geoid](figures/geoid_goco06s.svg) **The geoid** from GOCO06s | ![Kamchatka](figures/e1_kamchatka.svg) **An earthquake from space:** Kamchatka 2025 against the USGS fault model |
 | ![El Niño](figures/w1_land_storage.svg) **El Niño drains the continents:** global land water and a registered forecast | ![Noise](figures/q0_noise.svg) **What makes a month noisy:** solar activity and satellite modes |
 | ![Instrument noise](figures/noise_spectra.svg) **Quantum against classical sensors** ([Zingerle et al. 2024](https://doi.org/10.1029/2024EA003630), Fig. 1) | ![Closed loop](figures/sst_closed_loop.svg) **Simulated missions** against a real month |
-| ![Claims](figures/claims_gap.svg) **How far off the fringe claims are**, from their own numbers | ![Warp](figures/warp_energy.svg) **What a warp bubble costs** against the quantum inequality |
+| ![Proposals](figures/claims_gap.svg) **Each frontier proposal** against general relativity and experiment | ![Warp](figures/warp_energy.svg) **What a warp bubble costs** against the quantum inequality |
 | ![Tonga](figures/tonga_lamb_wave.svg) **The Tonga pressure wave** as GRACE-FO would see it | ![Thrust](figures/thrust_per_watt.svg) **Thrust per watt**: claims against light and ion wind |
 
 ## Research
 
-The [research report](reports/Gravimetry%20frontiers%20and%20hidden%20connections.md) proposes
-new tests of how gravity data connects to climate and earthquakes; a
-[second report](reports/Gravitational%20waves%20and%20gravity%20beams.md) covers gravitational
-waves, high-frequency waves and gravity beams; a
-[third](reports/Gravity%20beams%20fringe%20physics%20and%20DIRDs.md) checks the fringe claims
-and the DIA "DIRD" papers against general relativity. Three more cover
-[the Coulomb barrier and the Schwinger limit](reports/Coulomb%20barrier%20and%20Schwinger%20limit.md),
-[where gravity physics is still open](reports/Gravity%20anomalies%20and%20manipulation%20physics.md),
-and [Z-pinches, plasmoids and aneutronic fusion](reports/Z%20pinch%20plasmoids%20and%20aneutronic%20fusion.md).
-Each forecast is committed as a
+Seven research reports, their notes and check scripts, the registered tests and their results,
+and the formula audits are in [`research/`](research/README.md). Each forecast is committed as a
 git tag before the data that decides it exists, and results are reported whether they hit or
 miss.
 
 | Test | Question | Status |
 |---|---|---|
-| [W1](prereg/W1-2026-10-24.md) | How much water does land lose in an El Niño, and does it come back? | Registered 2026-10-24; scored from early 2027 |
-| [E1](results/E1-2026-10-24.md) | Can monthly gravity see the 2025 Kamchatka earthquake, and is there more than the slip explains? | Detected. Matches the USGS fault model, with no excess |
-| [Q0](results/Q0-2026-10-24.md) | What makes a monthly field noisy? | Solar activity and satellite modes |
+| [W1](research/tests/W1/prereg.md) | How much water does land lose in an El Niño, and does it come back? | Registered 2026-10-24; scored from early 2027 |
+| [E1](research/tests/E1/result.md) | Can monthly gravity see the 2025 Kamchatka earthquake, and is there more than the slip explains? | Detected. Matches the USGS fault model, with no excess |
+| [Q0](research/tests/Q0/result.md) | What makes a monthly field noisy? | Solar activity and satellite modes |
 | [Screen](figures/screen_indices.svg) | Which climate patterns move global land water? | Only El Niño, once 27 tests are accounted for |
-| [Q2](results/Q2-2026-10-24.md) | Are the stated errors of the monthly fields right? | Too small, by about 2× above degree 10 |
-| [M1](results/M1-2026-10-24.md) | Can a blind search of every month and place find earthquakes? | Sumatra and Tohoku, with no false alarms; smaller ones need a targeted test |
-| [T1](results/T1-2026-10-24.md) | Does GRACE-FO's laser ranging feel the 2022 Tonga eruption's pressure wave? | Not detected: 1.75 ± 1.52 hPa on the first day (Z = 1.15, p = 0.12; 95% limit 4.3 hPa, against the expected 2.1–3.9), and nothing on the wave's second pass. Registered and frozen before the data was seen |
+| [Q2](research/tests/Q2/result.md) | Are the stated errors of the monthly fields right? | Too small, by about 2× above degree 10 |
+| [M1](research/tests/M1/result.md) | Can a blind search of every month and place find earthquakes? | Sumatra and Tohoku, with no false alarms; smaller ones need a targeted test |
+| [T1](research/tests/T1/result.md) | Does GRACE-FO's laser ranging feel the 2022 Tonga eruption's pressure wave? | Not detected: 1.75 ± 1.52 hPa on the first day (Z = 1.15, p = 0.12; 95% limit 4.3 hPa, against the expected 2.1–3.9), and nothing on the wave's second pass. Registered and frozen before the data was seen |
 
 **Findings so far:**
 - **El Niño drains the land.** Global land loses about 620 km³ of water per °C of El Niño
@@ -106,9 +100,10 @@ miss.
 
 ## Reproduce everything
 
-You need Rust 1.85 or later. All the data is free, and none of it needs an account.
+You need Rust 1.85 or later. All the data is free.
 
-**1. Download the data** (about 150 MB):
+**1. Download the data** (about 150 MB; T1 also needs GRACE-FO Level-1B and AOD1B from PO.DAAC, which need a free
+Earthdata login, and the GOT4.10c tide grids from NASA GSFC):
 
 ```bash
 mkdir -p data && cd data
@@ -144,6 +139,26 @@ done
 cd ..
 ```
 
+For T1, also download GRACE-FO Level-1B, AOD1B and the GOT4.10c ocean tides. The PO.DAAC
+files need a free [Earthdata login](https://urs.earthdata.nasa.gov/) in `~/.netrc`:
+
+```bash
+cd data
+P=https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-protected
+mkdir -p gracefo_l1b/aod1b tides
+for d in 13 14 15 16; do
+  for k in LRI noLRI; do
+    curl -n -L -o gracefo_l1b/gracefo_1B_2022-01-${d}_RL04.ascii.$k.tgz $P/GRACEFO_L1B_ASCII_GRAV_JPL_RL04/gracefo_1B_2022-01-${d}_RL04.ascii.$k.tgz
+    mkdir -p gracefo_l1b/2022-01-$d && tar xzf gracefo_l1b/gracefo_1B_2022-01-${d}_RL04.ascii.$k.tgz -C gracefo_l1b/2022-01-$d
+  done
+done
+curl -n -L -o gracefo_l1b/AOD1B_2022-01_06.tgz $P/GRACE_AOD1B_GRAV_GFZ_RL06/AOD1B_2022-01_06.tgz
+tar xzf gracefo_l1b/AOD1B_2022-01_06.tgz -C gracefo_l1b/aod1b
+curl -L -o tides/got4.10c.tar.gz https://earth.gsfc.nasa.gov/sites/default/files/2023-12/got4.10c.tar.gz
+tar xzf tides/got4.10c.tar.gz -C tides
+cd ..
+```
+
 **2. Make the figures.** Each command writes an SVG and, for most, a CSV of the plotted values.
 Set three shortcuts first:
 
@@ -153,7 +168,7 @@ TN14=data/TN-14_C30_C20_GSFC_SLR.txt
 TN13=data/TN-13_GEOC_CSR_RL0603.txt
 ```
 
-| Command (`cargo run --release -p gravviz -- …`) | Figure |
+| Command (`cargo run --release -p lab -- …`) | Figure |
 |---|---|
 | `geoid data/GOCO06s.gfc figures` | [The geoid](figures/geoid_goco06s.svg) |
 | `water-map $MONTH data/baseline $TN14 $TN13 figures` | [Water in July 2026](figures/water_2026-07.svg) |
@@ -165,34 +180,11 @@ TN13=data/TN-13_GEOC_CSR_RL0603.txt
 | `screen figures/w1_land_storage.csv data/indices figures` | [Climate-index screen](figures/screen_indices.svg) |
 | `q0 data/costg data/baseline $TN14 $TN13 data/indices/Kp_ap_Ap_SN_F107_since_1932.txt figures` | [Noise](figures/q0_noise.svg) |
 | `e1 data/costg data/baseline $TN14 $TN13 data/usgs_us6000qw60 figures/q0_noise.csv figures` | [Kamchatka earthquake](figures/e1_kamchatka.svg) |
-| `kalman data/costg data/baseline $TN14 $TN13 figures viewer/data` | [Are COST-G's errors right?](figures/kalman.svg), plus the gap-free record for the viewer |
-| `m1 data/costg data/baseline $TN14 $TN13 figures/kalman_degrees.csv data/usgs_m8_2002_2026.csv figures viewer/data` | [Blind search for sudden mass changes](figures/m1_detector.svg) |
+| `kalman data/costg data/baseline $TN14 $TN13 figures` | [Are COST-G's errors right?](figures/kalman.svg) |
+| `m1 data/costg data/baseline $TN14 $TN13 figures/kalman_degrees.csv data/usgs_m8_2002_2026.csv figures` | [Blind search for sudden mass changes](figures/m1_detector.svg) |
 | `tonga figures` | [The Tonga Lamb wave as GRACE-FO would see it](figures/tonga_lamb_wave.svg) |
-| `claims figures` | [How far off the claims are](figures/claims_gap.svg), [warp energy](figures/warp_energy.svg), [thrust per watt](figures/thrust_per_watt.svg) |
-| `t1-test data/gracefo_l1b data/gracefo_l1b/aod1b data/GOCO06s.gfc $MONTH data/tides/GOT4.10c/grids_oceantide figures --unblind 2022-01-13 2022-01-14 2022-01-15 2022-01-16` | [The T1 test](results/T1-2026-10-24.md) (GRACE-FO Level-1B and AOD1B from PO.DAAC, GOT4.10c from NASA GSFC) |
-| `atlas3d data/GOCO06s.gfc data/gracefo_l1b viewer/build/atlas3d.json` | The Gravity Orrery page, `viewer/build/orrery.html` |
-
-**3. Run the viewer.** The GRACE Mass Atlas has five views:
-- **Water:** every month on a map or globe, with animated mass flow and an average year. The
-  Kalman-smoothed record fills the gaps and shows its uncertainty.
-- **El Niño:** the forecast, and the climate-index screen.
-- **Earthquake:** an animated map of the Kamchatka earthquake.
-- **Noise:** what makes a month noisy.
-- **Missions:** the instrument figures.
-
-```bash
-cargo run --release -p gravviz -- series data/costg data/baseline $TN14 $TN13 viewer/data
-cp figures/{w1_land_storage.csv,w1_monthly.csv,w1_forecast.csv,screen_indices.csv,e1_frames.json,q0_noise.csv,q0_effects.csv,noise_spectra.svg,sst_closed_loop.svg,gradiometry_errors.svg,error_triangle_2026-07.svg,kalman.svg} viewer/data/
-python3 -m http.server --bind 127.0.0.1 --directory viewer 8000
-```
-
-Open <http://localhost:8000>, and stop the server with Ctrl-C when you are done.
-
-The **Gravity Orrery** ([live](https://claude.ai/artifact/PS2KMuRxfnCH2c8xmQa7TN)) puts every
-crate in one 3D scene: the geoid, with GRACE-FO's real orbits crossing the Tonga pressure wave
-and LAGEOS's frame-dragged orbit (geopotential, satgrav, gravimetry, geo5d); a gravitational
-wave squeezing a ring of test masses, with the detector landscape (gwsens); a spheromak's
-self-organised field and a Z-pinch (plasmoid); and the cost of a warp bubble (gravitics).
+| `claims figures` | [Each proposal against general relativity](figures/claims_gap.svg), [warp energy](figures/warp_energy.svg), [thrust per watt](figures/thrust_per_watt.svg) |
+| `t1-test data/gracefo_l1b data/gracefo_l1b/aod1b data/GOCO06s.gfc data/costg/GSM-2_2022001-2022031_GRFO_COSTG_BF01_0201.gfc data/tides/GOT4.10c/grids_oceantide figures --unblind 2022-01-13 2022-01-14 2022-01-15 2022-01-16` | [The T1 test](research/tests/T1/result.md) (GRACE-FO Level-1B and AOD1B from PO.DAAC, GOT4.10c from NASA GSFC) |
 
 ## How it is checked
 
@@ -205,7 +197,8 @@ The tests compare against:
 - published tables, such as Okada's (1985) check values and the Wahr et al. (1998) Love numbers;
 - an independent implementation (geo5d, to about 1e-15);
 - the published figures of Zingerle et al. (2024), CARIOQA and GRICE;
-- simulations that recover a known field.
+- simulations that recover a known field;
+- the numbers in the research notes' check scripts, for every physics formula.
 
 Every example in the crate READMEs is compiled and run as a test.
 
@@ -225,6 +218,9 @@ Every example in the crate READMEs is compiled and run as a test.
 - **Climate indices:** [NOAA PSL](https://psl.noaa.gov/data/climateindices/list/).
 - **Solar and geomagnetic activity:** GFZ Potsdam,
   [doi:10.5880/Kp.0001](https://doi.org/10.5880/Kp.0001), CC BY 4.0.
+- **GRACE-FO Level-1B (RL04) and AOD1B (RL06):** NASA JPL and GFZ, via
+  [PO.DAAC](https://podaac.jpl.nasa.gov/).
+- **GOT4.10c ocean tides:** R. Ray, [NASA GSFC](https://earth.gsfc.nasa.gov/geo/data/ocean-tide-models).
 - **Kamchatka fault model:** [USGS](https://earthquake.usgs.gov/earthquakes/eventpage/us6000qw60/finite-fault).
 - **Coastlines and land:** [Natural Earth](https://www.naturalearthdata.com/).
 
@@ -237,6 +233,4 @@ Every example in the crate READMEs is compiled and run as a test.
   [gravity](https://doi.org/10.1029/92JB00178) from faults.
 - Zingerle et al. (2024), [quantum accelerometers for gravimetry](https://doi.org/10.1029/2024EA003630).
 
-The first [research report](reports/Satellite%20gravimetry%20data%20and%20Rust%20tooling.md)
-covers the data, the missions and the formulas. Its sources are in
-[`research_notes/`](research_notes/).
+The [research reports](research/README.md) cite the sources of every formula.

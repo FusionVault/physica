@@ -19,12 +19,10 @@
 
 use core::f64::consts::PI;
 
-use crate::{C, E_CHARGE, EPS_0, HBAR, M_E, MU_0};
+use metrology::{ALPHA, C, E_CHARGE, EPS_0, HBAR, KEV, M_E, MU_0};
 
-/// Fine-structure constant (CODATA 2018).
-pub const ALPHA: f64 = 7.297_352_569_3e-3;
 /// Electron rest energy, keV.
-const MEC2_KEV: f64 = 510.998_95;
+const MEC2_KEV: f64 = M_E * C * C / KEV;
 
 /// The Schwinger critical field `m_e²c³/(eħ)`, V/m.
 pub const E_SCHWINGER: f64 = M_E * M_E * C * C * C / (E_CHARGE * HBAR);

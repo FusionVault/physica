@@ -9,15 +9,15 @@
 //!
 //! ```
 //! use gravitics::spacetime::alcubierre_energy;
+//! use metrology::SOLAR_MASS;
 //!
 //! // A 100 m warp bubble at light speed with a 1 m wall needs half a Sun of negative energy.
-//! let sun = 1.989e30;
-//! println!("{:.2} solar masses", alcubierre_energy(100.0, 1.0, 1.0) / sun); // -0.56
+//! println!("{:.2} solar masses", alcubierre_energy(100.0, 1.0, 1.0) / SOLAR_MASS); // -0.56
 //! ```
 
 use core::f64::consts::PI;
 
-use crate::{C, G, HBAR, K_B};
+use metrology::{C, G, HBAR, K_B};
 
 /// Total energy of an Alcubierre warp bubble of `radius` (m) and wall thickness `wall` (m) moving
 /// at `speed` (in units of c), as a mass (kg): `−(v²/12)(R²/Δ)·c²/G`
@@ -26,6 +26,14 @@ use crate::{C, G, HBAR, K_B};
 /// which gives 6.9×10⁶² kg and 0.56 solar masses for the same inputs.)
 pub fn alcubierre_energy(radius: f64, wall: f64, speed: f64) -> f64 {
     -speed * speed / 12.0 * radius * radius / wall * C * C / G
+}
+
+/// Forward's "antigravity" in general relativity: the acceleration `4Gm a_f/(c²r)` (m/s²) induced
+/// at distance `r` (m) by mass `m` (kg) accelerating at `a_flow` (m/s²) ([Forward 1963](https://pubs.aip.org/aapt/ajp/article/31/3/166/1046748/Guidelines-to-Antigravity)).
+/// The coupling G/c² = 7.4×10⁻²⁸ m/kg makes it real and useless: one g needs m/r ≈ 3×10²¹ kg/m
+/// even at a_f = 10⁶ m/s².
+pub fn induced_acceleration(m: f64, a_flow: f64, r: f64) -> f64 {
+    4.0 * G * m * a_flow / (C * C * r)
 }
 
 /// The most negative energy density (J/m³) quantum field theory allows when averaged over a time
@@ -119,7 +127,7 @@ pub fn light_bending(mass: f64, b: f64, metric: Metric) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::PLANCK_LENGTH;
+    use metrology::PLANCK_LENGTH;
 
     fn close(a: f64, b: f64, rel: f64) -> bool {
         (a / b - 1.0).abs() < rel
@@ -191,5 +199,12 @@ mod tests {
         // The two agree at first order and differ by (π/4)(m/b)² = 0.73 µas.
         let diff = light_bending(sun, limb, Metric::PolarizableVacuum) - gr;
         assert!(close(diff * arcsec * 1e6, 0.730, 5e-3));
+    }
+
+    #[test]
+    fn forward_antigravity() {
+        assert!((G / (C * C) / 7.426e-28 - 1.0).abs() < 1e-3);
+        assert!((induced_acceleration(1e4, 1e4, 1.0) / 2.97046e-19 - 1.0).abs() < 1e-5);
+        assert!((9.8 / induced_acceleration(1.0, 1e6, 1.0) / 3.29915e21 - 1.0).abs() < 1e-5);
     }
 }

@@ -30,7 +30,7 @@
 
 use core::f64::consts::PI;
 
-use crate::{EPS_0, HBAR};
+use metrology::{EPS_0, HBAR};
 
 /// Which energy flux a strain amplitude carries.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,7 +43,7 @@ pub enum Flux {
 
 /// Energy flux (W/m²) of a wave of strain amplitude `h` at frequency `f` (Hz).
 pub fn wave_flux(h: f64, f: f64, convention: Flux) -> f64 {
-    let standard = gwsens::lab::wave_flux(h, f);
+    let standard = gravitational::laboratory::wave_flux(h, f);
     match convention {
         Flux::Standard => standard,
         Flux::LiBaker => 4.0 * standard,
@@ -91,11 +91,11 @@ pub fn surface_field(sigma: f64) -> f64 {
 /// Gravitational-wave power (W) from light of `power` (W) crossing a field `b` (T) over `l` (m),
 /// returned as (Pais's use, SI). Pais applies JASON's formula `(4πG/c⁴)B²L²·P` (Eq. 3-14, written
 /// in Heaviside–Lorentz form; the Gaussian factor is `GB²L²/c⁴`) to SI numbers; the SI
-/// first-order result is [`gwsens::hf::gertsenshtein_probability`]·P. His US 10,322,827 gives an
+/// first-order result is [`gravitational::hf::gertsenshtein_probability`]·P. His US 10,322,827 gives an
 /// input flux of 10³³ W/m² and no length: reproducing his "10¹⁰ W" needs 1 m and 1 m².
 pub fn pais_conversion(b: f64, l: f64, power: f64) -> (f64, f64) {
-    let si = gwsens::hf::gertsenshtein_probability(b, l) * power;
-    (si * gwsens::MU_0, si)
+    let si = gravitational::hf::gertsenshtein_probability(b, l) * power;
+    (si * metrology::MU_0, si)
 }
 
 #[cfg(test)]
@@ -121,7 +121,7 @@ mod tests {
         // Table I's signal at x = 3.5 cm is the interference term (ratio 1.007).
         assert!(close(interference_rate(1.24e22, 2.56e-18), 3.54e2, 1e-2));
         // Li's rate is 8× the standard one for the same 3 T, 6 m, 0.01 m², 5 GHz and h = 10⁻³⁰.
-        let standard = gwsens::hf::coherent_photon_rate(1.0, 0.01, 3.0, 6.0, 5e9, 1e-30);
+        let standard = gravitational::hf::coherent_photon_rate(1.0, 0.01, 3.0, 6.0, 5e9, 1e-30);
         assert!(close(standard, 3.20e-19, 2e-3));
         assert!(close(2.56e-18 / standard, 8.0, 0.01));
         // JASON's shot-noise argument: one signal photon in 3.9×10¹⁷ s at Li's rate, 3.1×10¹⁸ s at

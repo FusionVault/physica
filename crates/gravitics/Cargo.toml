@@ -1,7 +1,7 @@
 [package]
 name = "gravitics"
-version = "0.2.0"
-description = "Gravitics: the physics of gravity control and exotic propulsion, computed both ways. Each proposal's own model (Li–Baker gravitational-wave detectors, Pais, Tajmar and Podkletnov superconductors, EmDrive, Mach-effect and ion-wind thrusters, warp drives, the polarizable vacuum) next to general relativity and the measurements."
+version = "0.3.0"
+description = "Gravitics: gravity control, exotic propulsion and gravity's open anomalies, each proposal's own model (Li–Baker, Pais, Tajmar, Podkletnov, EmDrive, Mach-effect and ion-wind thrusters, warp drives, the polarizable vacuum, MOND) next to general relativity and the measurements; plus the Schwinger limit, the scatter of G, short-range forces and tabletop quantum gravity."
 keywords = ["gravity", "physics", "general-relativity", "propulsion", "gravitational-waves"]
 categories = ["science"]
 edition.workspace = true
@@ -11,7 +11,8 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-gwsens = { path = "../gwsens", version = "0.2.0" }
+gravitational = { path = "../gravitational", version = "0.1.0" }
+metrology = { path = "../metrology", version = "0.1.0" }
 
 [lints]
 workspace = true

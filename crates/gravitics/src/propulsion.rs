@@ -24,7 +24,7 @@
 
 use core::f64::consts::PI;
 
-use crate::{C, E_CHARGE, G, G0};
+use metrology::{C, E_CHARGE, G, G0};
 
 /// Ion-wind thrust (N) of a current `current` (A) of ions with mobility `mobility` (m² V⁻¹ s⁻¹)
 /// drifting across a gap `gap` (m): `F = I·d/μ`. In vacuum μ → ∞ and the thrust vanishes.
@@ -71,10 +71,18 @@ pub fn mach_effect_thrust(omega: f64, m0: f64, kp: f64, ke: f64, x0: f64, v0: f6
     4.0 * PI * omega.powi(6) * m0 * kp * kp * ke * x0.powi(3) * v0.powi(4) / (8.0 * PI * G * rho0 * C * C)
 }
 
+/// General relativity's own bound on a Machian thrust from a device of mass `m` (kg) and size `l`
+/// (m) driven at `f` (Hz): the Machian term is suppressed by `(GM/(Lc²))(2πfL/c)²`
+/// ([Rodal, arXiv:2512.22687](https://arxiv.org/abs/2512.22687)), 8×10⁻³⁷ for a 0.1 kg, 1 cm, 50 kHz
+/// drive. Set beside [`mach_effect_thrust`].
+pub fn mach_effect_gr_bound(m: f64, l: f64, f: f64) -> f64 {
+    G * m / (l * C * C) * (2.0 * PI * f * l / C).powi(2)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::AMU;
+    use metrology::AMU;
 
     fn close(a: f64, b: f64, rel: f64) -> bool {
         (a / b - 1.0).abs() < rel
@@ -111,5 +119,10 @@ mod tests {
         assert!(close(printed, 1.87e21, 5e-3));
         let si = mach_effect_thrust(omega, 0.046, 3.2e-10, 4e-11, 0.019, 100.0, 7.9e3);
         assert!(close(si / (4.0 * PI), 7.66e-9, 5e-3) && close(si, 9.62e-8, 5e-3));
+    }
+
+    #[test]
+    fn machian_term_in_general_relativity() {
+        assert!(close(mach_effect_gr_bound(0.1, 0.01, 5e4), 8.15498e-37, 1e-5));
     }
 }

@@ -50,83 +50,51 @@ dependencies = [
 ]
 
 [[package]]
-name = "geo3d"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77d8a19934813212f51bd020ba0761db93d4cbc6d98d1e70815ab971c10f9ca0"
-
-[[package]]
-name = "geo4d"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc4f7be4249641e1023dd034d1cfa227b133875afd0454de4215bce8f73b1373"
-dependencies = [
- "geo3d",
-]
-
-[[package]]
-name = "geo5d"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c50e6e2c0b471932cf6beba52100b0e783b5211824d6af49a2315ef56005841"
-dependencies = [
- "geo4d",
- "geopotential 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "geopotential"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
-name = "geopotential"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cd79672262584134825877ed12b48a4295ac07e737524fa18d553a4c6d7a398"
+name = "gravimetry"
+version = "0.5.0"
+dependencies = [
+ "geopotential",
+ "metrology",
+]
 
 [[package]]
-name = "gravimetry"
-version = "0.4.0"
+name = "gravitational"
+version = "0.1.0"
 dependencies = [
- "geopotential 0.1.2",
+ "metrology",
 ]
 
 [[package]]
 name = "gravitics"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
- "gwsens",
+ "gravitational",
+ "metrology",
 ]
 
 [[package]]
-name = "gravity-field"
-version = "0.1.1"
-dependencies = [
- "geopotential 0.1.2",
-]
-
-[[package]]
-name = "gravviz"
+name = "lab"
 version = "0.0.0"
 dependencies = [
- "flate2",
- "geo5d",
- "geopotential 0.1.2",
+ "geopotential",
  "gravimetry",
+ "gravitational",
  "gravitics",
- "gravity-field",
- "gwsens",
+ "metrology",
  "plasmoid",
  "png",
- "satgrav",
 ]
 
 [[package]]
-name = "gwsens"
-version = "0.2.0"
+name = "metrology"
+version = "0.1.0"
 
 [[package]]
 name = "miniz_oxide"
@@ -150,7 +118,10 @@ dependencies = [
 
 [[package]]
 name = "plasmoid"
-version = "0.1.0"
+version = "0.2.0"
+dependencies = [
+ "metrology",
+]
 
 [[package]]
 name = "png"
@@ -181,13 +152,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "satgrav"
-version = "0.3.0"
-dependencies = [
- "geopotential 0.1.2",
 ]
 
 [[package]]

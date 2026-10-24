@@ -3,8 +3,14 @@
 use geopotential::{Coefficients, Legendre};
 
 pub mod atmosphere;
+pub mod atom;
 pub mod coseismic;
+pub mod gradiometry;
 pub mod kalman;
+pub mod missions;
+pub mod noise;
+pub mod sim;
+pub mod technotes;
 
 /// Elastic load Love numbers `k'_n` (PREM, Han & Wahr 1995) as tabulated by Wahr et al. (1998,
 /// JGR 103, Table 1), linearly interpolated between tabulated degrees (error < 0.05%), for
@@ -181,7 +187,7 @@ pub fn anomaly(field: &Coefficients, reference: &Coefficients) -> Coefficients {
 /// assert!(field.c(2, 1).abs() < 1e-25);
 /// ```
 pub fn mass_coefficients(points: &[(f64, f64, f64)], gm: f64, radius: f64, nmax: usize) -> Coefficients {
-    let earth_mass = gm / coseismic::G;
+    let earth_mass = gm / metrology::G;
     let mut out = Coefficients::zeros(gm, radius, nmax);
     let mut leg = Legendre::new(nmax);
     let (mut c, mut s) = (vec![0.0; (nmax + 1) * (nmax + 2) / 2], vec![0.0; (nmax + 1) * (nmax + 2) / 2]);
@@ -296,9 +302,9 @@ mod tests {
         let p = |la: f64, lo: f64, rad: f64| [rad * la.cos() * lo.cos(), rad * la.cos() * lo.sin(), rad * la.sin()];
         let (a, b) = (p(lat0, lon0, r), p(lat, lon, rr));
         let dist = ((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)).sqrt();
-        let exact = coseismic::G * kg / dist;
+        let exact = metrology::G * kg / dist;
         assert!((v - exact).abs() < 1e-3 * exact, "{v:e} vs {exact:e}");
-        assert!((c.c(0, 0) / (kg * coseismic::G / gm) - 1.0).abs() < 1e-12);
+        assert!((c.c(0, 0) / (kg * metrology::G / gm) - 1.0).abs() < 1e-12);
     }
 
     #[test]

@@ -1,8 +1,9 @@
 # gravimetry
 
-Turn monthly gravity fields from GRACE and GRACE-FO into maps of water storage, and model the
-gravity change an earthquake causes. Built on
-[`geopotential`](https://crates.io/crates/geopotential).
+Satellite gravimetry from instrument to map. Model the satellites, from today's GRACE-FO to
+missions with quantum (cold-atom) sensors, and simulate what gravity field they recover. Then
+turn the monthly fields of GRACE and GRACE-FO into maps of water storage, and model the gravity
+change an earthquake causes. Built on [`geopotential`](https://crates.io/crates/geopotential).
 
 ![Water storage anomaly in July 2026](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/water_2026-07.svg)
 
@@ -42,10 +43,33 @@ let water = change.grid(&Functional::WaterHeight { love: &love }, radius, &[90f6
 println!("{:.0} mm of water at the North Pole", water[0] * 1000.0); // 19 mm
 ```
 
-With real data, read the month and the technical notes with
-[`gravity-field`](https://crates.io/crates/gravity-field). The
-[full chain](https://github.com/FusionVault/quantum-gravimeter/blob/main/apps/gravviz/src/main.rs)
-also replaces C̄20, C̄30 and degree 1.
+With real data, read each month with `geopotential::read_gfc` and the low-degree corrections
+with `technotes::read_tn14` and `read_tn13`. The
+[full chain](https://github.com/FusionVault/quantum-gravimeter/blob/main/lab/src/main.rs)
+replaces C̄20, C̄30 and degree 1 before subtracting the baseline.
+
+## Example: a quantum accelerometer against GRACE-FO
+
+![Instrument noise of electrostatic and cold-atom accelerometers and laser ranging](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/noise_spectra.svg)
+
+*Instrument noise, reproducing Figure 1 of
+[Zingerle et al. (2024)](https://doi.org/10.1029/2024EA003630) from its equations.*
+
+```rust
+use gravimetry::atom::AtomInterferometer;
+use gravimetry::missions::{Accelerometer, Ranging, pair_noise};
+
+// A cold-atom accelerometer like CARIOQA's: 1 s between pulses, 80% contrast,
+// 100,000 atoms per shot, one shot every 3.5 s.
+let atoms = AtomInterferometer { t: 1.0, contrast: 0.8, atoms: 1e5, cycle: 3.5 };
+let white = atoms.acceleration_asd(); // about 2.3e-10 m/s² per √Hz
+
+// Noise of a satellite pair at 0.1 mHz, the longest wavelengths, in m/s² per √Hz.
+let quantum = pair_noise(Accelerometer::AtomInterferometer { white }, Ranging::Lri2033, 1e-4);
+let today = pair_noise(Accelerometer::SuperStar, Ranging::GraceFo, 1e-4);
+println!("quantum {quantum:.1e}, GRACE-FO {today:.1e}"); // 3.2e-10 against 1.0e-9
+assert!(quantum < today / 3.0);
+```
 
 ## Example: the gravity change of an earthquake
 
@@ -101,45 +125,60 @@ println!("month 3: {:.2} ± {:.2}", result.mean[2], result.sd[2]);
 `kalman::fit` picks the signal's size and correlation time, and checks the stated errors, by
 maximum likelihood over many series at once.
 
-![Are COST-G's stated errors right?](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/kalman.svg)
-
-*The smoother fitted to 24 years of monthly fields: how far COST-G's stated errors need scaling
-per degree, and how well withheld months are predicted.*
-
 ## What is inside
 
 | Item | What it does |
 |---|---|
+| `missions` | Noise spectra of electrostatic and cold-atom accelerometers and laser ranging, and of a whole satellite pair ([Zingerle et al. 2024](https://doi.org/10.1029/2024EA003630), eqs. 1–8) |
+| `atom` | Phase, shot noise, and accelerometer and gradiometer noise of a cold-atom sensor in orbit ([Lévèque et al. 2021](https://arxiv.org/abs/2011.03382); [CARIOQA](https://arxiv.org/abs/2211.01215); [Trimeche et al. 2019](https://doi.org/10.1088/1361-6382/ab4548)) |
+| `gradiometry` | The error of each coefficient a gradiometer mission like GOCE achieves |
+| `sim` | A closed-loop simulation of a GRACE-type pair: simulate, estimate the field back, and compare its errors with the predicted ones |
+| `noise` | Noise with any spectrum, its whitening, and the FFT |
+| `technotes` | NASA's TN-14 (C̄20 and C̄30 from laser ranging, [Loomis et al. 2020](https://doi.org/10.1029/2019GL085488)) and TN-13 (degree 1, [Sun et al. 2016](https://doi.org/10.1002/2016JB013073)), from [PO.DAAC](https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-docs/gracefo/open/docs/) |
 | `love_numbers` | How much the solid Earth sags under a load, per degree ([Wahr et al. 1998](https://doi.org/10.1029/98JB02844), Table 1) |
 | `gaussian_weights`, `smooth` | Averaging over a chosen radius ([Wahr et al. 1998](https://doi.org/10.1029/98JB02844), after Jekeli 1981) |
 | `destripe` | Removes the north–south stripes of GRACE noise ([Swenson & Wahr 2006](https://doi.org/10.1029/2005GL025285)), ported from [gravity-toolkit](https://github.com/polargeodesy/gravity-toolkit) |
 | `mean`, `anomaly` | Baseline means and differences, across `GM` and radius conventions |
-| `coseismic` | Uplift and gravity change of faults in an elastic half-space ([Okada 1985](https://doi.org/10.1785/BSSA0750041135); [Okubo 1992](https://doi.org/10.1029/92JB00178)). It also reads USGS `coulomb.inp` files and corrects for seawater pushed aside by seafloor uplift |
 | `mass_coefficients` | Spherical-harmonic coefficients of point masses |
+| `transport_weights` | The smallest mass flow that carries a change between months |
+| `coseismic` | Uplift and gravity change of faults in an elastic half-space ([Okada 1985](https://doi.org/10.1785/BSSA0750041135); [Okubo 1992](https://doi.org/10.1029/92JB00178)); reads USGS `coulomb.inp` files and corrects for seawater pushed aside by seafloor uplift |
 | `kalman` | A Kalman smoother for series with gaps and per-month errors, and a maximum-likelihood fit of its settings ([Rauch et al. 1965](https://doi.org/10.2514/3.3166)) |
-| `transport_weights` | The smallest mass flow that carries a change, the flow field in the [GRACE Mass Atlas](https://github.com/FusionVault/quantum-gravimeter#run-the-viewer) |
-| `atmosphere` | Sound, buoyancy and Lamb waves in the air (the acoustic-gravity dispersion relation), the mass of a pressure change, and the ocean's forced response to a fast pressure pulse ([Wright et al. 2022](https://doi.org/10.1038/s41586-022-05012-5); [Proudman 1929](https://doi.org/10.1111/j.2044-8312.1929.tb05286.x)) |
+| `atmosphere` | Sound, buoyancy and Lamb waves in the air, the mass of a pressure change, and the ocean's forced response to a fast pressure pulse ([Wright et al. 2022](https://doi.org/10.1038/s41586-022-05012-5); [Proudman 1929](https://doi.org/10.1111/j.2044-8312.1929.tb05286.x)) |
+
+![Closed-loop simulation of four mission classes](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/sst_closed_loop.svg)
+
+*The simulated error of four mission classes, from today's to a quantum pair, against the
+errors of a real month.*
 
 ## How it is checked
 
-- **Love numbers:** against the published table.
-- **Smoothing weights:** against their closed-form limit.
-- **Stripe removal:** on synthetic patterns.
-- **Fault model:**
-  - Okada's (1985) published check values;
-  - mass conservation: a buried fault's equivalent mass sums to zero;
-  - on the 2025 Kamchatka fault model, its uplift matches the USGS's own surface displacement
-    with r = 0.89.
+- **Noise models:** they reproduce Figure 1 of Zingerle et al. (2024).
+- **Cold-atom sensors:** they reproduce the published CARIOQA, GRICE and Trimeche et al. (2019)
+  sensitivities.
+- **Gradiometry errors:** the closed form matches brute-force least squares.
+- **Simulator:** it recovers a known field exactly without noise; with noise, a χ² test confirms
+  that its actual errors match its predicted ones.
+- **Technical notes:** real NASA files, excerpted in `tests/data`.
+- **Love numbers:** against the published table. **Smoothing weights:** against their
+  closed-form limit. **Stripe removal:** on synthetic patterns.
+- **Fault model:** Okada's (1985) published check values; mass conservation (a buried fault's
+  equivalent mass sums to zero); on the 2025 Kamchatka fault model, its uplift matches the
+  USGS's own surface displacement with r = 0.89.
 - **Point masses:** their potential matches Newton's law.
-- **Kalman smoother:**
-  - it matches the exact Gaussian-process solution to 1e-10;
-  - its fit recovers the settings of simulated data;
-  - on the real record, withheld months are predicted with calibrated errors.
+- **Kalman smoother:** it matches the exact Gaussian-process solution to 1e-10, its fit
+  recovers the settings of simulated data, and on the real record withheld months are predicted
+  with calibrated errors.
 - **Atmosphere:** the isothermal values at 250 K (sound 317 m/s, cut-off 0.0217 rad/s, buoyancy
   0.0196 rad/s); the Lamb wave is trapped at every wavelength; the Tonga Lamb speed of 318.2 m/s
   is sound at 252 K; a slow pressure pulse gives the inverse barometer.
 
 **Not included yet:** glacial isostatic adjustment, DDK filters, basin averages and leakage
-corrections.
+corrections; time-variable gravity in the simulator, so no temporal aliasing.
 
-Part of [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter).
+One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`metrology`](https://crates.io/crates/metrology) (constants) ·
+[`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
+[`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
+[`gravitational`](https://crates.io/crates/gravitational) (waves) ·
+[`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).

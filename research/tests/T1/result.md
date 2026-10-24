@@ -1,0 +1,70 @@
+# T1 result: the Tonga Lamb wave in GRACE-FO laser ranging
+
+**Registered** 2026-10-24 ([`prereg/T1-2026-10-24`](prereg.md)), before any data
+was downloaded. **Frozen** the same day ([`prereg/T1-frozen`](freeze.md)), before
+any residual after the eruption was computed. **Unblinded** with the frozen pipeline, then rerun
+with two reporting additions the registration asked for (B̂ and the second passage), which
+leave the decision statistic unchanged.
+
+## Answer
+
+**Not detected.** In the 24 hours after the eruption GRACE-FO crossed the pressure front 21
+times. The fitted pulse amplitude is **1.75 ± 1.52 hPa** (Z = 1.15) against a detection
+threshold of Z > 2.24 from 200 fake eruptions placed before the real one: p = 0.12 (24 of 200
+fakes reached Z = 1.15). The 95% upper limit is **4.3 hPa**.
+
+The first day's estimate is positive and lies within about 1σ of what the physics predicts:
+barometers far from the volcano recorded 1.3–2 hPa, and the ocean, rising under a pulse faster
+than its own long waves, adds 0.6–0.9 of that again (Proudman), so the satellites should feel
+2.1–3.9 hPa of equivalent surface pressure. The limit, 4.3 hPa, does not yet reach that range,
+and the second passage (below) shows nothing. One day of one satellite pair is not enough.
+
+| | Value |
+|---|---|
+| Crossings, first 24 h | 21 (θ between 10° and 170° from the volcano) |
+| Best template width | σ = 2.5 min |
+| Amplitude A | 1.75 hPa; 68% [0.23, 3.28], 95% [−1.23, 4.74] |
+| AOD1B's copy B | −4.06 ± 2.06 hPa (negative is unphysical for a copy of the pulse; read as noise) |
+| Z, threshold | 1.15, 2.24 (null median 0.17, 1st–99th percentile −2.05 to 2.24) |
+| p | 0.124 |
+| 95% upper limit | 4.26 hPa |
+| Sensitivity (null windows) | σ_A median 0.79 hPa, 5–95% 0.44–1.69 hPa |
+
+**Secondary (not part of the decision):** the second passage, from 24 hours to the end of the
+laser data (43.75 h), has 17 crossings and an amplitude of **−2.34 ± 1.31 hPa** (Z = −1.79). The
+returning wave left no positive trace. The registered amplitude model scales the pulse only by
+its geometric spreading, not by its decay over 40,000 km, so the two passages are not combined
+here; but the second gives no support to the first day's positive estimate. Taken together, the
+data show no sign of the wave, and the first day's limit of 4.3 hPa stands.
+
+## What the test needed, and what it took
+
+The pre-registered forecast promised an SNR of 25–55 per good crossing against instrument noise.
+The first residuals on pre-eruption data were 35–600 times noisier than the instrument in the
+1–10 mHz band, which would have made the test blind (σ_A ≈ 2.9 hPa). Three changes, all decided
+on pre-eruption data and recorded in [`prereg/T1-frozen.md`](freeze.md), brought the
+sensitivity to 0.79 hPa:
+
+1. **Dynamic orbits** fitted to GNV1B, so the velocity term carries force-model errors rather
+   than orbit-file noise.
+2. **Ocean tides** (GOT4.10c), whose phases a regression on the pre-eruption residual confirmed
+   (diurnal 0.94/0.02, semidiurnal 1.04/−0.04, after catching a 180° sign error in the diurnal
+   arguments). The band-passed residual halved, from 4.8 to 2.2×10⁻⁹ m/s².
+3. **Moving-front templates** for shallow crossings.
+
+The residual is still 70–400 times the nominal instrument noise at 1–5 mHz, so the limit is the
+background models (AOD1B RL06's atmosphere and ocean, the monthly field), not the laser.
+
+## What would detect it
+
+- **More events, or more satellites.** The amplitude's σ scales as one over the square root of
+  the number of crossings. Reaching the threshold needs two to four times today's information: the second
+  passage, KBR for 17 January, or a better de-aliasing product (AOD1B RL07, built from hourly
+  ERA5) would each help.
+- **A better background.** At 1–5 mHz the residual is the de-aliasing error. A per-arc fit of
+  local mass anomalies (mascons) would absorb weather and ocean signals that AOD1B misses.
+
+## Data
+
+GRACE-FO Level-1B RL04 (JPL) and AOD1B RL06 (GFZ) from PO.DAAC, 13–17 January 2022; GOT4.10c
+ocean tides (NASA GSFC); COST-G January 2022 and GOCO06s. Checksums are in the freeze record.

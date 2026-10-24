@@ -1,8 +1,9 @@
 # geopotential
 
-Earth's gravity field from spherical-harmonic coefficients. Evaluate the potential, gravity
-vector or gravity-gradient tensor at any point, or draw maps of the geoid, gravity anomalies or
-water height. Pure Rust, no required dependencies.
+Earth's gravity field from spherical-harmonic coefficients. Read a model from an ICGEM `.gfc`
+file, from static models such as GOCO06s to every monthly GRACE field. Then evaluate the
+potential, the gravity vector or the gravity-gradient tensor at any point, or draw maps of the
+geoid, gravity anomalies or water height. Pure Rust, no required dependencies.
 
 ![The geoid from the GOCO06s satellite model](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/geoid_goco06s.svg)
 
@@ -14,7 +15,7 @@ water height. Pure Rust, no required dependencies.
 cargo add geopotential
 ```
 
-## Example
+## Example: a field and what it does
 
 ```rust
 use geopotential::{Coefficients, Functional};
@@ -38,35 +39,65 @@ assert!(up < -8.0); // pointing down, about 8.7 m/s²
 assert!(north.abs() > 0.0 && east == 0.0);
 ```
 
-To load a real model such as GOCO06s or a monthly GRACE field, use
-[`gravity-field`](https://crates.io/crates/gravity-field).
+## Example: read a real model
+
+Download a model first, for example `GOCO06s.gfc` from the
+[ICGEM model table](https://icgem.gfz.de/tom_longtime).
+
+```rust,no_run
+use geopotential::{julian_epoch, read_gfc};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let gfc = read_gfc(&std::fs::read_to_string("GOCO06s.gfc")?)?;
+
+    // Time-variable models apply their trends and annual terms; static ones ignore the date.
+    let field = gfc.model.at(julian_epoch(2026, 7, 16, 12, 0));
+    println!("{} to degree {}, C20 = {:e}", gfc.name.unwrap_or_default(), field.max_degree(), field.c(2, 0));
+    Ok(())
+}
+```
+
+![The error of every coefficient of the July 2026 GRACE-FO field](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/error_triangle_2026-07.svg)
+
+*The calibrated error of each coefficient of the July 2026 COST-G field, read with `read_gfc`.*
 
 ## What is inside
 
 | Item | What it does |
 |---|---|
 | `Legendre` | Normalized Legendre functions and their derivatives, stable to degree 2700 at every latitude ([Holmes & Featherstone 2002](https://doi.org/10.1007/s00190-002-0216-2)) |
-| `Coefficients` | The coefficients with their `GM`, radius and tide system. Also degree variances, rescaling, truncation and tide-system conversion ([IERS Conventions 2010](https://www.iers.org/TN36), ch. 6) |
+| `Coefficients` | The coefficients with their `GM`, radius and tide system; degree variances, rescaling, truncation and tide-system conversion ([IERS Conventions 2010](https://www.iers.org/TN36), ch. 6) |
 | `TimeVariable` | Models with trends and periodic terms, evaluated at any date ([ICGEM](https://icgem.gfz.de)) |
 | `partials`, `second_partials` | Potential, gravity vector and gravity-gradient tensor at a point |
 | `grid` with `Functional` | Maps of geoid height, gravity anomaly or disturbance, radial gradient or equivalent water height ([Barthelmes 2013](https://doi.org/10.2312/GFZ.b103-0902-26); [Wahr et al. 1998](https://doi.org/10.1029/98JB02844)) |
+| `read_gfc`, `Gfc` | ICGEM `.gfc` models, static or time-variable (icgem1.0 and 2.0), with their errors ([format](https://icgem.gfz.de/docs/ICGEM-Format-2023.pdf)) |
+| `julian_epoch`, `parse_date` | The decimal-year dates these files use |
 
 **Conventions:**
 - angles in radians, geocentric latitude;
 - fully normalized coefficients with no Condon–Shortley phase, as in ICGEM files;
 - the optional `serde` feature serializes `Coefficients`.
 
+Models are free from [ICGEM](https://icgem.gfz.de); each COST-G monthly series also comes as one
+zip.
+
 ## How it is checked
 
-- Legendre functions against closed forms, the addition theorem to degree 2700 close to the
+- **Legendre functions:** against closed forms, the addition theorem to degree 2700 close to the
   pole, and the Legendre equation.
-- Derivatives against finite differences.
-- The field against Laplace's equation.
-- The IERS tide offset of C̄20.
-- The real degree-300 GOCO06s model agrees with an independent implementation
-  ([geo5d](https://crates.io/crates/geo5d)) to about 1e-15.
+- **Derivatives:** against finite differences.
+- **The field:** against Laplace's equation, and the IERS tide offset of C̄20.
+- **An independent implementation:** the degree-300 GOCO06s model agrees with
+  [geo5d](https://crates.io/crates/geo5d) to about 1e-15.
+- **Real files** from COST-G and GOCO06s, which bend the format in practice: missing header
+  markers, comment and warning lines, `errors empirical`, and free text before the header. A
+  malformed record fails with its line number. The fixtures' sources are listed in
+  `tests/data/README.md`.
 
-Part of [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter), with
-[`gravity-field`](https://crates.io/crates/gravity-field) (file readers),
-[`gravimetry`](https://crates.io/crates/gravimetry) (GRACE processing) and
-[`satgrav`](https://crates.io/crates/satgrav) (missions and quantum sensors).
+One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`metrology`](https://crates.io/crates/metrology) (constants) ·
+[`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
+[`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
+[`gravitational`](https://crates.io/crates/gravitational) (waves) ·
+[`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).

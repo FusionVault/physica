@@ -26,7 +26,7 @@
 
 use core::f64::consts::PI;
 
-use crate::{C, E_CHARGE, G, G0, M_E, MU_0};
+use metrology::{C, E_CHARGE, G, G0, M_E, MU_0};
 
 /// The frame-dragging ratio k (frame rotation over ring rotation) Tajmar & de Matos reported,
 /// from a coupling of −9.64×10⁻⁸ s² at r = 3.6 cm.

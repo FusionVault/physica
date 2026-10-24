@@ -1,10 +1,10 @@
 # gravitics
 
 *Gravitics* is what the 1950s called the search for gravity control. This crate computes that
-whole parallel track of physics both ways:
+whole parallel track of physics, and gravity's open anomalies, three ways:
 - **The proposal's own model,** from its authors' formulas and inputs, reproducing their published
   numbers: superconductor gravity, high-frequency gravitational-wave generators and detectors,
-  propellantless thrusters, warp drives and the polarizable vacuum.
+  propellantless thrusters, warp drives, the polarizable vacuum, MOND and Weber-like gravity.
 - **The standard prediction,** from general relativity or standard physics, for the same setup.
 - **What experiments measured.**
 
@@ -41,6 +41,23 @@ let light = photon_thrust(11.0);               // 0.037 µN
 assert!(model / light > 800.0); // Dresden measured less than 0.03 µN
 ```
 
+## Example: an anomaly against the test that decides it
+
+```rust
+use gravitics::anomalies::{LLR_ABSORPTION_BOUND, MAJORANA_ABSORPTION, column_density, flyby_anderson, shielding_loss};
+
+// Majorana's gravitational shielding would hide 4.6% of the Sun behind the Earth at eclipse;
+// lunar laser ranging allows 7×10⁻¹².
+let earth = column_density(6_371e3, 5514.0);
+assert!(shielding_loss(MAJORANA_ABSORPTION, earth) > 0.04);
+assert!(shielding_loss(LLR_ABSORPTION_BOUND, earth) < 1e-11);
+
+// Anderson's flyby formula reproduces NEAR's 13.3 mm/s, and predicted +6 mm/s for Juno,
+// which showed 0 ± 0.8 mm/s.
+let near = flyby_anderson(6851.0, (-20.76f64).to_radians(), (-71.96f64).to_radians());
+assert!((near * 1e3 - 13.28).abs() < 0.01);
+```
+
 ## The proposals
 
 | Proposal | Its own model or report | General relativity or standard physics | What experiments found |
@@ -50,19 +67,35 @@ assert!(model / light > 800.0); // Dresden measured less than 0.03 µN
 | Li–Baker: a GHz gravitational-wave detector | a signal in 3×10³ s | one signal photon in 3×10¹⁸ s, against the reference beam's shot noise (JASON's argument) | none built |
 | Pais: 10²⁴ W/m² from a charged disc | σ = 5×10⁴ C/m² | a surface field 5.6×10⁶ times the breakdown limit his patent states | Navy test (2016–19): effect not shown |
 | EmDrive | 1.2 mN/kW (Eagleworks) | a photon rocket gives 3.3 µN/kW | nothing above 10–30 nN (Dresden) |
-| Mach-effect thruster | "a couple of µN" | the authors' own formula in SI: about 0.1 µN | vibration artefacts (Dresden) |
+| Mach-effect thruster | "a couple of µN" | the authors' own formula in SI: about 0.1 µN; general relativity suppresses the Machian term by 10⁻³⁶ | vibration artefacts (Dresden) |
 | Lifters ("electrogravitics") | lift | ion wind, `F = I·d/μ` | no force in vacuum |
 | Warp drive (Alcubierre) | travel faster than light | negative energy of a galaxy or more, in walls quantum field theory allows | — |
 | Polarizable vacuum (Puthoff) | gravity as a vacuum index | agrees with general relativity at first order, differs at second | 0.73 µas apart for light grazing the Sun |
+| Forward's antigravity | an induced pull from accelerated mass | real in general relativity, with coupling G/c² = 7.4×10⁻²⁸ m/kg | — |
+
+## The anomalies
+
+| Anomaly | The claim | The test | Status |
+|---|---|---|---|
+| The value of G | 16 measurements span 551 ppm | Birge ratio 3.6 against their errors | open: a measurement problem |
+| Earth flybys | Anderson's formula fits six | Juno: +6 mm/s predicted, 0 ± 0.8 observed | failed out of sample |
+| Gravitational shielding | Majorana's 6.7×10⁻¹² cm²/g | lunar laser ranging: below 10⁻²² m²/kg | refuted |
+| Pioneer | a constant 8.7×10⁻¹⁰ m/s² | it decayed with the plutonium's heat | resolved: thermal recoil |
+| MOND | one acceleration scale, g† = 1.2×10⁻¹⁰ m/s² | wide binaries | contested |
+| Short-range forces | new physics below a millimetre | Eöt-Wash: no gravitational-strength force beyond 38.6 µm | open below 38.6 µm |
+| Diósi–Penrose collapse | spontaneous X-rays | none seen underground | parameter-free version refuted |
 
 ## What is inside
 
 | Module | What it computes |
 |---|---|
+| `anomalies` | CODATA 2022's sixteen G measurements with their correlations, their generalised-least-squares mean and Birge ratio; Anderson's flyby formula; column densities and shielding against Majorana and lunar laser ranging; Pioneer's thermal decay |
+| `modified` | The radial acceleration relation ([McGaugh et al. 2016](https://arxiv.org/abs/1609.05917)), Tully–Fisher velocity and MOND radius; Yukawa forces with the current limits ([Lee et al. 2020](https://arxiv.org/abs/2002.11761)), the dark-energy length and boson mass; Einstein–Cartan density; Weber-like perihelion and mass shift |
+| `quantum` | Bose–Marletto–Vedral entanglement phases ([Bose et al. 2017](https://arxiv.org/abs/1707.06050)); the Diósi–Penrose X-ray rate ([Donadi et al. 2021](https://arxiv.org/abs/2111.13490)) |
 | `hfgw` | High-frequency gravitational waves: the Li–Baker detector (flux conventions, graviton rate, the interference signal, the shot-noise time) and the Pais patents (radiated flux, surface field, magnetic conversion as he uses it and in SI) |
 | `superconductors` | The London moment; frame dragging of a ring in general relativity against Tajmar's report; the Cooper-pair density and gravitational London depth; a perfect shield's shadow; Podkletnov's pendulum and Marx bank; the measured bounds |
-| `propulsion` | Ion wind and ion mobility, the vacuum (ballistic) limit, the photon rocket, Shawyer's EmDrive formula, buoyancy on a balance, Woodward's Mach-effect thrust |
-| `spacetime` | Alcubierre warp-bubble energy ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026)), the quantum inequality, Casimir plates and spheres, wormhole tensions, light bending in Puthoff's polarizable vacuum against general relativity, and horizon temperatures (Unruh, Hawking, Gibbons–Hawking) with black-hole lifetimes and zero-point energy |
+| `propulsion` | Ion wind and ion mobility, the vacuum (ballistic) limit, the photon rocket, Shawyer's EmDrive formula, buoyancy on a balance, Woodward's Mach-effect thrust and general relativity's bound on it ([Rodal](https://arxiv.org/abs/2512.22687)) |
+| `spacetime` | Alcubierre warp-bubble energy ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026)), the quantum inequality, Casimir plates and spheres, wormhole tensions, light bending in Puthoff's polarizable vacuum against general relativity, Forward's induced acceleration, and horizon temperatures (Unruh, Hawking, Gibbons–Hawking) with black-hole lifetimes and zero-point energy |
 | `strong_field` | The Schwinger limit: the critical field, the pair-production and vacuum-decay rates, laser a₀ and the quantum parameter χ (with explicit intensity conventions), Ritus–Narozhny, Breit–Wheeler suppression, vacuum birefringence, Euler–Heisenberg, supercritical atoms, and the graphene analogue. The Schwinger exponent is exactly a Boltzmann factor at twice the Unruh temperature, and a test pins that identity |
 
 ![The energy a warp bubble needs](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/warp_energy.svg)
@@ -77,28 +110,35 @@ in the observable universe.*
 measurement.*
 
 The research behind every number, with its sources and the status of each proposal, is in the
-[research report](https://github.com/FusionVault/quantum-gravimeter/blob/main/reports/Gravity%20beams%20fringe%20physics%20and%20DIRDs.md).
+reports on [fringe physics and the DIRDs](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/fringe-physics-and-dirds/report.md),
+[the Coulomb barrier and the Schwinger limit](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/coulomb-and-schwinger/report.md)
+and [where gravity physics is still open](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/gravity-anomalies/report.md).
 
 ## How it is checked
 
 Every test reproduces a published number from the paper's own inputs, mostly to better than 1%:
-- the Li–Baker graviton flux and Table I signal;
-- the Pais disc and conversion numbers;
-- Tajmar's predicted field for niobium;
-- Podkletnov's pendulum tables;
-- Woodward's printed 1.87×10²¹ prefactor;
-- Shawyer's thrust at the Dresden and Eagleworks settings;
-- the Army lifter thrust;
-- Pfenning & Ford's warp energy;
-- the quantum inequality;
-- the Casimir pressure at 1 µm;
-- the Sun's 1.7512″ light bending;
-- the Schwinger field and pair rates, CoReLS's a₀, LUXE's χ, PVLAS's QED birefringence, and
-  Dirac binding for lead and uranium;
-- Unruh, Hawking and Gibbons–Hawking temperatures.
+- **Proposals:** the Li–Baker graviton flux and Table I signal; the Pais disc and conversion
+  numbers; Tajmar's predicted field for niobium; Podkletnov's pendulum tables; Woodward's printed
+  1.87×10²¹ prefactor; Shawyer's thrust at the Dresden and Eagleworks settings; the Army lifter
+  thrust.
+- **Spacetime:** Pfenning & Ford's warp energy; the quantum inequality; the Casimir pressure at
+  1 µm; the Sun's 1.7512″ light bending; Unruh, Hawking and Gibbons–Hawking temperatures.
+- **Strong fields:** the Schwinger field and pair rates, CoReLS's a₀, LUXE's χ, PVLAS's QED
+  birefringence, and Dirac binding for lead and uranium.
+- **Anomalies:** CODATA 2022's G (6.674 30, Birge ratio 3.61, χ² = 195.7 for 15 degrees of
+  freedom) rebuilt from its inputs; Anderson's six flyby predictions; Majorana and LLR shielding.
+- **Alternatives:** the RAR's published shape and deep-MOND limit; Eöt-Wash's 5.1 meV boson;
+  Ruggiero & Tartaglia's Einstein–Cartan densities; the Weber perihelion ratios against a direct
+  orbit integration.
+- **Quantum gravity:** Bose et al.'s phases; Donadi et al.'s germanium rate.
 
 The formulas were independently re-derived from their sources and every test value recomputed;
 the Casimir formulas are also checked against each other.
 
-Formerly published as `gravity-claims`. Part of
-[quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter).
+One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`metrology`](https://crates.io/crates/metrology) (constants) ·
+[`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
+[`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
+[`gravitational`](https://crates.io/crates/gravitational) (waves) ·
+[`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).
