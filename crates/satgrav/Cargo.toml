@@ -1,7 +1,7 @@
 [package]
 name = "satgrav"
-version = "0.1.0"
-description = "Instrument and mission models for satellite gravimetry: electrostatic and cold-atom (atom-interferometer) accelerometers and gradiometers, laser ranging, pair line-of-sight noise, and gravity-field error propagation."
+version = "0.1.1"
+description = "Model gravity-mapping satellites and quantum sensors: accelerometer and laser-ranging noise, cold-atom interferometers, gradiometry errors and a satellite-pair simulator."
 keywords = ["geodesy", "gravimetry", "grace", "atom-interferometry", "noise"]
 categories = ["science::geo", "simulation"]
 edition.workspace = true

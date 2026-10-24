@@ -1,5 +1,8 @@
-GRACE-FO months: 96 (13 after the event); event 2025-07-29 23:25 UTC at 52.5°N 160.3°E
-largest |step| within 500 km: 3.42 µGal at 50.5°N 160.5°E (sign +3.42); step range in the disk -3.39 to 3.42 µGal
-at that cell: post-event ramp +3.12 µGal/yr; residual sd 0.61 µGal
-null (100 ocean points, 40–65° latitude): median 1.13, 95th percentile 2.26, max 2.95 µGal
-rank p = 0.010 (above the null's 95th percentile: detected)
+GRACE-FO months: 96 (13 after the event), weighted by Q0 noise; event 2025-07-29 23:25 UTC at 52.49°N 160.24°E
+forward model: 465 USGS subfaults, Σ area·slip = 7.243e11 m³ (= 2.90e22 N·m at μ = 40 GPa; USGS M0 2.25e22); our uplift vs USGS at 1600 points: slope 0.84, r = 0.886
+S1 detection: largest |step| within 500 km 3.47 µGal at 52.5°N 153.5°E; null 95th percentile 2.26, max 3.39; rank p = 0.010
+  step range within 500 km: observed -3.47 to 3.46 µGal; model -4.17 to 1.36 µGal
+S2 after-slip: largest |ramp| within 500 km 3.91 µGal/yr (at the S1 cell +1.25); null 95th percentile 4.16, max 8.83; rank p = 0.079
+S3 model match within 1500 km: amplitude α = 0.91 ± 0.16 (null rms), rank p = 0.010; correlation r = 0.59, rank p = 0.010
+  α > 1: more signal than the coseismic slip explains (early after-slip in the first months, or a stiffer or denser real Earth); α < 1: less.
+residual sd at the S1 cell 0.75 µGal

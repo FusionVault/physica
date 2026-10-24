@@ -1,18 +1,4 @@
-//! Instrument noise models for satellite gravimetry: the amplitude spectral densities (ASDs) of
-//! accelerometers and inter-satellite laser ranging, and the line-of-sight noise of a GRACE-type
-//! satellite pair.
-//!
-//! The models are equations 1–8 of Zingerle et al. (2024), "The Benefits of Future Quantum
-//! Accelerometers for Satellite Gravimetry", *Earth and Space Science* 11(9),
-//! doi:10.1029/2024EA003630 (CC BY 4.0). Frequencies are in Hz.
-//!
-//! ```
-//! use satgrav::{Accelerometer, Ranging, pair_noise};
-//!
-//! // GRACE-FO class at 1 mHz: SuperSTAR accelerometers plus the GRACE-FO laser interferometer.
-//! let n = pair_noise(Accelerometer::SuperStar, Ranging::GraceFo, 1e-3);
-//! assert!((n - 3.5e-10).abs() < 0.05e-10);
-//! ```
+#![doc = include_str!("../README.md")]
 
 mod atom;
 mod errors;

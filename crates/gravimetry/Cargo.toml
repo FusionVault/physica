@@ -1,8 +1,8 @@
 [package]
 name = "gravimetry"
-version = "0.1.0"
-description = "GRACE-style processing of monthly gravity fields: load Love numbers, Gaussian smoothing, anomalies against a baseline mean, for equivalent water height maps."
-keywords = ["geodesy", "grace", "hydrology", "gravimetry", "water"]
+version = "0.2.0"
+description = "GRACE processing and earthquake gravity: water-height maps, smoothing, stripe removal, Love numbers, fault models (Okada, Okubo) and mass transport."
+keywords = ["geodesy", "grace", "hydrology", "gravimetry", "earthquake"]
 categories = ["science::geo"]
 edition.workspace = true
 rust-version.workspace = true

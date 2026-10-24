@@ -2,18 +2,20 @@
 //!
 //! ```text
 //! gravviz noise OUT_DIR
+//! gravviz geoid STATIC_MODEL.gfc OUT_DIR
 //! gravviz water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR
 //! gravviz series MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR
 //! gravviz triangle MONTH.gfc OUT_DIR
 //! gravviz gradiometry STATIC_MODEL.gfc OUT_DIR
 //! gravviz sst OUT_DIR [REFERENCE_MONTH.gfc]
 //! gravviz w1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt NINO34.data OUT_DIR
-//! gravviz e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR
+//! gravviz e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt USGS_FAULT_DIR Q0_NOISE.csv OUT_DIR
 //! gravviz screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR
 //! gravviz q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR
 //! ```
 //!
-//! `noise` writes `noise_spectra.svg` and `.csv` (Zingerle et al. 2024, Fig. 1). `water-map`
+//! `noise` writes `noise_spectra.svg` and `.csv` (Zingerle et al. 2024, Fig. 1). `geoid` maps a
+//! static model's geoid against the GRS80 ellipsoid (`geoid_<model>.svg`). `water-map`
 //! writes `water_<yyyy-mm>.svg` and a 1° `.csv`: the month's equivalent water height minus the
 //! mean of every `.gfc` in BASELINE_DIR, all from ICGEM GSM-2 files (`GSM-2_YYYYDDD-YYYYDDD_…`).
 //! `series` does the same for every month in MONTHS_DIR on a 2° grid and writes `tws_grids.json`
@@ -30,7 +32,8 @@
 //! The research tests: `w1` runs the pre-registered El Niño test on global land storage (NOAA PSL
 //! Niño 3.4 anomaly file) and writes `w1_report.txt`, `w1_land_storage.svg` and `.csv`,
 //! `w1_forecast.csv` and `w1_monthly.csv`. `e1` looks for the 2025 Kamchatka earthquake in
-//! GRACE-FO gravity against a random-location null and writes `e1_kamchatka.svg`,
+//! GRACE-FO gravity against a random-location null and the USGS fault model (`coulomb.inp` and
+//! `surface_deformation.disp` in USGS_FAULT_DIR), weighting months by Q0, and writes `e1_kamchatka.svg`,
 //! `e1_report.txt`, `e1_step.csv` and `e1_frames.json`. `screen` reruns the W1 level model with
 //! every NOAA PSL index in INDEX_DIR, QBO and solar flux as negative controls, and writes
 //! `screen_indices.svg`, `.txt` and `.csv`. `q0` regresses each month's noise on solar flux, Ap,
@@ -68,6 +71,7 @@ fn main() -> Result<()> {
             write(out, "noise_spectra.svg", &svg)?;
             write(out, "noise_spectra.csv", &csv)
         }
+        ["geoid", model, out] => geoid(model, out),
         ["water-map", month, baseline, tn14, tn13, out] => water_map(month, baseline, tn14, tn13, out),
         ["series", months, baseline, tn14, tn13, out] => series(months, baseline, tn14, tn13, out),
         ["triangle", month, out] => {
@@ -107,8 +111,8 @@ fn main() -> Result<()> {
             write(out, "w1_forecast.csv", &forecast_csv)?;
             write(out, "w1_monthly.csv", &monthly_csv)
         }
-        ["e1", months, baseline, tn14, tn13, out] => {
-            let e1::Outcome { report, svg, csv, frames } = e1::run(months, baseline, tn14, tn13)?;
+        ["e1", months, baseline, tn14, tn13, usgs, q0, out] => {
+            let e1::Outcome { report, svg, csv, frames } = e1::run(months, baseline, tn14, tn13, Path::new(usgs), Path::new(q0))?;
             print!("{report}");
             write(out, "e1_report.txt", &report)?;
             write(out, "e1_kamchatka.svg", &svg)?;
@@ -132,9 +136,9 @@ fn main() -> Result<()> {
         }
         _ => Err("usage: gravviz noise OUT_DIR | water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | \
             series MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | triangle MONTH.gfc OUT_DIR | \
-            gradiometry STATIC_MODEL.gfc OUT_DIR | sst OUT_DIR [REFERENCE_MONTH.gfc] | \
+            gradiometry STATIC_MODEL.gfc OUT_DIR | geoid STATIC_MODEL.gfc OUT_DIR | sst OUT_DIR [REFERENCE_MONTH.gfc] | \
             w1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt NINO34.data OUT_DIR | \
-            e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR | \
+            e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt USGS_FAULT_DIR Q0_NOISE.csv OUT_DIR | screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR | \
             q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR".into()),
     }
 }
@@ -258,6 +262,42 @@ fn read_technotes(tn14: &str, tn13: &str) -> Result<(Vec<SlrC20C30>, Vec<Degree1
     Ok((read_tn14(&std::fs::read_to_string(tn14)?)?, read_tn13(&std::fs::read_to_string(tn13)?)?))
 }
 
+/// The geoid of a static model against the GRS80 ellipsoid, on a 0.5° Equal Earth map.
+fn geoid(model: &str, out: &str) -> Result<()> {
+    let gfc = read_gfc(&std::fs::read_to_string(model)?)?;
+    let name = gfc.name.clone().unwrap_or_else(|| "model".into());
+    let mut field = gfc.model.base;
+    // GRS80 normal field (Moritz 2000), fully normalized even zonals; degrees 0 and 1 dropped.
+    for (n, c) in [(2, -4.841_667_749_85e-4), (4, 7.903_037_335_11e-7), (6, -1.687_249_611_51e-9), (8, 3.460_524_683_94e-12)] {
+        field.set(n, 0, field.c(n, 0) - c, 0.0);
+    }
+    field.set(0, 0, 0.0, 0.0);
+    field.set(1, 0, 0.0, 0.0);
+    field.set(1, 1, 0.0, 0.0);
+    let (lats, lons) = grid_axes(0.5);
+    let n = field.grid(&Functional::GeoidHeight, field.radius, &lats, &lons);
+    let (min, max) = n.iter().fold((f64::MAX, f64::MIN), |(a, b), &v| (a.min(v), b.max(v)));
+    eprintln!("geoid: {min:.1} to {max:.1} m");
+    let coast = coastlines();
+    let title = format!("The geoid from {name}");
+    let sub = format!("Height of the sea-level surface of Earth's gravity field above the GRS80 ellipsoid, from {name} to degree {}.", field.max_degree());
+    let svg = map::render(&map::Grid { lats: &lats, lons: &lons, values: &n }, 100.0, &coast, &map::MapText {
+        title: &title,
+        subtitle: &[&sub, "Low: the Indian Ocean geoid low. High: New Guinea and the North Atlantic."],
+        unit: "m",
+        ends: ("below the ellipsoid", "above"),
+        footnote: "Equal Earth projection. Coastlines: Natural Earth (public domain). Model: GOCO06s (CC BY 4.0, doi:10.5880/ICGEM.2019.002).",
+    })?;
+    write(out, &format!("geoid_{}.svg", name.to_lowercase()), &svg)
+}
+
+fn coastlines() -> Vec<Vec<(f64, f64)>> {
+    include_str!("../data/coastline_110m.txt").split("\n\n").map(|seg| seg.lines().filter_map(|l| {
+        let mut it = l.split_whitespace().map(str::parse::<f64>);
+        Some((it.next()?.ok()?, it.next()?.ok()?))
+    }).collect()).filter(|s: &Vec<_>| s.len() > 1).collect()
+}
+
 fn water_map(month: &str, baseline: &str, tn14: &str, tn13: &str, out: &str) -> Result<()> {
     let (tn14, tn13) = read_technotes(tn14, tn13)?;
     let month_path = Path::new(month);
@@ -279,11 +319,7 @@ fn water_map(month: &str, baseline: &str, tn14: &str, tn13: &str, out: &str) -> 
     let (min, max) = cm.iter().fold((f64::MAX, f64::MIN), |(a, b), &v| (a.min(v), b.max(v)));
     eprintln!("EWH: area-weighted RMS {rms:.1} cm, min {min:.1}, max {max:.1}, 95th pct |EWH| {p95:.1} → colour limit ±{limit} cm");
 
-    let coast_text = include_str!("../data/coastline_110m.txt");
-    let coast: Vec<Vec<(f64, f64)>> = coast_text.split("\n\n").map(|seg| seg.lines().filter_map(|l| {
-        let mut it = l.split_whitespace().map(str::parse::<f64>);
-        Some((it.next()?.ok()?, it.next()?.ok()?))
-    }).collect()).filter(|s: &Vec<_>| s.len() > 1).collect();
+    let coast = coastlines();
 
     let month_name = MONTH_NAMES[mon as usize - 1];
     let title = format!("Water storage anomaly, {month_name} {year}");

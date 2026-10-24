@@ -1,7 +1,7 @@
 [package]
 name = "geopotential"
-version = "0.1.1"
-description = "Spherical-harmonic gravity fields: stable normalized Legendre functions to degree 2700, potential and gradient synthesis, grids of geoid/gravity/water height, degree spectra, tide systems and ICGEM time-variable terms."
+version = "0.1.2"
+description = "Earth's gravity field from spherical harmonics: gravity, geoid and water height at a point or on a map, stable to degree 2700."
 keywords = ["geodesy", "gravity", "spherical-harmonics", "geoid", "grace"]
 categories = ["science::geo", "mathematics"]
 edition.workspace = true

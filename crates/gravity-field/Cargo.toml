@@ -1,7 +1,7 @@
 [package]
 name = "gravity-field"
-version = "0.1.0"
-description = "Readers for satellite gravity-field files: ICGEM .gfc models, static and time-variable (icgem1.0/2.0), tolerant of real COST-G, Swarm and GOCO files."
+version = "0.1.1"
+description = "Read satellite gravity-field files: ICGEM .gfc models, static and time-variable, and the GRACE technical notes TN-13 and TN-14."
 keywords = ["geodesy", "gravity", "icgem", "grace", "goce"]
 categories = ["science::geo", "parser-implementations"]
 edition.workspace = true

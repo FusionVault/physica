@@ -51,21 +51,21 @@ dependencies = [
 
 [[package]]
 name = "geopotential"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "gravimetry"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "geopotential",
 ]
 
 [[package]]
 name = "gravity-field"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "geopotential",
 ]
@@ -135,7 +135,7 @@ dependencies = [
 
 [[package]]
 name = "satgrav"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "geopotential",
 ]

@@ -263,9 +263,9 @@ footer a { color: var(--ink-2); }
   <section class="view" id="view-quake" role="tabpanel" aria-labelledby="tab-quake" hidden>
     <div>
       <h2>The Kamchatka earthquake, seen in gravity</h2>
-      <p class="lede">The magnitude 8.8 earthquake of 29 July 2025 moved enough rock to change gravity over 1,000 km. GRACE-FO saw it as a dipole: lighter over the Sea of Okhotsk, heavier along the trench.</p>
+      <p class="lede">The magnitude 8.8 earthquake of 29 July 2025 moved enough rock to change gravity over 1,000 km. GRACE-FO saw it as a dipole: lighter over the Sea of Okhotsk, heavier along the trench. The USGS model of the fault's slip predicts the same pattern.</p>
     </div>
-    <div class="findings" id="quakeFindings"></div>
+    <div class="findings n4" id="quakeFindings"></div>
     <section class="panel" aria-label="Kamchatka map">
       <div class="quakegrid">
         <div style="display: grid; gap: 10px; min-width: 0;">
@@ -281,6 +281,7 @@ footer a { color: var(--ink-2); }
             <div class="seg" role="group" aria-label="Map content">
               <button type="button" id="quakeMonths" aria-pressed="true">Months</button>
               <button type="button" id="quakeStep" aria-pressed="false">Fitted step</button>
+              <button type="button" id="quakeModel" aria-pressed="false">USGS model</button>
             </div>
             <label for="quakeSmooth"><input type="checkbox" id="quakeSmooth" checked> 3-month average</label>
           </div>
@@ -307,7 +308,7 @@ footer a { color: var(--ink-2); }
       </div>
     </section>
     <div class="prose">
-      <p>Gravity anomaly to degree 60 with a 300 km Gaussian and no destriping, because destriping removes north–south structure like this arc. Each cell's trend and seasons are fitted with a step at the event time and a ramp afterwards. The trench-side lobe is still rising a year later; that ramp has not yet been tested against its own null. Notes: <a href="https://github.com/FusionVault/quantum-gravimeter/blob/main/results/E1-2026-10-24.md">E1 quick look</a>.</p>
+      <p>Gravity anomaly to degree 60 with a 300 km Gaussian and no destriping, because destriping removes north–south structure like this arc. Each cell's trend and seasons are fitted with a step at the event time and a ramp afterwards, weighting each month by its noise. The model is the USGS finite-fault solution in an elastic half-space (Okubo 1992), with the water pushed aside by the rising seafloor removed, filtered exactly like the data. Notes: <a href="https://github.com/FusionVault/quantum-gravimeter/blob/main/results/E1-2026-10-24.md">E1 results</a>.</p>
     </div>
   </section>
 
@@ -932,11 +933,19 @@ async function initQuake() {
   quake.n = quake.nlat * quake.nlon;
   const best = cellAt(quake.best[0], quake.best[1]); qs.cell = best;
   const rank = (1 + quake.null.filter((v) => v >= quake.observed).length) / (quake.null.length + 1);
-  const lo = Math.min(...quake.step_map), hi = Math.max(...quake.step_map);
+  // The step range within the 500 km disk, as in the report.
+  const [elat, elon] = quake.epicentre, disk = [];
+  quake.step_map.forEach((v, c) => {
+    const la = (quake.lat0 + Math.floor(c / quake.nlon)) * RAD, lo = (quake.lon0 + (c % quake.nlon)) * RAD;
+    const cosd = Math.sin(la) * Math.sin(elat * RAD) + Math.cos(la) * Math.cos(elat * RAD) * Math.cos(lo - elon * RAD);
+    if (6371 * Math.acos(Math.min(1, cosd)) < quake.radius_km) disk.push(v);
+  });
+  const lo = Math.min(...disk), hi = Math.max(...disk);
   $("quakeFindings").innerHTML = [
-    finding("Largest step", `${quake.observed.toFixed(2)} µGal`, `Within 500 km of the epicentre: ${sgn(lo, 1)} on the back-arc side, ${sgn(hi, 1)} on the trench side.`, "yes"),
-    finding("Random ocean points", `${quake.null_q95.toFixed(2)} µGal`, `95th percentile of 100 places at the same latitudes; their largest was ${Math.max(...quake.null).toFixed(2)}.`, "no"),
-    finding("Rank", `p = ${rank.toFixed(2)}`, "Kamchatka beats all 100 random places, the strongest result a 100-point comparison can give.", "yes"),
+    finding("Detected", `${quake.observed.toFixed(2)} µGal`, `Largest step within 500 km (${sgn(lo, 1)} to ${sgn(hi, 1)}), above all 100 random ocean places (95th percentile ${quake.null_q95.toFixed(2)}): p = ${rank.toFixed(2)}.`, "yes"),
+    finding("Matches the fault model", `α = ${quake.alpha.toFixed(2)} ± ${quake.alpha_sd.toFixed(2)}`, `The observed step has this many times the USGS model's amplitude (correlation ${quake.corr.toFixed(2)}, p = ${quake.alpha_p.toFixed(2)}). The slip explains it.`, "yes"),
+    finding("Trench side", `${sgn(hi, 1)} µGal`, `Larger than the model's ${sgn(quake.model_range[1], 1)}; the back-arc low (${sgn(lo, 1)} against ${sgn(quake.model_range[0], 1)}) matches.`, "warn"),
+    finding("After-slip", `p = ${quake.ramp_p.toFixed(2)}`, `The post-event ramp (up to ${quake.ramp_max.toFixed(1)} µGal per year) is not yet distinguishable from noise.`, "no"),
   ].join("");
   $("quakeSlider").max = quake.months.length - 1;
   const ev = quake.months.findIndex((m) => m.t > quake.event);
@@ -946,13 +955,14 @@ async function initQuake() {
   $("quakeSlider").addEventListener("input", (e) => { const idle = scrubTo === null; scrubTo = +e.target.value; if (idle) requestAnimationFrame(() => { const k = scrubTo; scrubTo = null; setQuakeMonth(k, true); }); });
   $("quakePlay").addEventListener("click", () => {
     if (qs.playing) { clearInterval(qs.playing); qs.playing = null; $("quakePlay").textContent = "Play"; return; }
-    if (qs.mode === "step") setQuakeMode("months");
+    if (qs.mode !== "months") setQuakeMode("months");
     if (qs.month >= quake.months.length - 1) setQuakeMonth(0);
     $("quakePlay").textContent = "Pause";
     qs.playing = setInterval(() => { if (qs.month >= quake.months.length - 1) { $("quakePlay").click(); return; } setQuakeMonth(qs.month + 1); }, 220);
   });
   $("quakeMonths").addEventListener("click", () => setQuakeMode("months"));
   $("quakeStep").addEventListener("click", () => setQuakeMode("step"));
+  $("quakeModel").addEventListener("click", () => setQuakeMode("model"));
   $("quakeSmooth").addEventListener("change", (e) => { qs.smooth = e.target.checked; drawQuake(); drawQuakeSeries(); });
   $("quakeMap").addEventListener("click", (e) => {
     const r = e.target.getBoundingClientRect(), lon = 140 + 40 * (e.clientX - r.left) / r.width, lat = 66 - 26 * (e.clientY - r.top) / r.height;
@@ -982,9 +992,10 @@ function setQuakeMonth(k, fromSlider = false) {
 }
 function setQuakeMode(mode) {
   qs.mode = mode;
-  $("quakeMonths").setAttribute("aria-pressed", String(mode === "months")); $("quakeStep").setAttribute("aria-pressed", String(mode === "step"));
-  $("quakeSlider").disabled = mode === "step";
+  for (const [id, m] of [["quakeMonths", "months"], ["quakeStep", "step"], ["quakeModel", "model"]]) $(id).setAttribute("aria-pressed", String(mode === m));
+  $("quakeSlider").disabled = mode !== "months";
   if (mode === "step") { $("quakeLabel").textContent = "Fitted step"; $("quakeWhen").textContent = "the jump at 29 July 2025, per cell"; }
+  if (mode === "model") { $("quakeLabel").textContent = "USGS fault model"; $("quakeWhen").textContent = "the predicted jump, same filter as the data"; }
   setQuakeMonth(qs.month);
 }
 function drawQuake() {
@@ -997,7 +1008,7 @@ function drawQuake() {
   const small = document.createElement("canvas"); small.width = nlon; small.height = nlat;
   const sc = small.getContext("2d"), img = sc.createImageData(nlon, nlat), surf = rgb(css("--surface")), wet = [42, 120, 214], dry = [227, 73, 72];
   for (let i = 0; i < nlat; i++) for (let j = 0; j < nlon; j++) {
-    const cell = i * nlon + j, v = qs.mode === "step" ? quake.step_map[cell] : qv(qs.month, cell);
+    const cell = i * nlon + j, v = qs.mode === "step" ? quake.step_map[cell] : qs.mode === "model" ? quake.model_map[cell] : qv(qs.month, cell);
     const t = Math.max(-1, Math.min(1, v / 4)), pole = t >= 0 ? wet : dry, a = Math.abs(t), o = ((nlat - 1 - i) * nlon + j) * 4;
     img.data[o] = surf[0] + (pole[0] - surf[0]) * a; img.data[o + 1] = surf[1] + (pole[1] - surf[1]) * a; img.data[o + 2] = surf[2] + (pole[2] - surf[2]) * a; img.data[o + 3] = 255;
   }
@@ -1015,8 +1026,8 @@ function drawQuake() {
   c.fillStyle = css("--ink"); c.font = `${16 * dpr}px system-ui`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("★", ex, ey);
   const i = Math.floor(qs.cell / nlon), j = qs.cell % nlon;
   c.beginPath(); c.arc(px(quake.lon0 + j), py(quake.lat0 + i), 6 * dpr, 0, 2 * Math.PI); c.lineWidth = 2 * dpr; c.strokeStyle = css("--ink"); c.stroke();
-  const v = qs.mode === "step" ? quake.step_map[qs.cell] : qv(qs.month, qs.cell);
-  $("quakeReadout").textContent = `Circled cell ${(quake.lat0 + i).toFixed(1)}°N ${(quake.lon0 + j).toFixed(1)}°E: ${sgn(v, 2)} µGal${qs.mode === "step" ? " fitted step" : ""}. ★ epicentre; dashed circle 500 km.`;
+  const v = qs.mode === "step" ? quake.step_map[qs.cell] : qs.mode === "model" ? quake.model_map[qs.cell] : qv(qs.month, qs.cell);
+  $("quakeReadout").textContent = `Circled cell ${(quake.lat0 + i).toFixed(1)}°N ${(quake.lon0 + j).toFixed(1)}°E: ${sgn(v, 2)} µGal${qs.mode === "step" ? " fitted step" : qs.mode === "model" ? " in the model" : ""} (observed step ${sgn(quake.step_map[qs.cell], 2)}, model ${sgn(quake.model_map[qs.cell], 2)}). ★ epicentre; dashed circle 500 km.`;
 }
 function drawQuakeSeries() {
   if (!quake || !$("quakeSeriesWrap").clientWidth) return;
@@ -1030,7 +1041,7 @@ function drawQuakeSeries() {
     vlines: [{ t: quake.event, label: "earthquake" }],
     marks: qs.mode === "months" ? [{ t: pts[qs.month].t, v: pts[qs.month].v, color: "var(--accent)" }] : [],
     hover: (t) => { const k = nearest(pts, t), p = pts[k]; return { t: p.t, k, html: `<b>${p.label}</b> · ${sgn(p.v, 2)} µGal`, dots: [{ v: p.v, color: "var(--ink)" }] }; },
-    click: (info) => { if (qs.mode === "step") setQuakeMode("months"); setQuakeMonth(info.k); },
+    click: (info) => { if (qs.mode !== "months") setQuakeMode("months"); setQuakeMonth(info.k); },
   });
   drawNull();
 }

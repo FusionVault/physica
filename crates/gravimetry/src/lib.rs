@@ -1,24 +1,8 @@
-//! GRACE-style processing of monthly gravity fields into water-storage anomalies.
-//!
-//! The chain is: replace `C̄20`/`C̄30` and add degree 1 (from `gravity-field`'s TN-14/TN-13
-//! readers), [`anomaly`] against a baseline [`mean`], [`smooth`] with [`gaussian_weights`], then
-//! synthesize [`geopotential::Functional::WaterHeight`] with [`love_numbers`].
-//!
-//! ```
-//! use geopotential::{Coefficients, Functional};
-//!
-//! let (gm, r) = (3.986004415e14, 6378136.3);
-//! let mut month = Coefficients::zeros(gm, r, 60);
-//! month.set(2, 0, 1e-10, 0.0);
-//! let baseline = gravimetry::mean(&[Coefficients::zeros(gm, r, 60)]).unwrap();
-//! let w = gravimetry::gaussian_weights(300e3, r, 60);
-//! let dewh = gravimetry::smooth(&gravimetry::anomaly(&month, &baseline), &w);
-//! let love = gravimetry::love_numbers(60).unwrap();
-//! let pole = dewh.grid(&Functional::WaterHeight { love: &love }, r, &[1.5707963], &[0.0])[0];
-//! assert!(pole > 0.01 && pole < 0.02); // ~19 mm of water, slightly smoothed
-//! ```
+#![doc = include_str!("../README.md")]
 
-use geopotential::Coefficients;
+use geopotential::{Coefficients, Legendre};
+
+pub mod coseismic;
 
 /// Elastic load Love numbers `k'_n` (PREM, Han & Wahr 1995) as tabulated by Wahr et al. (1998,
 /// JGR 103, Table 1), linearly interpolated between tabulated degrees (error < 0.05%), for
@@ -178,6 +162,59 @@ pub fn anomaly(field: &Coefficients, reference: &Coefficients) -> Coefficients {
     out
 }
 
+/// Spherical-harmonic coefficients, to degree `nmax`, of point masses `(lat, lon, kg)` (radians)
+/// on the sphere of radius `radius`, in the convention of a field with `gm`:
+/// `C̄nm + iS̄nm = (m_k / M) · P̄nm(sin φ_k) · e^{imλ_k} / (2n + 1)` summed over the masses,
+/// with `M = gm / G`. Degree 0 holds the net mass; it is kept so the caller can check it.
+///
+/// ```
+/// use gravimetry::mass_coefficients;
+///
+/// // One gigatonne at the North Pole.
+/// let pole = (90f64.to_radians(), 0.0, 1e12);
+/// let field = mass_coefficients(&[pole], 3.986004415e14, 6_378_136.3, 10);
+///
+/// // A mass on the axis changes only the zonal (m = 0) terms.
+/// assert!(field.c(2, 0) > 0.0);
+/// assert!(field.c(2, 1).abs() < 1e-25);
+/// ```
+pub fn mass_coefficients(points: &[(f64, f64, f64)], gm: f64, radius: f64, nmax: usize) -> Coefficients {
+    let earth_mass = gm / coseismic::G;
+    let mut out = Coefficients::zeros(gm, radius, nmax);
+    let mut leg = Legendre::new(nmax);
+    let (mut c, mut s) = (vec![0.0; (nmax + 1) * (nmax + 2) / 2], vec![0.0; (nmax + 1) * (nmax + 2) / 2]);
+    for &(lat, lon, kg) in points {
+        leg.compute(lat);
+        let k = kg / earth_mass;
+        for m in 0..=nmax {
+            let (sm, cm) = (m as f64 * lon).sin_cos();
+            for n in m..=nmax {
+                let v = k * leg.p(n, m) / (2 * n + 1) as f64;
+                let i = n * (n + 1) / 2 + m;
+                c[i] += v * cm;
+                s[i] += v * sm;
+            }
+        }
+    }
+    for n in 0..=nmax {
+        for m in 0..=n {
+            let i = n * (n + 1) / 2 + m;
+            out.set(n, m, c[i], s[i]);
+        }
+    }
+    out
+}
+
+/// Degree weights `R²/(n(n+1))` (zero at degree 0) that turn the rate of change of a field into
+/// its minimum-norm mass-transport potential φ, the solution of `∇²φ = −dσ/dt` on the sphere.
+/// Apply them with [`smooth`] to a field of yearly change, synthesize
+/// [`geopotential::Functional::WaterHeight`] and multiply by the water density: that is φ in
+/// kg/yr, and its horizontal gradient is the smallest mass flux (kg per metre per year) that
+/// could carry the change. It points toward where mass is gathering.
+pub fn transport_weights(radius: f64, nmax: usize) -> Vec<f64> {
+    (0..=nmax).map(|n| if n == 0 { 0.0 } else { radius * radius / (n * (n + 1)) as f64 }).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,5 +281,27 @@ mod tests {
         let d = anomaly(&a, &Coefficients::zeros(4e14, 6.4e6, 2));
         assert_eq!((d.max_degree(), d.c(2, 1)), (2, 2.0e-9));
         assert!(mean(&[]).is_none());
+    }
+
+    #[test]
+    fn point_masses_match_the_addition_theorem() {
+        // A mass's potential from its coefficients equals G·m / distance outside the sphere.
+        let (gm, r) = (3.986004415e14, 6378136.3);
+        let (lat0, lon0, kg) = (0.4, 1.1, 1e13);
+        let c = mass_coefficients(&[(lat0, lon0, kg)], gm, r, 200);
+        let (rr, lat, lon) = (r + 400e3, 0.45, 1.13);
+        let v = c.partials(rr, lat, lon).v;
+        let p = |la: f64, lo: f64, rad: f64| [rad * la.cos() * lo.cos(), rad * la.cos() * lo.sin(), rad * la.sin()];
+        let (a, b) = (p(lat0, lon0, r), p(lat, lon, rr));
+        let dist = ((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)).sqrt();
+        let exact = coseismic::G * kg / dist;
+        assert!((v - exact).abs() < 1e-3 * exact, "{v:e} vs {exact:e}");
+        assert!((c.c(0, 0) / (kg * coseismic::G / gm) - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn transport_weights_invert_the_laplacian() {
+        let w = transport_weights(2.0, 3);
+        assert_eq!(w, vec![0.0, 2.0, 4.0 / 6.0, 4.0 / 12.0]);
     }
 }
