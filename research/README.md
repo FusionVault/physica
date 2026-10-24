@@ -9,6 +9,9 @@ Everything behind the crates, in one structure:
   (`prereg.md`), any freeze of its pipeline (`freeze.md`) and input checksums; every test that has
   been run has its `result.md`, reported whether it hit or missed.
 - **`audits/`**: independent re-derivations of the crates' formulas, and what they changed.
+- **`external/`**: research the user did elsewhere, kept verbatim until it is reviewed
+  against the crates ([index](external/README.md)).
+- **[`roadmap.md`](roadmap.md)**: what is in progress and what comes next.
 
 The figures and analysis outputs are in [`figures/`](../figures), made by the
 [`lab`](../lab) crate.
@@ -24,6 +27,7 @@ The figures and analysis outputs are in [`figures/`](../figures), made by the
 | The Coulomb barrier and the Schwinger limit | [Tunnelling crosses the barrier; the vacuum holds firm](topics/coulomb-and-schwinger/report.md) | Fusion tunnelling, cold-fusion claims, strong-field QED, and the Unruh–Schwinger link to gravity |
 | Gravity anomalies | [Replication erases gravity's anomalies, except the statistical ones](topics/gravity-anomalies/report.md) | G, flybys, shielding, Pioneer, MOND, alternative theories, lab gravity and deep gravitational-wave physics |
 | Plasmoids and fusion | [Pinches confine; bremsstrahlung still beats boron](topics/plasmoids-and-fusion/report.md) | Z-pinches, the plasma focus, plasmoids and reconnection, aneutronic fusion and direct conversion |
+| Magnetics and MHD | [One harmonic engine joins gravity and magnetism](topics/magnetics-and-mhd/report.md) | Geomagnetic main-field models on the gravity engine, MHD, magnets and devices, space weather, gravity–magnetism links and claims, and the practical uses of every crate |
 
 ## Tests
 

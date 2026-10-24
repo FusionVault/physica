@@ -1,0 +1,26 @@
+[package]
+name = "magnetics"
+version = "0.1.0"
+description = "Magnetism and magnetohydrodynamics: Earth's main field from WMM2025 or any Gauss-coefficient model, evaluated with geopotential's spherical-harmonic engine."
+keywords = ["geomagnetism", "magnetic-field", "wmm", "mhd", "physics"]
+categories = ["science::geo", "science"]
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+geopotential = { path = "../geopotential", version = "0.2.0" }
+metrology = { path = "../metrology", version = "0.1.0" }
+
+[lints]
+workspace = true
+
+[[example]]
+name = "compass_declination"
+test = true
+
+[[example]]
+name = "magnetic_pole"
+test = true

@@ -53,6 +53,7 @@ dependencies = [
 name = "geopotential"
 version = "0.2.0"
 dependencies = [
+ "metrology",
  "serde",
 ]
 
@@ -90,6 +91,14 @@ dependencies = [
  "metrology",
  "plasmoid",
  "png",
+]
+
+[[package]]
+name = "magnetics"
+version = "0.1.0"
+dependencies = [
+ "geopotential",
+ "metrology",
 ]
 
 [[package]]

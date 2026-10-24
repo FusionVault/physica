@@ -12,6 +12,15 @@ pub mod noise;
 pub mod sim;
 pub mod technotes;
 
+/// Area of the world ocean, m²: 3.618×10⁸ km², so 361.8 Gt of water raise sea level 1 mm.
+pub const OCEAN_AREA: f64 = 3.618e14;
+
+/// Global mean sea-level rise (m) from `mass` (kg) of water added to the ocean and spread evenly:
+/// `M/(ρ_w A)`. Ignores self-attraction and loading (sea-level fingerprints).
+pub fn sea_level_equivalent(mass: f64) -> f64 {
+    mass / (geopotential::RHO_WATER * OCEAN_AREA)
+}
+
 /// Elastic load Love numbers `k'_n` (PREM, Han & Wahr 1995) as tabulated by Wahr et al. (1998,
 /// JGR 103, Table 1), linearly interpolated between tabulated degrees (error < 0.05%), for
 /// `n = 0..=nmax`. `k'_1 = 0.027` is the centre-of-figure value. `None` beyond degree 200, the end

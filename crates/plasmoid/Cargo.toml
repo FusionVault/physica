@@ -15,3 +15,11 @@ metrology = { path = "../metrology", version = "0.1.0" }
 
 [lints]
 workspace = true
+
+[[example]]
+name = "triple_products"
+test = true
+
+[[example]]
+name = "fusion_yields"
+test = true

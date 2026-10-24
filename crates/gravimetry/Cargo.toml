@@ -16,3 +16,11 @@ metrology = { path = "../metrology", version = "0.1.0" }
 
 [lints]
 workspace = true
+
+[[example]]
+name = "ice_and_sea_level"
+test = true
+
+[[example]]
+name = "tonga_pressure_wave"
+test = true

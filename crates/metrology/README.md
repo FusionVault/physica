@@ -28,9 +28,9 @@ assert!(((HBAR * G / C.powi(3)).sqrt() / metrology::PLANCK_LENGTH - 1.0).abs() <
 | Group | Constants | Source |
 |---|---|---|
 | SI defining constants (exact) | `C`, `H`, `HBAR`, `E_CHARGE`, `K_B`, `N_A`, `R_GAS` | [SI Brochure 2019](https://www.bipm.org/en/publications/si-brochure) |
-| Measured | `G`, `ALPHA`, `MU_0`, `EPS_0`, `M_E`, `M_P`, `AMU`, `M_H`, `PLANCK_LENGTH` | [CODATA 2018](https://physics.nist.gov/cuu/Constants/) |
+| Measured | `G`, `ALPHA`, `MU_0`, `EPS_0`, `M_E`, `M_P`, `AMU`, `M_H`, `MU_B`, `GAMMA_P`, `PLANCK_LENGTH` | [CODATA 2018](https://physics.nist.gov/cuu/Constants/) |
 | Energy | `EV`, `KEV` | |
-| Earth and astronomy | `G0`, `GM_EARTH`, `GM_SUN`, `SOLAR_MASS`, `PARSEC`, `MPC`, `YEAR` | [IERS Conventions 2010](https://www.iers.org/TN36); [IAU 2015 B3](https://www.iau.org/static/resolutions/IAU2015_English.pdf) |
+| Earth and astronomy | `G0`, `GM_EARTH`, `WGS84_A`, `WGS84_F`, `GM_SUN`, `SOLAR_MASS`, `AU`, `PARSEC`, `MPC`, `YEAR` | [IERS Conventions 2010](https://www.iers.org/TN36); [IAU 2015 B3](https://www.iau.org/static/resolutions/IAU2015_English.pdf) |
 
 ## How it is checked
 

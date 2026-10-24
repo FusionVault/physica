@@ -16,3 +16,11 @@ metrology = { path = "../metrology", version = "0.1.0" }
 
 [lints]
 workspace = true
+
+[[example]]
+name = "codata_g"
+test = true
+
+[[example]]
+name = "laser_vs_schwinger"
+test = true
