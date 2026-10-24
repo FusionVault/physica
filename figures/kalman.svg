@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560" role="img" aria-label="Kalman smoother calibration">
+<title>Kalman smoother calibration</title>
+<style>
+svg { color-scheme: light; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781; --grid: #e1e0d9; --axis: #c3c2b7; --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; }
+@media (prefers-color-scheme: dark) { svg:where(:not([data-theme="light"])) { color-scheme: dark; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; } }
+svg[data-theme="dark"] { color-scheme: dark; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; }
+text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--ink2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.title { fill: var(--ink); font-size: 18px; font-weight: 600; font-variant-numeric: normal; }
+.subtitle { font-size: 13px; font-variant-numeric: normal; }
+.panel { fill: var(--ink); font-size: 14px; font-weight: 600; }
+.tick { fill: var(--muted); }
+.grid { stroke: var(--grid); stroke-width: 1; }
+.axis { stroke: var(--axis); stroke-width: 1; }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ink { stroke: var(--ink); } .ink2 { stroke: var(--ink2); } .muted { stroke: var(--muted); }
+.s1 { stroke: var(--s1); } .s2 { stroke: var(--s2); } .s3 { stroke: var(--s3); } .s4 { stroke: var(--s4); }
+.s5 { stroke: var(--s5); } .s6 { stroke: var(--s6); } .s7 { stroke: var(--s7); }
+</style>
+<rect width="960" height="560" fill="var(--surface)"/>
+<text x="60" y="32" class="title">Are COST-G's stated errors right?</text>
+<text x="60" y="54" class="subtitle">Per degree, from the Kalman smoother's maximum likelihood over 24 years of monthly fields (κ from a grid of candidate values), and from predicting withheld months.</text>
+<text x="70" y="96.0" class="panel">a. Error scale κ: the data's noise over COST-G's stated error</text>
+<line x1="70" x2="450.0" y1="410.0" y2="410.0" class="grid"/><text x="64.0" y="414.0" class="tick" text-anchor="end">0.25</text>
+<line x1="70" x2="450.0" y1="335.0" y2="335.0" class="grid"/><text x="64.0" y="339.0" class="tick" text-anchor="end">0.5</text>
+<line x1="70" x2="450.0" y1="260.0" y2="260.0" class="axis"/><text x="64.0" y="264.0" class="tick" text-anchor="end">1</text>
+<line x1="70" x2="450.0" y1="185.0" y2="185.0" class="grid"/><text x="64.0" y="189.0" class="tick" text-anchor="end">2</text>
+<line x1="70" x2="450.0" y1="110.0" y2="110.0" class="grid"/><text x="64.0" y="114.0" class="tick" text-anchor="end">4</text>
+<text x="70.0" y="426.0" class="tick" text-anchor="middle">1</text>
+<text x="128.0" y="426.0" class="tick" text-anchor="middle">10</text>
+<text x="192.4" y="426.0" class="tick" text-anchor="middle">20</text>
+<text x="256.8" y="426.0" class="tick" text-anchor="middle">30</text>
+<text x="321.2" y="426.0" class="tick" text-anchor="middle">40</text>
+<text x="385.6" y="426.0" class="tick" text-anchor="middle">50</text>
+<text x="450.0" y="426.0" class="tick" text-anchor="middle">60</text>
+<text x="260.0" y="442.0" class="tick" text-anchor="middle">degree</text>
+<path d="M70.0,346.4L76.4,390.3L82.9,185.0L89.3,209.1L95.8,284.1L102.2,260.0L108.6,235.9L115.1,260.0L121.5,235.9L128.0,209.1L134.4,260.0L140.8,235.9L147.3,185.0L153.7,185.0L160.2,185.0L166.6,185.0L173.1,160.9L179.5,185.0L185.9,185.0L192.4,160.9L198.8,160.9L205.3,185.0L211.7,160.9L218.1,160.9L224.6,160.9L231.0,185.0L237.5,185.0L243.9,160.9L250.3,160.9L256.8,160.9L263.2,160.9L269.7,185.0L276.1,185.0L282.5,160.9L289.0,160.9L295.4,160.9L301.9,160.9L308.3,160.9L314.7,160.9L321.2,160.9L327.6,160.9L334.1,160.9L340.5,160.9L346.9,160.9L353.4,160.9L359.8,160.9L366.3,160.9L372.7,160.9L379.2,160.9L385.6,160.9L392.0,160.9L398.5,160.9L404.9,160.9L411.4,160.9L417.8,160.9L424.2,160.9L430.7,160.9L437.1,160.9L443.6,160.9L450.0,134.1" class="line s1"/>
+<text x="540" y="96.0" class="panel">b. Withheld months: rms of normalised prediction errors</text>
+<line x1="540" x2="920.0" y1="410.0" y2="410.0" class="grid"/><text x="534.0" y="414.0" class="tick" text-anchor="end">0.5</text>
+<line x1="540" x2="920.0" y1="260.0" y2="260.0" class="axis"/><text x="534.0" y="264.0" class="tick" text-anchor="end">1</text>
+<line x1="540" x2="920.0" y1="110.0" y2="110.0" class="grid"/><text x="534.0" y="114.0" class="tick" text-anchor="end">2</text>
+<text x="540.0" y="426.0" class="tick" text-anchor="middle">1</text>
+<text x="598.0" y="426.0" class="tick" text-anchor="middle">10</text>
+<text x="662.4" y="426.0" class="tick" text-anchor="middle">20</text>
+<text x="726.8" y="426.0" class="tick" text-anchor="middle">30</text>
+<text x="791.2" y="426.0" class="tick" text-anchor="middle">40</text>
+<text x="855.6" y="426.0" class="tick" text-anchor="middle">50</text>
+<text x="920.0" y="426.0" class="tick" text-anchor="middle">60</text>
+<text x="730.0" y="442.0" class="tick" text-anchor="middle">degree</text>
+<path d="M540.0,254.1L546.4,248.6L552.9,218.1L559.3,238.8L565.8,260.3L572.2,263.3L578.6,250.5L585.1,250.5L591.5,260.2L598.0,241.2L604.4,262.7L610.8,268.2L617.3,245.2L623.7,237.9L630.2,245.8L636.6,264.0L643.1,255.3L649.5,245.2L655.9,252.2L662.4,242.2L668.8,256.0L675.3,248.2L681.7,241.0L688.1,259.6L694.6,255.1L701.0,252.6L707.5,251.8L713.9,266.5L720.3,264.2L726.8,258.7L733.2,254.4L739.7,238.5L746.1,230.7L752.5,259.3L759.0,256.2L765.4,250.6L771.9,255.3L778.3,256.4L784.7,250.6L791.2,248.2L797.6,253.2L804.1,249.1L810.5,252.8L816.9,257.2L823.4,247.0L829.8,243.0L836.3,240.9L842.7,244.1L849.2,238.7L855.6,240.5L862.0,239.4L868.5,239.8L874.9,236.0L881.4,240.1L887.8,230.4L894.2,229.6L900.7,228.9L907.1,229.4L913.6,230.5L920.0,270.4" class="line s2"/>
+<text x="60" y="490.0" class="subtitle">error scale κ (1 = COST-G's errors are right), degrees 2–60: median 2.50, range 0.30–3.20</text>
+<text x="60" y="510.0" class="subtitle">cross-validation (every 10th month withheld, 26 months): rms z 1.07 over degrees 1–60 (1 = calibrated)</text>
+</svg>

@@ -67,6 +67,7 @@ miss.
 | [E1](results/E1-2026-10-24.md) | Can monthly gravity see the 2025 Kamchatka earthquake, and is there more than the slip explains? | Detected. Matches the USGS fault model, with no excess |
 | [Q0](results/Q0-2026-10-24.md) | What makes a monthly field noisy? | Solar activity and satellite modes |
 | [Screen](figures/screen_indices.svg) | Which climate patterns move global land water? | Only El Niño, once 27 tests are accounted for |
+| [Q2](results/Q2-2026-10-24.md) | Are the stated errors of the monthly fields right? | Too small, by about 2× above degree 10 |
 
 **Findings so far:**
 - **El Niño drains the land.** Global land loses about 620 km³ of water per °C of El Niño
@@ -81,6 +82,9 @@ miss.
 - **The sun adds noise.** Solar activity raises the short-wavelength noise of a month by 30% per
   standard deviation of solar flux. At the 300 km scale used above, no factor matters, so solar
   maximum does not explain those results.
+- **The stated errors are too small.** Above degree 10, the monthly fields scatter 2 to 2.5 times
+  more than their stated errors. Scaled up, a Kalman smoother predicts withheld months with
+  calibrated errors (rms 1.07), so it can fill the gaps in the record and map its uncertainty.
 
 ## Reproduce everything
 
@@ -140,9 +144,11 @@ TN13=data/TN-13_GEOC_CSR_RL0603.txt
 | `screen figures/w1_land_storage.csv data/indices figures` | [Climate-index screen](figures/screen_indices.svg) |
 | `q0 data/costg data/baseline $TN14 $TN13 data/indices/Kp_ap_Ap_SN_F107_since_1932.txt figures` | [Noise](figures/q0_noise.svg) |
 | `e1 data/costg data/baseline $TN14 $TN13 data/usgs_us6000qw60 figures/q0_noise.csv figures` | [Kamchatka earthquake](figures/e1_kamchatka.svg) |
+| `kalman data/costg data/baseline $TN14 $TN13 figures viewer/data` | [Are COST-G's errors right?](figures/kalman.svg), plus the gap-free record for the viewer |
 
 **3. Run the viewer.** The GRACE Mass Atlas has five views:
-- **Water:** every month on a map or globe, with animated mass flow and an average year.
+- **Water:** every month on a map or globe, with animated mass flow and an average year. The
+  Kalman-smoothed record fills the gaps and shows its uncertainty.
 - **El Niño:** the forecast, and the climate-index screen.
 - **Earthquake:** an animated map of the Kamchatka earthquake.
 - **Noise:** what makes a month noisy.
@@ -150,7 +156,7 @@ TN13=data/TN-13_GEOC_CSR_RL0603.txt
 
 ```bash
 cargo run --release -p gravviz -- series data/costg data/baseline $TN14 $TN13 viewer/data
-cp figures/{w1_land_storage.csv,w1_monthly.csv,w1_forecast.csv,screen_indices.csv,e1_frames.json,q0_noise.csv,q0_effects.csv,noise_spectra.svg,sst_closed_loop.svg,gradiometry_errors.svg,error_triangle_2026-07.svg} viewer/data/
+cp figures/{w1_land_storage.csv,w1_monthly.csv,w1_forecast.csv,screen_indices.csv,e1_frames.json,q0_noise.csv,q0_effects.csv,noise_spectra.svg,sst_closed_loop.svg,gradiometry_errors.svg,error_triangle_2026-07.svg,kalman.svg} viewer/data/
 python3 -m http.server --bind 127.0.0.1 --directory viewer 8000
 ```
 

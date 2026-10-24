@@ -80,6 +80,32 @@ let field = gravimetry::smooth(&field, &gravimetry::gaussian_weights(300e3, fiel
 For a real earthquake, `coseismic::read_coulomb` reads the `coulomb.inp` file that the
 [USGS](https://earthquake.usgs.gov/) publishes with every finite-fault model.
 
+## Example: fill the gaps in a monthly record
+
+The GRACE record has gaps: missing months, and almost a year between the two missions. The
+Kalman smoother treats each coefficient as a slowly wandering signal plus noise. It gives the best
+estimate and its uncertainty for every month, gaps included.
+
+```rust
+use gravimetry::kalman::{Process, smooth};
+
+// Five months, the middle one missing, each observed with an error of 1.
+let times = [0.0, 1.0, 2.0, 3.0, 4.0].map(|month| month / 12.0);
+let observed = [Some((1.0, 1.0)), Some((2.0, 1.0)), None, Some((2.5, 1.0)), Some((2.0, 1.0))];
+
+// A signal that varies by about 2 over about 6 months.
+let result = smooth(&times, &observed, Process { sd: 2.0, tau: 0.5 });
+println!("month 3: {:.2} ± {:.2}", result.mean[2], result.sd[2]);
+```
+
+`kalman::fit` picks the signal's size and correlation time, and checks the stated errors, by
+maximum likelihood over many series at once.
+
+![Are COST-G's stated errors right?](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/kalman.svg)
+
+*The smoother fitted to 24 years of monthly fields: how far COST-G's stated errors need scaling
+per degree, and how well withheld months are predicted.*
+
 ## What is inside
 
 | Item | What it does |
@@ -90,6 +116,7 @@ For a real earthquake, `coseismic::read_coulomb` reads the `coulomb.inp` file th
 | `mean`, `anomaly` | Baseline means and differences, across `GM` and radius conventions |
 | `coseismic` | Uplift and gravity change of faults in an elastic half-space ([Okada 1985](https://doi.org/10.1785/BSSA0750041135); [Okubo 1992](https://doi.org/10.1029/92JB00178)). It also reads USGS `coulomb.inp` files and corrects for seawater pushed aside by seafloor uplift |
 | `mass_coefficients` | Spherical-harmonic coefficients of point masses |
+| `kalman` | A Kalman smoother for series with gaps and per-month errors, and a maximum-likelihood fit of its settings ([Rauch et al. 1965](https://doi.org/10.2514/3.3166)) |
 | `transport_weights` | The smallest mass flow that carries a change, the flow field in the [GRACE Mass Atlas](https://github.com/FusionVault/quantum-gravimeter#run-the-viewer) |
 
 ## How it is checked
@@ -103,6 +130,10 @@ For a real earthquake, `coseismic::read_coulomb` reads the `coulomb.inp` file th
   - on the 2025 Kamchatka fault model, its uplift matches the USGS's own surface displacement
     with r = 0.89.
 - **Point masses:** their potential matches Newton's law.
+- **Kalman smoother:**
+  - it matches the exact Gaussian-process solution to 1e-10;
+  - its fit recovers the settings of simulated data;
+  - on the real record, withheld months are predicted with calibrated errors.
 
 **Not included yet:** glacial isostatic adjustment, DDK filters, basin averages and leakage
 corrections.

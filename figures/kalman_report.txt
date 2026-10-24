@@ -1,0 +1,7 @@
+259 observed months, 35 filled, 292 calendar months 2002-04 to 2026-07
+error scale κ (1 = COST-G's errors are right), degrees 2–60: median 2.50, range 0.30–3.20
+  degrees 2–10: median κ 1.25, correlation time 6 months, signal/noise 9.60; cross-validation rms z 1.05
+  degrees 11–30: median κ 2.00, correlation time 6 months, signal/noise 2.80; cross-validation rms z 1.03
+  degrees 31–60: median κ 2.50, correlation time 6 months, signal/noise 0.40; cross-validation rms z 1.08
+cross-validation (every 10th month withheld, 26 months): rms z 1.07 over degrees 1–60 (1 = calibrated)
+grid-edge hits in the hyperparameter search: 1 of 360

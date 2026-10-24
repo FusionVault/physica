@@ -1,7 +1,7 @@
 [package]
 name = "gravimetry"
-version = "0.2.0"
-description = "GRACE processing and earthquake gravity: water-height maps, smoothing, stripe removal, Love numbers, fault models (Okada, Okubo) and mass transport."
+version = "0.3.0"
+description = "GRACE processing and earthquake gravity: water-height maps, smoothing, stripe removal, Love numbers, fault models (Okada, Okubo), mass transport and a Kalman smoother for gappy records."
 keywords = ["geodesy", "grace", "hydrology", "gravimetry", "earthquake"]
 categories = ["science::geo"]
 edition.workspace = true

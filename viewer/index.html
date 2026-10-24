@@ -107,6 +107,7 @@ canvas#flowLayer { position: absolute; inset: 0; pointer-events: none; }
 .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 13px; color: var(--ink-2); }
 .ramp { width: min(320px, 70vw); height: 12px; border-radius: 3px; border: 1px solid var(--rule);
   background: linear-gradient(to right, rgba(227,73,72,1), rgba(227,73,72,0) 50%, rgba(42,120,214,0) 50%, rgba(42,120,214,1)), var(--surface); }
+.ramp.seq { background: linear-gradient(to right, rgba(42,120,214,0), rgba(42,120,214,1)), var(--surface); }
 .ramp-ticks { display: flex; justify-content: space-between; width: min(320px, 70vw); font-family: var(--font-data); font-size: 11px; color: var(--muted); }
 .swatch { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
 .swatch.line { height: 3px; border-radius: 2px; vertical-align: 3px; }
@@ -182,6 +183,7 @@ footer a { color: var(--ink-2); }
         <label for="period">Months
           <select id="period">
             <option value="all" selected>Every month, 2002–2026</option>
+            <option value="kalman">Every month, gaps filled (Kalman)</option>
             <option value="year">Average year</option>
           </select>
         </label>
@@ -189,6 +191,7 @@ footer a { color: var(--ink-2); }
           <select id="layer">
             <option value="stock" selected>Water stored</option>
             <option value="change">Change per month</option>
+            <option value="sd">Uncertainty (Kalman)</option>
           </select>
         </label>
         <label for="scale">Limit
@@ -199,7 +202,7 @@ footer a { color: var(--ink-2); }
       <div class="mapwrap"><canvas id="map" tabindex="0" aria-label="Water storage map. Click a place to see its time series."></canvas><canvas id="flowLayer" aria-hidden="true"></canvas></div>
       <div class="legend">
         <span id="rampLow">less water</span>
-        <div><div class="ramp" aria-hidden="true"></div><div class="ramp-ticks" id="rampTicks"></div></div>
+        <div><div class="ramp" id="waterRamp" aria-hidden="true"></div><div class="ramp-ticks" id="rampTicks"></div></div>
         <span id="rampHigh">more water</span>
       </div>
       <p class="sub" id="flowNote">Moving lines: the smallest flow of mass that could carry this month's change, heading toward places gaining water. The real route runs through the air and the rivers.</p>
@@ -337,6 +340,13 @@ footer a { color: var(--ink-2); }
         <p class="sub">% change in the measure, with a 95% interval. Phases are compared with early GRACE; F10.7, Ap and centre evenness per standard deviation. Newey–West errors; q is corrected for the 15 tests of interest.</p>
       </div>
       <div class="tablewrap open"><table id="effects"></table></div>
+    </section>
+    <section class="panel" aria-label="Stated errors">
+      <div>
+        <h3>Are the stated errors right? (Q2)</h3>
+        <p class="sub">The Kalman smoother fitted to all 24 years: above degree 10 the fields scatter 2 to 2.5 times more than their files state. Scaled up, withheld months are predicted with calibrated errors (rms 1.07), which is what the uncertainty layer in the Water view uses. <a href="https://github.com/FusionVault/quantum-gravimeter/blob/main/results/Q2-2026-10-24.md">Notes</a>.</p>
+      </div>
+      <figure><img src="data/kalman.svg" alt="Error scale per degree and cross-validation of the Kalman smoother" loading="lazy"></figure>
     </section>
   </section>
 
@@ -494,8 +504,24 @@ const PLACES = [
   ["Amundsen Sea, Antarctica", -76, -105], ["Hudson Bay (crustal rebound)", 60, -86],
 ];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const LIMITS = { stock: [15, 30, 60, 120], change: [2, 5, 10, 20] };
-const ws = { month: 0, period: "all", layer: "stock", projection: "map", lon0: 10 * RAD, lat0: 25 * RAD, limit: { stock: 30, change: 5 }, place: null, playing: null };
+const LIMITS = { stock: [15, 30, 60, 120], change: [2, 5, 10, 20], sd: [1, 2, 4, 8] };
+const ws = { month: 0, period: "all", layer: "stock", projection: "map", lon0: 10 * RAD, lat0: 25 * RAD, limit: { stock: 30, change: 5, sd: 4 }, place: null, playing: null };
+// The Kalman-smoothed record (M3): every calendar month, with uncertainty and mass flow.
+let kal = null;
+async function loadKalman() {
+  if (kal) return kal;
+  $("monthLabel").textContent = "Loading the smoothed record…";
+  const [index, g, sd, phi] = await Promise.all([
+    get("data/kalman_index.json", "json"),
+    get("data/kalman_grids.json", "json").then(inflate),
+    get("data/kalman_sd.json", "json").then(inflate),
+    get("data/kalman_flow.json", "json").then(inflate),
+  ]);
+  kal = { idx: index, grids: new Int16Array(g), sd: new Int16Array(sd), phi: new Int16Array(phi) };
+  if (kal.grids.length !== cells * index.months.length) throw new Error("the smoothed grids do not match their index");
+  return kal;
+}
+const monthsOf = () => (ws.period === "kalman" ? kal.idx.months : idx.months);
 let idx, grids, phiRaw = null, cells, coast, lut = null, W = 0, H = 0;
 const cache = new Map();
 const canvas = $("map"), ctx = canvas.getContext("2d");
@@ -516,7 +542,15 @@ function currentGrid() {
   const key = `${ws.period}/${ws.layer}/${ws.month}`;
   if (cache.has(key)) return cache.get(key);
   let g = new Float32Array(cells);
-  if (ws.period === "year") {
+  if (ws.period === "kalman") {
+    const k = ws.month, ms = kal.idx.months, o = k * cells;
+    if (ws.layer === "sd") for (let i = 0; i < cells; i++) g[i] = kal.sd[o + i] / 100;
+    else if (ws.layer === "stock") for (let i = 0; i < cells; i++) g[i] = kal.grids[o + i] / 10;
+    else {
+      const a = Math.max(k - 1, 0), b = Math.min(k + 1, ms.length - 1), dtm = (ms[b].t - ms[a].t) * 12;
+      for (let i = 0; i < cells; i++) g[i] = (kal.grids[b * cells + i] - kal.grids[a * cells + i]) / 10 / dtm;
+    }
+  } else if (ws.period === "year") {
     if (!cache.has("clim")) cache.set("clim", climatology(grids, 0.1));
     const clim = cache.get("clim"), c = ws.month;
     if (ws.layer === "stock") g = clim.subarray(c * cells, (c + 1) * cells);
@@ -640,7 +674,10 @@ const flow = {
     if (!phiRaw) { this.field = null; return; }
     const { nlat, nlon, step } = idx, sc = idx.flow_scale;
     let phi;
-    if (ws.period === "year") {
+    if (ws.period === "kalman") {
+      phi = new Float32Array(cells); const ks = kal.idx.flow_scale;
+      for (let i = 0, o = ws.month * cells; i < cells; i++) phi[i] = kal.phi[o + i] * ks;
+    } else if (ws.period === "year") {
       if (!cache.has("climPhi")) cache.set("climPhi", climatology(phiRaw, sc, (m) => m.flow));
       phi = cache.get("climPhi").subarray(ws.month * cells, (ws.month + 1) * cells);
     } else {
@@ -711,9 +748,31 @@ function series(place) {
   const [fi, fj] = gridPos(place.lon * RAD, place.lat * RAD);
   return idx.months.map((m, k) => ({ ...m, v: sampleGrid(grids.subarray(k * cells, (k + 1) * cells), fi, fj) / 10 }));
 }
+// The smoothed series at a place: mean and 1σ per calendar month, cm.
+function kalmanSeries(place) {
+  const [fi, fj] = gridPos(place.lon * RAD, place.lat * RAD);
+  return kal.idx.months.map((m, k) => ({ ...m, v: sampleGrid(kal.grids.subarray(k * cells, (k + 1) * cells), fi, fj) / 10, sd: sampleGrid(kal.sd.subarray(k * cells, (k + 1) * cells), fi, fj) / 100 }));
+}
+function drawKalmanChart(place) {
+  const ks = kalmanSeries(place), obs = series(place);
+  const lo = Math.min(0, ...ks.map((d) => d.v - 2 * d.sd), ...obs.map((d) => d.v)), hi = Math.max(0, ...ks.map((d) => d.v + 2 * d.sd), ...obs.map((d) => d.v));
+  const pad = (hi - lo) * 0.06 || 1, cur = ks[ws.month];
+  timeChart($("chart"), {
+    h: $("chartwrap").clientWidth < 560 ? 220 : 260, t0: ks[0].t, t1: ks[ks.length - 1].t, y0: lo - pad, y1: hi + pad,
+    areas: [{ pts: ks.map((d) => [d.t, d.v - 2 * d.sd, d.v + 2 * d.sd]), color: "var(--accent)", op: 0.22 }],
+    lines: [{ pts: obs.map((p) => [p.t, p.v]), color: "var(--muted)", w: 1.2 }, { pts: ks.map((d) => [d.t, d.v]), color: "var(--accent)", w: 2, gap: 1 }],
+    marks: [{ t: cur.t, v: cur.v, color: "var(--ink)" }],
+    hover: (t) => { const k = nearest(ks, t), d = ks[k]; return { t: d.t, k, html: `<b>${d.label}</b> · ${sgn(d.v)} ± ${(2 * d.sd).toFixed(1)} cm (2σ) · ${d.observed ? "observed" : "filled"}`, dots: [{ v: d.v, color: "var(--accent)" }] }; },
+    click: (info) => setMonth(info.k),
+  });
+  $("chartTitle").textContent = `Water storage at ${place.name || `${fmtLat(place.lat)}, ${fmtLon(place.lon)}`}`;
+  $("chartSub").textContent = `${fmtLat(place.lat)}, ${fmtLon(place.lon)} · cm of water relative to 2004–2009 · blue: Kalman smoother with its 95% band (no destriping) · grey: the observed months, destriped`;
+  $("tbody").innerHTML = ks.map((d) => `<tr><td>${d.label}</td><td>${d.observed ? "observed" : "filled"}</td><td>${d.v.toFixed(1)} ± ${(2 * d.sd).toFixed(1)}</td></tr>`).join("");
+}
 function drawPlaceChart() {
   const place = ws.place;
   if (!place || !$("chartwrap").clientWidth) return;
+  if (ws.period === "kalman") { drawKalmanChart(place); return; }
   const data = series(place);
   let lo = Math.min(0, ...data.map((d) => d.v)), hi = Math.max(0, ...data.map((d) => d.v));
   const pad = (hi - lo) * 0.08 || 1;
@@ -732,29 +791,41 @@ function drawPlaceChart() {
   $("tbody").innerHTML = data.map((p) => `<tr><td>${p.label}</td><td>${p.mission}</td><td>${p.v.toFixed(1)}</td></tr>`).join("");
 }
 function setMonth(k, fromSlider = false) {
-  const n = ws.period === "year" ? 12 : idx.months.length;
+  const n = ws.period === "year" ? 12 : monthsOf().length;
   ws.month = ((k % n) + n) % n;
   if (ws.period === "year") { $("monthLabel").textContent = MONTHS[ws.month]; $("missionLabel").textContent = "Average over 2002–2026"; }
+  else if (ws.period === "kalman") { const m = kal.idx.months[ws.month]; $("monthLabel").textContent = monthName(m.label); $("missionLabel").textContent = m.observed ? "Observed · Kalman smoothed" : "No data · filled by the Kalman smoother"; }
   else { const m = idx.months[ws.month]; $("monthLabel").textContent = monthName(m.label); $("missionLabel").textContent = m.flow ? m.mission : `${m.mission} · no neighbouring month for the flow`; }
   if (!fromSlider) $("monthSlider").value = ws.month;
   flow.compute(); draw(); flow.sync(); drawPlaceChart();
 }
-function setPeriod(p) {
+async function setPeriod(p) {
+  if (p === "kalman") {
+    try { await loadKalman(); } catch (err) { $("monthLabel").textContent = "The smoothed record did not load"; $("missionLabel").textContent = err.message; $("period").value = ws.period; return; }
+  }
+  if (p !== "kalman" && ws.layer === "sd") setLayer("stock");
   ws.period = p; $("period").value = p;
-  const n = p === "year" ? 12 : idx.months.length;
+  const months = p === "year" ? null : monthsOf(), n = p === "year" ? 12 : months.length;
   $("monthSlider").max = n - 1;
   $("sliderTicks").innerHTML = p === "year" ? ["Jan", "Apr", "Jul", "Oct", "Dec"].map((s) => `<span>${s}</span>`).join("")
-    : [0, Math.floor((n - 1) / 2), n - 1].map((k) => `<span>${idx.months[k].label.slice(0, 4)}</span>`).join("");
+    : [0, Math.floor((n - 1) / 2), n - 1].map((k) => `<span>${months[k].label.slice(0, 4)}</span>`).join("");
   flow.reset();
-  setMonth(p === "year" ? 0 : idx.months.length - 1);
+  setMonth(p === "year" ? 0 : n - 1);
 }
 function setLayer(l) {
-  ws.layer = l;
-  $("scale").innerHTML = LIMITS[l].map((v) => `<option value="${v}" ${v === ws.limit[l] ? "selected" : ""}>±${v} cm${l === "change" ? " per month" : ""}</option>`).join("");
-  $("rampLow").textContent = l === "change" ? "losing water" : "less water"; $("rampHigh").textContent = l === "change" ? "gaining water" : "more water";
+  if (l === "sd" && ws.period !== "kalman") { ws.layer = l; $("layer").value = l; setPeriod("kalman"); }
+  ws.layer = l; $("layer").value = l;
+  $("waterRamp").classList.toggle("seq", l === "sd");
+  $("scale").innerHTML = LIMITS[l].map((v) => `<option value="${v}" ${v === ws.limit[l] ? "selected" : ""}>${l === "sd" ? "" : "±"}${v} cm${l === "change" ? " per month" : ""}</option>`).join("");
+  $("rampLow").textContent = l === "sd" ? "certain" : l === "change" ? "losing water" : "less water";
+  $("rampHigh").textContent = l === "sd" ? "uncertain" : l === "change" ? "gaining water" : "more water";
   setRampTicks(); draw();
 }
-function setRampTicks() { const l = ws.limit[ws.layer]; $("rampTicks").innerHTML = [`≤ −${l}`, `−${l / 2}`, "0", `+${l / 2}`, `≥ +${l}`].map((t) => `<span>${t}</span>`).join(""); }
+function setRampTicks() {
+  const l = ws.limit[ws.layer];
+  const ticks = ws.layer === "sd" ? ["0", `${l / 4}`, `${l / 2}`, `${(3 * l) / 4}`, `≥ ${l} cm`] : [`≤ −${l}`, `−${l / 2}`, "0", `+${l / 2}`, `≥ +${l}`];
+  $("rampTicks").innerHTML = ticks.map((t) => `<span>${t}</span>`).join("");
+}
 function setPlace(lat, lon, name) {
   ws.place = { lat, lon, name };
   document.querySelectorAll("#places button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.name === name)));
@@ -776,10 +847,10 @@ function wireWater() {
   });
   $("play").addEventListener("click", () => {
     if (ws.playing) { stopPlay(); return; }
-    if (ws.period === "all" && ws.month === idx.months.length - 1) setMonth(0);
+    if (ws.period !== "year" && ws.month === monthsOf().length - 1) setMonth(0);
     $("play").textContent = "Pause";
     ws.playing = setInterval(() => {
-      if (ws.period === "all" && ws.month >= idx.months.length - 1) { stopPlay(); return; }
+      if (ws.period !== "year" && ws.month >= monthsOf().length - 1) { stopPlay(); return; }
       setMonth(ws.month + 1);
     }, ws.period === "year" ? 600 : 260);
   });
@@ -802,9 +873,9 @@ function wireWater() {
     const ll = lonLatAt(e);
     if (!ll) { $("readout").textContent = "Outside the globe."; return; }
     const [fi, fj] = gridPos(ll[0] * RAD, ll[1] * RAD), v = sampleGrid(currentGrid(), fi, fj);
-    const when = ws.period === "year" ? `an average ${MONTHS[ws.month]}` : idx.months[ws.month].label;
+    const when = ws.period === "year" ? `an average ${MONTHS[ws.month]}` : monthsOf()[ws.month].label;
     $("readout").textContent = Number.isNaN(v) ? `${fmtLat(ll[1])}, ${fmtLon(ll[0])}: no change estimate for ${when} (no neighbouring month)`
-      : `${fmtLat(ll[1])}, ${fmtLon(ll[0])}: ${sgn(v)} cm${ws.layer === "change" ? " per month" : ""} in ${when}`;
+      : `${fmtLat(ll[1])}, ${fmtLon(ll[0])}: ${ws.layer === "sd" ? `±${v.toFixed(1)}` : sgn(v)} cm${ws.layer === "change" ? " per month" : ws.layer === "sd" ? " (1σ)" : ""} in ${when}`;
   });
   canvas.addEventListener("pointerup", (e) => { const moved = drag && drag.moved; drag = null; if (moved) return; const ll = lonLatAt(e); if (ll) setPlace(+ll[1].toFixed(1), +ll[0].toFixed(1), null); });
   canvas.addEventListener("keydown", (e) => { if (e.key === "ArrowRight") setMonth(ws.month + 1); if (e.key === "ArrowLeft") setMonth(ws.month - 1); });

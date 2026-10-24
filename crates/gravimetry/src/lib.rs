@@ -3,6 +3,7 @@
 use geopotential::{Coefficients, Legendre};
 
 pub mod coseismic;
+pub mod kalman;
 
 /// Elastic load Love numbers `k'_n` (PREM, Han & Wahr 1995) as tabulated by Wahr et al. (1998,
 /// JGR 103, Table 1), linearly interpolated between tabulated degrees (error < 0.05%), for

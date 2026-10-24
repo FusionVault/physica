@@ -12,6 +12,7 @@
 //! gravviz e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt USGS_FAULT_DIR Q0_NOISE.csv OUT_DIR
 //! gravviz screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR
 //! gravviz q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR
+//! gravviz kalman MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR VIEWER_DATA_DIR
 //! ```
 //!
 //! `noise` writes `noise_spectra.svg` and `.csv` (Zingerle et al. 2024, Fig. 1). `geoid` maps a
@@ -38,10 +39,14 @@
 //! every NOAA PSL index in INDEX_DIR, QBO and solar flux as negative controls, and writes
 //! `screen_indices.svg`, `.txt` and `.csv`. `q0` regresses each month's noise on solar flux, Ap,
 //! mission phase and centre weights (GFZ `Kp_ap_Ap_SN_F107_since_1932.txt`) and writes
-//! `q0_noise.svg` and `.csv`, `q0_effects.csv` and `q0_report.txt`.
+//! `q0_noise.svg` and `.csv`, `q0_effects.csv` and `q0_report.txt`. `kalman` smooths every
+//! coefficient through time (M3), tests COST-G's stated errors (Q2), and writes `kalman.svg`,
+//! `kalman_report.txt` and `kalman_degrees.csv`, plus gap-free grids, uncertainty and flow for
+//! the viewer.
 
 mod e1;
 mod gradiometry;
+mod kalman;
 mod lab;
 mod map;
 mod noise;
@@ -134,12 +139,17 @@ fn main() -> Result<()> {
             write(out, "q0_noise.csv", &csv)?;
             write(out, "q0_effects.csv", &effects)
         }
+        ["kalman", months, baseline, tn14, tn13, out, viewer] => {
+            print!("{}", kalman::run(months, baseline, tn14, tn13, out, viewer)?);
+            Ok(())
+        }
         _ => Err("usage: gravviz noise OUT_DIR | water-map MONTH.gfc BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | \
             series MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR | triangle MONTH.gfc OUT_DIR | \
             gradiometry STATIC_MODEL.gfc OUT_DIR | geoid STATIC_MODEL.gfc OUT_DIR | sst OUT_DIR [REFERENCE_MONTH.gfc] | \
             w1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt NINO34.data OUT_DIR | \
             e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt USGS_FAULT_DIR Q0_NOISE.csv OUT_DIR | screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR | \
-            q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR".into()),
+            q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR | \
+            kalman MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR VIEWER_DATA_DIR".into()),
     }
 }
 
