@@ -1,0 +1,16 @@
+[package]
+name = "plasmoid"
+version = "0.1.0"
+description = "Fusion and self-organising plasma physics, computed: Coulomb barriers and Gamow peaks, Bosch–Hale and p–¹¹B reactivities, Lawson, screening and muon catalysis; Z-pinches and the plasma focus; plasmoids, Taylor relaxation, FRCs and reconnection; aneutronic power balance and direct energy conversion; each proposal against its physical limit."
+keywords = ["fusion", "plasma", "physics", "z-pinch", "aneutronic"]
+categories = ["science", "simulation"]
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true
