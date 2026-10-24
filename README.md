@@ -55,6 +55,8 @@ Each crate's README has more examples.
 | ![Geoid](figures/geoid_goco06s.svg) **The geoid** from GOCO06s | ![Kamchatka](figures/e1_kamchatka.svg) **An earthquake from space:** Kamchatka 2025 against the USGS fault model |
 | ![El Niño](figures/w1_land_storage.svg) **El Niño drains the continents:** global land water and a registered forecast | ![Noise](figures/q0_noise.svg) **What makes a month noisy:** solar activity and satellite modes |
 | ![Instrument noise](figures/noise_spectra.svg) **Quantum against classical sensors** ([Zingerle et al. 2024](https://doi.org/10.1029/2024EA003630), Fig. 1) | ![Closed loop](figures/sst_closed_loop.svg) **Simulated missions** against a real month |
+| ![Claims](figures/claims_gap.svg) **How far off the fringe claims are**, from their own numbers | ![Warp](figures/warp_energy.svg) **What a warp bubble costs** against the quantum inequality |
+| ![Tonga](figures/tonga_lamb_wave.svg) **The Tonga pressure wave** as GRACE-FO would see it | ![Thrust](figures/thrust_per_watt.svg) **Thrust per watt**: claims against light and ion wind |
 
 ## Research
 
@@ -161,6 +163,7 @@ TN13=data/TN-13_GEOC_CSR_RL0603.txt
 | `kalman data/costg data/baseline $TN14 $TN13 figures viewer/data` | [Are COST-G's errors right?](figures/kalman.svg), plus the gap-free record for the viewer |
 | `m1 data/costg data/baseline $TN14 $TN13 figures/kalman_degrees.csv data/usgs_m8_2002_2026.csv figures viewer/data` | [Blind search for sudden mass changes](figures/m1_detector.svg) |
 | `tonga figures` | [The Tonga Lamb wave as GRACE-FO would see it](figures/tonga_lamb_wave.svg) |
+| `claims figures` | [How far off the claims are](figures/claims_gap.svg), [warp energy](figures/warp_energy.svg), [thrust per watt](figures/thrust_per_watt.svg) |
 
 **3. Run the viewer.** The GRACE Mass Atlas has five views:
 - **Water:** every month on a map or globe, with animated mass flow and an average year. The

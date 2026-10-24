@@ -7,6 +7,8 @@ replications say. The tests pin both, so you can see exactly how far off each cl
 Nothing here supports the claims. Most were made by people with real publications, which is why
 their arithmetic can be checked at all.
 
+![How far off are the claims?](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/claims_gap.svg)
+
 ## Install
 
 ```bash
@@ -33,13 +35,24 @@ assert!(hfgw::shot_noise_time(2.56e-18, 2.0) / 3e3 > 1e14);
 
 | Claim | Published | Standard physics or replication | Gap |
 |---|---|---|---|
-| Tajmar: frame dragging near a spinning superconductor | k = 2.6×10⁻⁵ | General relativity: 7.2×10⁻²⁷ | 3.6×10²¹ |
+| Tajmar: frame dragging near a spinning superconductor | k = 2.6×10⁻⁵ | General relativity: 7.2×10⁻²⁷ | 3.65×10²¹ |
 | Podkletnov: weight loss above a spinning superconductor | up to 2.1% | No change above 2×10⁻⁸ (NASA Marshall) | 10⁶ |
 | Li–Baker: GHz gravitational-wave detector | signal in 3×10³ s | One photon in 3.9×10¹⁷ s (JASON) | 10¹⁴ in time |
 | Pais: 10²⁴ W/m² from a charged disc | σ = 5×10⁴ C/m² | 10⁹ V/m breakdown, his own figure | 5.6×10⁶ in field |
 | EmDrive (Eagleworks) | 1.2 mN/kW | No thrust above 10–30 nN (Dresden); photon rocket 3.3 µN/kW | 360× light |
 | Mach-effect thruster (Woodward) | ~100 µN | His own formula: ~7 nN; vibration artefacts (Dresden) | 10⁴ |
 | Lifters ("electrogravitics") | lift | Ion wind, `F = I·d/μ`; nothing in vacuum | none needed |
+
+![The energy a warp bubble needs](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/warp_energy.svg)
+
+*A warp bubble's negative energy grows as its wall thins. Quantum field theory only allows walls
+about 100 Planck lengths thick, where a 100 m bubble needs billions of times the ordinary matter
+in the observable universe.*
+
+![Thrust per watt](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/thrust_per_watt.svg)
+
+*"Propellantless" thrust against light and ion wind. The claims sit 1,000 times above a photon
+rocket, and the best measurement sits below it.*
 
 ## What is inside
 

@@ -84,6 +84,7 @@ dependencies = [
  "flate2",
  "geopotential",
  "gravimetry",
+ "gravity-claims",
  "gravity-field",
  "png",
  "satgrav",

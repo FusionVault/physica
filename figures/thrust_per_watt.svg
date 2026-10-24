@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 460" width="960" height="460" role="img" aria-label="Thrust per watt">
+<title>Thrust per watt</title>
+<style>
+svg { color-scheme: light; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781; --grid: #e1e0d9; --axis: #c3c2b7; --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; }
+@media (prefers-color-scheme: dark) { svg:where(:not([data-theme="light"])) { color-scheme: dark; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; } }
+svg[data-theme="dark"] { color-scheme: dark; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; }
+text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--ink2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.title { fill: var(--ink); font-size: 18px; font-weight: 600; font-variant-numeric: normal; }
+.subtitle { font-size: 13px; font-variant-numeric: normal; }
+.panel { fill: var(--ink); font-size: 14px; font-weight: 600; }
+.tick { fill: var(--muted); }
+.grid { stroke: var(--grid); stroke-width: 1; }
+.axis { stroke: var(--axis); stroke-width: 1; }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ink { stroke: var(--ink); } .ink2 { stroke: var(--ink2); } .muted { stroke: var(--muted); }
+.s1 { stroke: var(--s1); } .s2 { stroke: var(--s2); } .s3 { stroke: var(--s3); } .s4 { stroke: var(--s4); }
+.s5 { stroke: var(--s5); } .s6 { stroke: var(--s6); } .s7 { stroke: var(--s7); }
+</style>
+<rect width="960" height="460" fill="var(--surface)"/>
+<text x="24" y="34" class="title">Thrust per watt</text>
+<text x="24" y="56" class="subtitle">"Propellantless" thrusters against light and ion wind, in newtons per watt. Nothing that pushes on nothing beats light.</text>
+<circle cx="29.0" cy="80" r="5" fill="var(--s1)"/><text x="40.0" y="84">standard physics</text>
+<circle cx="179.0" cy="80" r="5" fill="var(--s2)"/><text x="190.0" y="84">claimed</text>
+<circle cx="329.0" cy="80" r="5" fill="var(--s3)"/><text x="340.0" y="84">measured limit</text>
+<line x1="340.0" y1="110.0" x2="340.0" y2="410.0" class="grid"/><text x="340.0" y="428.0" class="tick" text-anchor="middle">10⁻⁹</text>
+<line x1="410.0" y1="110.0" x2="410.0" y2="410.0" class="grid"/><text x="410.0" y="428.0" class="tick" text-anchor="middle">10⁻⁸</text>
+<line x1="480.0" y1="110.0" x2="480.0" y2="410.0" class="grid"/><text x="480.0" y="428.0" class="tick" text-anchor="middle">10⁻⁷</text>
+<line x1="550.0" y1="110.0" x2="550.0" y2="410.0" class="grid"/><text x="550.0" y="428.0" class="tick" text-anchor="middle">10⁻⁶</text>
+<line x1="620.0" y1="110.0" x2="620.0" y2="410.0" class="grid"/><text x="620.0" y="428.0" class="tick" text-anchor="middle">10⁻⁵</text>
+<line x1="690.0" y1="110.0" x2="690.0" y2="410.0" class="grid"/><text x="690.0" y="428.0" class="tick" text-anchor="middle">10⁻⁴</text>
+<line x1="760.0" y1="110.0" x2="760.0" y2="410.0" class="grid"/><text x="760.0" y="428.0" class="tick" text-anchor="middle">10⁻³</text>
+<line x1="830.0" y1="110.0" x2="830.0" y2="410.0" class="grid"/><text x="830.0" y="428.0" class="tick" text-anchor="middle">10⁻²</text>
+<line x1="900.0" y1="110.0" x2="900.0" y2="410.0" class="grid"/><text x="900.0" y="428.0" class="tick" text-anchor="middle">10⁻¹</text>
+<line x1="376.6" y1="110.0" x2="376.6" y2="410.0" stroke="var(--ink2)" stroke-dasharray="4 4"/>
+<text x="24" y="134.0" style="fill: var(--ink)">Lifter in air (ion wind)</text><line x1="340" y1="130.0" x2="900" y2="130.0" class="grid"/>
+<circle cx="823.2" cy="130.0" r="6" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>Lifter in air (ion wind): 8.0×10⁻³ N/W</title></circle><text x="811.2" y="134.0" text-anchor="end">8.0×10⁻³ N/W</text>
+<text x="24" y="174.0" style="fill: var(--ink)">Same ions in vacuum (an ion thruster)</text><line x1="340" y1="170.0" x2="900" y2="170.0" class="grid"/>
+<circle cx="595.0" cy="170.0" r="6" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>Same ions in vacuum (an ion thruster): 4.4×10⁻⁶ N/W</title></circle><text x="607.0" y="174.0" text-anchor="start">4.4×10⁻⁶ N/W</text>
+<text x="24" y="214.0" style="fill: var(--ink)">Woodward thruster, reported (~30 W)</text><line x1="340" y1="210.0" x2="900" y2="210.0" class="grid"/>
+<circle cx="586.6" cy="210.0" r="6" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>Woodward thruster, reported (~30 W): 3.3×10⁻⁶ N/W</title></circle><text x="598.6" y="214.0" text-anchor="start">3.3×10⁻⁶ N/W</text>
+<text x="24" y="254.0" style="fill: var(--ink)">Shawyer's formula at Dresden's settings</text><line x1="340" y1="250.0" x2="900" y2="250.0" class="grid"/>
+<circle cx="581.0" cy="250.0" r="6" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>Shawyer's formula at Dresden's settings: 2.8×10⁻⁶ N/W</title></circle><text x="593.0" y="254.0" text-anchor="start">2.8×10⁻⁶ N/W</text>
+<text x="24" y="294.0" style="fill: var(--ink)">EmDrive, Eagleworks</text><line x1="340" y1="290.0" x2="900" y2="290.0" class="grid"/>
+<circle cx="555.5" cy="290.0" r="6" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>EmDrive, Eagleworks: 1.2×10⁻⁶ N/W</title></circle><text x="567.5" y="294.0" text-anchor="start">1.2×10⁻⁶ N/W</text>
+<text x="24" y="334.0" style="fill: var(--ink)">Photon rocket, P/c</text><line x1="340" y1="330.0" x2="900" y2="330.0" class="grid"/>
+<circle cx="376.6" cy="330.0" r="6" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>Photon rocket, P/c: 3.3×10⁻⁹ N/W</title></circle><text x="388.6" y="334.0" text-anchor="start">3.3×10⁻⁹ N/W</text>
+<text x="24" y="374.0" style="fill: var(--ink)">EmDrive, Dresden upper limit</text><line x1="340" y1="370.0" x2="900" y2="370.0" class="grid"/>
+<circle cx="370.5" cy="370.0" r="6" fill="var(--s3)" stroke="var(--surface)" stroke-width="2"><title>EmDrive, Dresden upper limit: 2.7×10⁻⁹ N/W</title></circle><text x="382.5" y="374.0" text-anchor="start">2.7×10⁻⁹ N/W</text>
+</svg>
