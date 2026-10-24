@@ -89,7 +89,7 @@ Geoid models turn GNSS ellipsoidal heights into usable heights: NAPGD2022/GEOID2
 ### Inferences
 - Timbuktu is the cleanest reproduction target, because the published input (lat/lon) and output (28.7068 m, EGM96) are explicit. Expect differences at the mm to cm level between direct synthesis and GeographicLib's interpolated 5′ grid.
 - The NAVD 88 differences (−0.27 to −0.72 m) mostly reflect NAVD 88's own tilt and bias, not geoid error, so `geopotential` reproduces only the geoid side.
-- Averaging check on the AQG: 500 nm/s² / √600 s = 20 nm/s², which matches the datasheet's "20 nm/s² in 10 min" (computed). The same arithmetic gives 2 µGal at about 6,250 s.
+- Averaging check on the AQG: 500 nm/s² / √600 s = 20 nm/s², which matches the datasheet's "20 nm/s² in 10 min" (computed). The same arithmetic gives 2 µGal (20 nm/s²) at 625 s, which is the datasheet's own 10-minute figure (corrected 2026-10-24; an earlier version said 6,250 s).
 
 ### Gaps
 - No verified global EGM2008 maximum (often said to be near New Guinea); it would have to be computed from the grid.

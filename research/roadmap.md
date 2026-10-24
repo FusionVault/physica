@@ -30,6 +30,27 @@ level of general published physics.
 Go through every item in both batches in [`external/`](external/README.md) and write a
 `<batch>-review.md` beside each, following the method in that README.
 
+**Done 2026-10-24.** Both batches reviewed in full, with a `<batch>-review.md` and a
+`<batch>-checks.py` beside each; every item has a verdict. The accepted items, for Phase C:
+
+- `gravitics::electrogravity` (new): dielectrophoretic force, field angular momentum, and the
+  mass-independence discriminator — the Pais/Zhang claim as a claim-vs-bound calculator.
+- `geopotential::SecondPartials::tensor_neu` (local gradient tensor) and `gravimetry::local`
+  (sphere, cylinder, prism forward models).
+- `gravitational::laboratory::{quadrupole_strain, burst_energy}` and `metrology::EINSTEIN_KAPPA`
+  (8πG/c⁴); a lab-HFGW example.
+- `gravitics::anomalies::tension` and the same-site G tests; `magnetics::magnets::susceptibility_force`.
+- Ampère line-current force beside the Ostriker filament (galactic dark-matter check).
+- `magnetics::space_weather` dynamo EMF; capped AGW growth in `gravimetry::atmosphere`; PEGS
+  timing in `gravimetry::coseismic`.
+- `gravimetry::atom` phase and Aharonov–Bohm helpers; ultralight-DM mid-band; plasma index and
+  the Gordon-metric note.
+- To source before coding: chameleon/symmetron screening, the PEGS template amplitudes, the
+  Pais patent formula, Peratt 1986, DeWitt 1966.
+
+Two errors in our own notes were found and fixed: the AQG averaging time (625 s, not 6,250 s)
+and the "3 km navigation error" (flagged to-source).
+
 The approach to fringe material, as the user set it: **nothing fringe is brushed off.** Many
 of these ideas come from established, high-profile scientists, and some may already be verified.
 For every claim:
