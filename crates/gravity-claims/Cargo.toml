@@ -1,0 +1,17 @@
+[package]
+name = "gravity-claims"
+version = "0.1.0"
+description = "Reality checks for extraordinary gravity claims: the published numbers of Li–Baker gravitational-wave detectors, Pais patents, Tajmar and Podkletnov superconductors, EmDrive, Mach-effect and ion-wind thrusters and warp drives, reproduced from the authors' own formulas and set against general relativity."
+keywords = ["gravity", "physics", "general-relativity", "verification", "gravitational-waves"]
+categories = ["science"]
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+gwsens = { path = "../gwsens", version = "0.1.0" }
+
+[lints]
+workspace = true

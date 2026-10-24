@@ -15,6 +15,7 @@ sensors of future missions.
 | [`gravimetry`](crates/gravimetry) · [docs](https://docs.rs/gravimetry) | GRACE processing (smoothing, stripe removal, water height), earthquake gravity models and mass transport |
 | [`satgrav`](crates/satgrav) · [docs](https://docs.rs/satgrav) | Gravity missions and quantum sensors: noise models, error predictions, a satellite-pair simulator, and the sensors as gravitational-wave detectors |
 | [`gwsens`](crates/gwsens) · [docs](https://docs.rs/gwsens) | Gravitational-wave sensitivity: strain conventions, LIGO, Einstein Telescope and LISA noise curves, horizons, stochastic backgrounds, high-frequency limits and lab-gravity reality checks |
+| [`gravity-claims`](crates/gravity-claims) · [docs](https://docs.rs/gravity-claims) | Reality checks for extraordinary gravity claims (Li–Baker, Pais, Tajmar, Podkletnov, EmDrive, warp drives): published numbers reproduced and set against general relativity |
 | [`gravviz`](apps/gravviz) | The command-line tool that makes every figure here (not published) |
 | [`viewer`](viewer) | The GRACE Mass Atlas, an interactive web page for all of it |
 
@@ -60,7 +61,9 @@ Each crate's README has more examples.
 The [research report](reports/Gravimetry%20frontiers%20and%20hidden%20connections.md) proposes
 new tests of how gravity data connects to climate and earthquakes; a
 [second report](reports/Gravitational%20waves%20and%20gravity%20beams.md) covers gravitational
-waves, high-frequency waves and gravity beams. Each forecast is committed as a
+waves, high-frequency waves and gravity beams; a
+[third](reports/Gravity%20beams%20fringe%20physics%20and%20DIRDs.md) checks the fringe claims
+and the DIA "DIRD" papers against general relativity. Each forecast is committed as a
 git tag before the data that decides it exists, and results are reported whether they hit or
 miss.
 
