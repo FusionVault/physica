@@ -59,6 +59,7 @@ mod q0;
 mod screen;
 mod sst;
 mod svg;
+mod t1;
 mod tonga;
 mod triangle;
 mod w1;
@@ -155,6 +156,20 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
+        ["t1-noise", l1b_dir, aod_dir, goco, costg, out, dates @ ..] if !dates.is_empty() => {
+            let (report, svg) = t1::noise_study(Path::new(l1b_dir), Path::new(aod_dir), Path::new(goco), Path::new(costg), dates)?;
+            print!("{report}");
+            write(out, "t1_noise.txt", &report)?;
+            write(out, "t1_noise.svg", &svg)
+        }
+        ["t1-test", l1b_dir, aod_dir, goco, costg, tides, out, rest @ ..] if !rest.is_empty() => {
+            let unblind = rest[0] == "--unblind";
+            t1::UNBLIND.store(unblind, std::sync::atomic::Ordering::Relaxed);
+            let dates = if unblind { &rest[1..] } else { rest };
+            let report = t1::test(Path::new(l1b_dir), Path::new(aod_dir), Path::new(goco), Path::new(costg), Path::new(tides), dates)?;
+            print!("{report}");
+            write(out, if unblind { "t1_result.txt" } else { "t1_null.txt" }, &report)
+        }
         ["tonga", out] => {
             let (report, svg) = tonga::run()?;
             print!("{report}");
@@ -172,7 +187,9 @@ fn main() -> Result<()> {
             e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt USGS_FAULT_DIR Q0_NOISE.csv OUT_DIR | screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR | \
             q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR | \
             kalman MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR VIEWER_DATA_DIR | \
-            m1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KALMAN_DEGREES.csv CATALOGUE.csv OUT_DIR VIEWER_DATA_DIR | tonga OUT_DIR | claims OUT_DIR".into()),
+            m1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KALMAN_DEGREES.csv CATALOGUE.csv OUT_DIR VIEWER_DATA_DIR | tonga OUT_DIR | claims OUT_DIR | \
+            t1-noise L1B_DIR AOD1B_DIR GOCO06s.gfc COSTG_2022-01.gfc OUT_DIR DATE... | \
+            t1-test L1B_DIR AOD1B_DIR GOCO06s.gfc COSTG_2022-01.gfc GOT_TIDE_DIR OUT_DIR [--unblind] DATE...".into()),
     }
 }
 

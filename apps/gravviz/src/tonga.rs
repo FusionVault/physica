@@ -1,10 +1,11 @@
 //! T1 feasibility: would the 2022 Hunga Tonga Lamb wave show in GRACE-FO's laser ranging?
 //!
-//! The eruption's Lamb wave carried a surface-pressure pulse of 1.3–2 hPa far from the volcano
-//! (13–20 kg/m² of air) around the world at 318.2 m/s
-//! ([Wright et al. 2022](https://doi.org/10.1038/s41586-022-05012-5)). GRACE-FO crosses such a
-//! front in about a minute at 7 km/s over the ground, so the front is frozen while the pair flies
-//! through it. Locally the front is a straight strip of surface mass `σ(x)` (a Gaussian across
+//! The eruption's Lamb wave carried a surface-pressure pulse around the world at 318.2 m/s
+//! ([Wright et al. 2022](https://doi.org/10.1038/s41586-022-05012-5)); barometers far from the
+//! volcano recorded 1.3–2 hPa (13–20 kg/m² of air; [arXiv 2303.04362](https://arxiv.org/abs/2303.04362),
+//! [Frontiers 2022](https://doi.org/10.3389/feart.2022.931545)). GRACE-FO crosses such a front in
+//! about a minute at 7 km/s over the ground, so the front barely moves while the pair flies through
+//! it; [`template_moving`] includes its motion, which matters at shallow crossings. Locally the front is a straight strip of surface mass `σ(x)` (a Gaussian across
 //! the front), which pulls each satellite horizontally with
 //!
 //! `g_x(x₀) = −2G ∫ σ(x)(x₀ − x)/((x₀ − x)² + h²) dx`.
@@ -60,18 +61,25 @@ fn strip_gx(x0: f64, sigma0: f64, s: f64, h: f64) -> f64 {
 }
 
 /// Range acceleration (m/s²) for a 1 hPa pulse of time width `width` (s) crossed at `angle`
-/// (rad), sampled every `DT` with the crossing in the middle.
-fn template(width: f64, angle: f64) -> Vec<f64> {
+/// (rad) by a frozen front, sampled every `DT` with the crossing in the middle.
+pub(crate) fn template(width: f64, angle: f64) -> Vec<f64> {
+    template_moving(width, angle, ground_speed() * angle.sin())
+}
+
+/// As [`template`], for a pair whose midpoint closes on the front at `normal_speed` (m/s, its
+/// speed across the front relative to the front's own motion). The pair's separation still
+/// projects onto the front normal as `d·sin φ`.
+pub(crate) fn template_moving(width: f64, angle: f64, normal_speed: f64) -> Vec<f64> {
     let (sigma0, s) = (pressure_to_mass(100.0), LAMB_SPEED * width);
-    let (sin, v, d) = (angle.sin(), ground_speed(), ground_separation());
+    let (sin, d) = (angle.sin(), ground_separation());
     (0..N).map(|i| {
-        let u = (i as f64 - (N / 2) as f64) * DT * v;
-        sin * (strip_gx((u + d / 2.0) * sin, sigma0, s, ALTITUDE) - strip_gx((u - d / 2.0) * sin, sigma0, s, ALTITUDE))
+        let x = (i as f64 - (N / 2) as f64) * DT * normal_speed;
+        sin * (strip_gx(x + d / 2.0 * sin, sigma0, s, ALTITUDE) - strip_gx(x - d / 2.0 * sin, sigma0, s, ALTITUDE))
     }).collect()
 }
 
 /// One-sided Fourier amplitudes `|ρ̈(f_k)|` (m s⁻² Hz⁻¹) of a series sampled every `DT`, k = 1…N/2−1.
-fn spectrum(signal: &[f64]) -> Vec<(f64, f64)> {
+pub(crate) fn spectrum(signal: &[f64]) -> Vec<(f64, f64)> {
     let (mut re, mut im) = (signal.to_vec(), vec![0.0; signal.len()]);
     fft(&mut re, &mut im, false);
     let df = 1.0 / (signal.len() as f64 * DT);
@@ -224,6 +232,21 @@ mod tests {
             assert!(err.abs() < 1e-8, "{x0}: {err:e}");
         }
         assert!(strip_gx(0.0, sigma0, 50e3, h).abs() < 1e-20);
+    }
+
+    #[test]
+    fn oblique_and_moving_crossings() {
+        // A frozen front crossed at φ is the moving-front template at normal speed v·sin φ.
+        let phi = 30f64.to_radians();
+        let a = template(300.0, phi);
+        let b = template_moving(300.0, phi, ground_speed() * phi.sin());
+        assert!(a.iter().zip(&b).all(|(x, y)| (x - y).abs() < 1e-24));
+        // The signal is even in time (direction of crossing does not matter), and a slower
+        // closing speed stretches it: the same peak, wider.
+        assert!((a[N / 2 + 40] - a[N / 2 - 40]).abs() < 1e-20);
+        let slow = template_moving(300.0, phi, ground_speed() * phi.sin() / 2.0);
+        assert!((slow[N / 2] / a[N / 2] - 1.0).abs() < 1e-9);
+        assert!((slow[N / 2 + 40] - a[N / 2 + 20]).abs() < 1e-3 * a[N / 2].abs());
     }
 
     #[test]

@@ -1,0 +1,34 @@
+T1 stage 1 (blind): residual range acceleration before the eruption, 2022-01-13, 2022-01-14
+Model: COST-G January 2022 to degree 90, GOCO06s to 180; AOD1B RL06 GLO; solid tides; Sun and Moon.
+86400 LRI epochs, 0 with a phase break.
+Dynamic orbits: 29 and 29 revolutions fitted; median rms fit to GNV1B 0.066 m (C), 0.066 m (D).
+
+GNV1B orbits: 86400 residuals
+  gravity (field + AOD1B)    rms   2.545e-1   in 1–10 mHz   1.014e-5
+  tides, Sun and Moon        rms   3.299e-8   in 1–10 mHz  8.850e-12
+  rotating frame             rms   3.910e-4   in 1–10 mHz   1.090e-7
+  accelerometers             rms   1.788e-9   in 1–10 mHz   1.465e-9
+  velocity term              rms   2.545e-1   in 1–10 mHz   1.962e-6
+  residual                   rms   3.601e-8
+  band-passed residual       rms   4.796e-9   (47.2 h)
+      1.0 mHz  ASD 2.17e-7  nominal 3.49e-10  ratio 621.5
+      2.0 mHz  ASD 9.79e-8  nominal 2.68e-10  ratio 365.8
+      5.0 mHz  ASD 2.83e-8  nominal 2.04e-10  ratio 138.4
+     10.0 mHz  ASD 7.01e-9  nominal 1.80e-10  ratio 39.0
+     20.0 mHz  ASD 3.03e-9  nominal 1.71e-10  ratio 17.8
+     50.0 mHz  ASD 1.32e-9  nominal 2.02e-10  ratio 6.5
+
+fitted orbits: 82242 residuals
+  gravity (field + AOD1B)    rms   2.545e-1   in 1–10 mHz   1.019e-5
+  tides, Sun and Moon        rms   3.303e-8   in 1–10 mHz  8.965e-12
+  rotating frame             rms   3.910e-4   in 1–10 mHz   1.128e-7
+  accelerometers             rms   1.706e-9   in 1–10 mHz   1.374e-9
+  velocity term              rms   2.545e-1   in 1–10 mHz   1.966e-6
+  residual                   rms   3.456e-8
+  band-passed residual       rms   3.444e-9   (44.9 h)
+      1.0 mHz  ASD 1.12e-7  nominal 3.49e-10  ratio 320.3
+      2.0 mHz  ASD 7.16e-8  nominal 2.68e-10  ratio 267.5
+      5.0 mHz  ASD 2.38e-8  nominal 2.04e-10  ratio 116.6
+     10.0 mHz  ASD 3.43e-9  nominal 1.80e-10  ratio 19.1
+     20.0 mHz  ASD 1.05e-9  nominal 1.71e-10  ratio 6.2
+     50.0 mHz  ASD 7.67e-10  nominal 2.02e-10  ratio 3.8
