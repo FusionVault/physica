@@ -11,6 +11,7 @@ pub mod propagation;
 pub mod quanta;
 pub mod sgwb;
 pub mod strain;
+pub mod ultralight;
 
 /// Hubble constant for h = 1 (100 km s⁻¹ Mpc⁻¹), s⁻¹. Multiply by the dimensionless h.
 pub const H100: f64 = 1.0e5 / metrology::MPC;

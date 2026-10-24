@@ -9,6 +9,23 @@
 /// Two-photon Raman wave number `k_eff = 4π/λ` for ⁸⁷Rb on the D2 line (780.241 nm), m⁻¹.
 pub const K_EFF_RB87: f64 = 4.0 * core::f64::consts::PI / 780.241e-9;
 
+/// Interferometer phase per unit acceleration, rad per m/s²: `k_eff T²` (Kasevich–Chu), for
+/// effective wavenumber `k_eff` (m⁻¹) and pulse separation `t` (s). Rosi et al.'s 0.16 s with the
+/// doubled ⁸⁷Rb wavenumber gives 4.12×10⁵ rad per m/s², so Earth's gravity is 4.0×10⁶ rad. The
+/// double-diffraction sequence of [`AtomInterferometer::phase`] carries a further factor of 2.
+pub fn phase_sensitivity(k_eff: f64, t: f64) -> f64 {
+    k_eff * t * t
+}
+
+/// Rate of gravitational Aharonov–Bohm phase accumulation (rad/s) for an atom of mass `m` (kg) at
+/// distance `r` (m) from a source mass `source` (kg): `mGM/(ħr)`. The phase follows the
+/// potential, not the force, which is what
+/// [Overstreet et al. 2022](https://doi.org/10.1126/science.abl7152) measured: 1.63 rad/s for
+/// ⁸⁷Rb at 7 cm from 1.25 kg.
+pub fn aharonov_bohm_rate(m: f64, source: f64, r: f64) -> f64 {
+    m * metrology::G * source / (metrology::HBAR * r)
+}
+
 /// One atom interferometer (or each of a gradiometer's two).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct AtomInterferometer {
@@ -82,5 +99,17 @@ mod tests {
         let tri = AtomInterferometer { t: 5.0, contrast: 1.0, atoms: 1e6, cycle: 1.0 };
         assert!(close(tri.gradient_noise(0.5), 3.5e-12, 0.01));
         assert!(close(tri.phase(2.7e-6 * 0.5), 1087.0, 0.001));
+    }
+
+    #[test]
+    fn phase_and_potential() {
+        // Rosi et al. 2014: k_eff T^2 = 4.123e5 rad per m/s^2, so g0 is 4.04e6 rad.
+        let s = phase_sensitivity(K_EFF_RB87, 0.160);
+        assert!((s / 4.123_07e5 - 1.0).abs() < 1e-5 && (s * metrology::G0 / 4.043e6 - 1.0).abs() < 1e-3);
+        // Overstreet et al. 2022: 1.63 rad/s for Rb-87 at 7 cm from 1.25 kg.
+        let rb = 86.909 * metrology::AMU;
+        assert!((aharonov_bohm_rate(rb, 1.25, 0.07) / 1.631 - 1.0).abs() < 1e-3);
+        // It falls as 1/r, unlike a force.
+        assert!((aharonov_bohm_rate(rb, 1.25, 0.14) / aharonov_bohm_rate(rb, 1.25, 0.07) - 0.5).abs() < 1e-12);
     }
 }

@@ -107,6 +107,26 @@ pub fn weinberg_efficiency(m: f64, vs: f64, l: f64, gamma_heat: f64) -> f64 {
     64.0 * G * m * vs.powi(4) / (15.0 * l * l * C.powi(5) * gamma_heat)
 }
 
+/// Strain at distance `r` (m) from a source whose mass quadrupole moment has second time
+/// derivative `i_ddot` (kg m²/s², i.e. joules): `h = 2GÏ/(c⁴r)`. For an energy `E` redistributed
+/// with asymmetry `ε`, `Ï ≈ 2εE`.
+///
+/// This is the quadrupole formula applied to a laboratory source. The coupling
+/// [`metrology::EINSTEIN_KAPPA`] is 2×10⁻⁴³, so a kilojoule stagnating in 100 ps radiates a
+/// strain of order 10⁻⁴¹ at a metre — about twenty orders below the best high-frequency
+/// detectors in [`crate::hf::REGISTRY`]. The number is worth computing precisely because the
+/// gap is what rules the idea out.
+pub fn quadrupole_strain(i_ddot: f64, r: f64) -> f64 {
+    2.0 * G * i_ddot / (C.powi(4) * r)
+}
+
+/// Energy radiated (J) as gravitational waves by a source whose quadrupole changes by `i_ddot`
+/// over a burst of duration `tau` (s): `(G/5c⁵)(Ï/τ)²τ`, the quadrupole luminosity integrated
+/// over the burst with `I⃛ ≈ Ï/τ`.
+pub fn burst_energy(i_ddot: f64, tau: f64) -> f64 {
+    G / (5.0 * C.powi(5)) * (i_ddot / tau).powi(2) * tau
+}
+
 /// Energy flux of a plane wave of amplitude `h` at frequency `f`: `F = c³ω²h²/(32πG)`, W/m².
 pub fn wave_flux(h: f64, f: f64) -> f64 {
     let w = 2.0 * PI * f;
@@ -169,5 +189,22 @@ mod tests {
         // The GW150914 paper's c³ḣ²/(16πG) is twice this flux.
         let hdot = 2.0 * PI * 250.0 * 1e-21;
         assert!((C.powi(3) * hdot * hdot / (16.0 * PI * G) / wave_flux(1e-21, 250.0) - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn a_laboratory_source_radiates_nothing_measurable() {
+        // 20 kJ of implosion kinetic energy stagnating in 100 ps with 1% asymmetry.
+        let (energy, tau, eps) = (2e4, 1e-10, 0.01);
+        let i_ddot = 2.0 * eps * energy;
+        assert!((quadrupole_strain(i_ddot, 1.0) / 6.610e-42 - 1.0).abs() < 1e-3);
+        assert!((burst_energy(i_ddot, tau) / 8.820e-39 - 1.0).abs() < 1e-3);
+        // Ten times the asymmetry is ten times the strain and a hundred times the energy.
+        assert!((quadrupole_strain(10.0 * i_ddot, 1.0) / quadrupole_strain(i_ddot, 1.0) - 10.0).abs() < 1e-9);
+        assert!((burst_energy(10.0 * i_ddot, tau) / burst_energy(i_ddot, tau) - 100.0).abs() < 1e-9);
+        // About twenty orders below the best limit near those frequencies (CAPP-12T, 3.9e-21).
+        assert!(quadrupole_strain(i_ddot, 1.0) / 3.9e-21 < 1e-20);
+        // Consistent with the rotor formula: a rotor's DeltaI omega^2 is the same Idot-dot.
+        let (delta_i, omega) = (1e3, 100.0);
+        assert!((quadrupole_strain(delta_i * omega * omega, 10.0) / (2.0 * G * delta_i * omega * omega / (C.powi(4) * 10.0)) - 1.0).abs() < 1e-12);
     }
 }

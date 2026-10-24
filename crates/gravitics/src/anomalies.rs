@@ -104,6 +104,13 @@ pub fn gls_mean(values: &[f64], cov: &[Vec<f64>]) -> Option<(f64, f64, f64)> {
     Some((mean, total.sqrt().recip(), chi2))
 }
 
+/// How far apart two measurements are, in combined standard deviations:
+/// `(a − b)/√(u_a² + u_b²)`. Two results from the same laboratory in the same year are the
+/// sharpest test of whether a disagreement comes from the place or the apparatus.
+pub fn tension(a: f64, u_a: f64, b: f64, u_b: f64) -> f64 {
+    (a - b) / (u_a * u_a + u_b * u_b).sqrt()
+}
+
 /// The Birge ratio `√(χ²/ν)`: how far a set of measurements disagrees with its stated errors (1
 /// means they agree). CODATA expands the uncertainty by a factor k (3.9 for G in 2022), which
 /// divides χ² by k².
@@ -199,5 +206,37 @@ mod tests {
         // The LLR bound at a solar eclipse: Σ☾ × the Sun's 5.93×10⁻³ m/s² is 6.9×10⁻¹⁵ m/s².
         assert!(close(shielding_loss(LLR_ABSORPTION_BOUND, moon) * 5.9301e-3, 6.9e-15, 0.01));
         assert!(close(pioneer_thermal(10.1e-10, 28.8, 20.0), 6.24127e-10, 1e-5));
+    }
+
+    /// The G scatter follows the apparatus, not the place: a site-dependent bias (local magnetic
+    /// field, geomagnetic latitude, local geopotential) would be common to every measurement made
+    /// at one site, and it is not.
+    #[test]
+    fn the_g_scatter_is_not_site_dependent() {
+        let at = |id: &str| *CODATA_2022_G.iter().find(|r| r.0 == id).expect("listed");
+        let (y, cov) = codata();
+        let (mean, _, _) = gls_mean(&y, &cov).unwrap();
+        let ppm = |x: f64| x / mean * 1e6;
+
+        // HUST, Wuhan: four measurements at one site span 339 ppm, and the two of 2018 disagree
+        // by 2.7 sigma although they shared a laboratory and a year.
+        let hust: Vec<(&str, f64, f64)> = ["HUST-05", "HUST-09", "HUSTT-18", "HUSTA-18"].iter().map(|id| at(id)).collect();
+        let (lo, hi) = hust.iter().fold((f64::MAX, f64::MIN), |(a, b), r| (a.min(r.1), b.max(r.1)));
+        assert!(close(ppm(hi - lo), 339.2, 1e-3), "{}", ppm(hi - lo));
+        let (t, a) = (at("HUSTT-18"), at("HUSTA-18"));
+        assert!(close(tension(a.1, a.2, t.1, t.2), 2.737, 1e-3));
+        assert!(close(ppm(a.1 - t.1), 44.95, 1e-3));
+
+        // BIPM, Sevres: two measurements thirteen years apart agree to 0.16 sigma, and both sit
+        // about 190 ppm above the mean. Consistent within a site, inconsistent across apparatus.
+        let (b1, b2) = (at("BIPM-01"), at("BIPM-14"));
+        assert!(tension(b1.1, b1.2, b2.1, b2.2).abs() < 0.2);
+        assert!(ppm(b1.1 - mean) > 150.0 && ppm(b2.1 - mean) > 150.0);
+
+        // So the within-site spread is of the same size as the whole table's 551 ppm.
+        assert!(ppm(hi - lo) / 551.4 > 0.5);
+        // Sign convention: tension is antisymmetric and zero against itself.
+        assert!(close(tension(a.1, a.2, t.1, t.2), -tension(t.1, t.2, a.1, a.2), 1e-12));
+        assert!(tension(a.1, a.2, a.1, a.2) == 0.0);
     }
 }

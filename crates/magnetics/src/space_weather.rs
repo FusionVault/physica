@@ -78,6 +78,18 @@ pub fn invariant_latitude(l: f64) -> f64 {
     l.powf(-0.5).acos()
 }
 
+/// The dynamo electric field (V/m) a neutral wind of speed `u` (m/s) drives across a magnetic
+/// field `b` (T): `|u × B|` for perpendicular flow, which in the ionosphere's conducting layer
+/// gives the current `J = σ(u × B)`.
+///
+/// It is how an atmospheric wave becomes a magnetic signal: the Hunga Tonga Lamb wave, whose
+/// surface particle velocity was about 2 m/s, is amplified climbing into thinning air
+/// ([`gravimetry::atmosphere::wave_growth`](https://docs.rs/gravimetry)) and drags ions across
+/// the field lines, launching Alfvén waves along them.
+pub fn dynamo_field(u: f64, b: f64) -> f64 {
+    u * b
+}
+
 /// Geoelectric field amplitude (V/m) and skin depth (m) induced over a uniform ground of
 /// conductivity `sigma` (S/m) by a magnetic variation of amplitude `b` (T) and period `period`
 /// (s): `|E| = √(ω/(μ₀σ))|B|`, leading B by 45°, and `δ = √(2/(ωμ₀σ))`. (The form `√(ωμ₀/σ)·B`
@@ -151,5 +163,20 @@ mod tests {
         let (e, _) = geoelectric_halfspace(100e-9, 100.0, 1e-3);
         assert!(close(apparent_resistivity(e, 100e-9, 100.0), 1e3, 1e-12));
         assert!(close(apparent_resistivity(e, 100e-9, 100.0), 0.2 * 100.0 * (e * 1e6 / 100.0).powi(2), 1e-6));
+    }
+
+    #[test]
+    fn an_atmospheric_wave_drives_a_dynamo() {
+        // A 2 m/s wind across 30 000 nT: 60 uV/m. Amplified by 1.3e3 climbing to 100 km it
+        // reaches tens of mV/m, an upper bound since the same dissipation that caps the growth
+        // applies.
+        assert!(close(dynamo_field(2.04, 3e-5) * 1e6, 61.2, 1e-2));
+        assert!(close(dynamo_field(2.04 * 1265.0, 3e-5) * 1e3, 77.4, 1e-2));
+        assert!(dynamo_field(0.0, 3e-5) == 0.0);
+        // The F-region Alfven speed (1e12 O+ per m^3) is 164 km/s, so the signal reaches the
+        // conjugate hemisphere in tens of seconds.
+        let rho = 1e12 * 16.0 * metrology::AMU;
+        let va = crate::mhd::alfven_speed(3e-5, rho);
+        assert!(close(va / 1e3, 164.0, 1e-2) && 2e6 / va < 20.0);
     }
 }

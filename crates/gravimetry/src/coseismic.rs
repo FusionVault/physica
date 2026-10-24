@@ -39,6 +39,24 @@ use core::f64::consts::PI;
 
 use metrology::G;
 
+/// How long before the P-wave a light-speed gravity perturbation arrives at range `r` (m), for a
+/// seismic speed `v_seismic` (m/s): `r/v − r/c`, about 143 s at 1000 km for a 7 km/s P-wave.
+///
+/// A rupture redistributes mass, and the gravity change propagates at c: a prompt elastogravity
+/// signal (PEGS), observed in GRACE-era seismic networks before the P-wave
+/// ([Vallée et al. 2017](https://doi.org/10.1126/science.aao0746)).
+pub fn prompt_lead(r: f64, v_seismic: f64) -> f64 {
+    r / v_seismic - r / metrology::C
+}
+
+/// The gravity change (m/s²) at range `r` (m) from moving mass `dm` (kg) a distance
+/// `separation` (m): `GΔM d/r³`. Rupture conserves mass, so there is no monopole term and this
+/// dipole scale is the leading one — nanogal to microgal at teleseismic range, which is why
+/// detecting it needs the quietest gravimeters.
+pub fn prompt_gravity(dm: f64, separation: f64, r: f64) -> f64 {
+    metrology::G * dm * separation / r.powi(3)
+}
+
 /// Normal free-air gravity gradient, s⁻².
 pub const FREE_AIR: f64 = 3.086e-6;
 const EARTH_RADIUS: f64 = 6_371_000.0;
@@ -392,5 +410,19 @@ mod tests {
         // 127.288 km east and 30.644 km north of the origin.
         assert!((f.lon - 162.0646).abs() < 1e-3 && (f.lat - 52.7806).abs() < 1e-3, "{} {}", f.lat, f.lon);
         assert_eq!(read_coulomb("nothing"), Err(CoulombError::NoOrigin));
+    }
+
+    #[test]
+    fn prompt_elastogravity() {
+        // At 1000 km a light-speed signal leads a 7 km/s P-wave by 143 s.
+        assert!((prompt_lead(1e6, 7e3) - 142.86).abs() < 0.01);
+        assert!(prompt_lead(1e6, 7e3) < 1e6 / 7e3); // light travel time is not zero
+        // Lamb waves are slower still: nearly an hour at the same range.
+        assert!((prompt_lead(1e6, 318.0) / 3144.0 - 1.0).abs() < 1e-3);
+        // Moving 1e13 kg by 1 km at 1000 km gives 0.67 nGal: a cold-atom-scale signal.
+        let dg = prompt_gravity(1e13, 1e3, 1e6);
+        assert!((dg / 6.674e-13 - 1.0).abs() < 1e-3);
+        // It falls as 1/r^3, unlike a monopole.
+        assert!((prompt_gravity(1e13, 1e3, 2e6) / dg - 0.125).abs() < 1e-12);
     }
 }

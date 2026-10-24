@@ -84,6 +84,21 @@ pub fn plasma_frequency(n_e: f64) -> f64 {
     (n_e * E_CHARGE * E_CHARGE / (EPS_0 * M_E)).sqrt() / (2.0 * PI)
 }
 
+/// The electron density (m⁻³) at which [`plasma_frequency`] equals `f`: above it the plasma
+/// reflects a wave at that frequency, below it refracts. 1.24×10¹⁸ m⁻³ for X-band (10 GHz).
+pub fn critical_density(f: f64) -> f64 {
+    (2.0 * PI * f).powi(2) * EPS_0 * M_E / (E_CHARGE * E_CHARGE)
+}
+
+/// Refractive index `√(1 − (f_p/f)²)` of an underdense plasma of electron density `n_e` (m⁻³) at
+/// frequency `f` (Hz); `None` at or above [`critical_density`], where the wave does not
+/// propagate. A graded index is what transformation optics (and the Gordon optical metric, which
+/// writes a curved metric as a medium with `n = 1/√g₀₀`) bends rays with.
+pub fn plasma_index(n_e: f64, f: f64) -> Option<f64> {
+    let ratio = plasma_frequency(n_e) / f;
+    (ratio < 1.0).then(|| (1.0 - ratio * ratio).sqrt())
+}
+
 /// Spectral shape of a first-order phase transition's sound waves, `S(x) = x³[7/(4 + 3x²)]^(7/2)`,
 /// with x = f/f_peak (Review 2025 Eq. 101). S(1) = 1.
 pub fn phase_transition_shape(x: f64) -> f64 {
@@ -190,5 +205,18 @@ mod tests {
     fn plasma_cutoff() {
         assert!((plasma_frequency(1e6) / 8980.0 - 1.0).abs() < 1e-3);
         assert!((plasma_frequency(3e4) / 1555.15 - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn plasma_refraction() {
+        // X-band: the critical density is 1.24e18 m^-3, where the index reaches zero.
+        let nc = critical_density(10e9);
+        assert!((nc / 1.240_44e18 - 1.0).abs() < 1e-5);
+        assert!((plasma_frequency(nc) / 10e9 - 1.0).abs() < 1e-12);
+        assert!(plasma_index(nc, 10e9).is_none() && plasma_index(2.0 * nc, 10e9).is_none());
+        // Underdense: a usable graded index just below the cutoff.
+        for (n_e, n) in [(1e17, 0.9588), (5e17, 0.7726), (1e18, 0.4403)] {
+            assert!((plasma_index(n_e, 10e9).unwrap() - n).abs() < 1e-4, "{n_e}");
+        }
     }
 }

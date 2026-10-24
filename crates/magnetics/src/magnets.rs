@@ -72,6 +72,18 @@ pub fn levitation_product(rho: f64, chi: f64, g: f64) -> f64 {
     MU_0 * rho * g / chi.abs()
 }
 
+/// The force (N) on a body of volume `volume` (m³) and volume susceptibility `chi` in a field
+/// gradient: `F = (χV/μ₀) B ∂B/∂x`, for the gradient product `b_dbdx` (T²/m).
+///
+/// It is the same physics as [`levitation_product`], and it is the leading magnetic systematic in
+/// precision gravity: a weakly magnetised source mass or nearby steel acts on a susceptible test
+/// mass in step with the signal. Earth's own field gradient is far too weak to matter, but a lab
+/// gradient of order 10⁻⁹ T²/m is enough to bias a Cavendish measurement at the 10⁻⁵ level, the
+/// size of the spread between the measurements of G.
+pub fn susceptibility_force(volume: f64, chi: f64, b_dbdx: f64) -> f64 {
+    chi * volume / MU_0 * b_dbdx
+}
+
 /// Lift-to-drag ratio of an Inductrack (passive induction) maglev at speed `v`, for a track whose
 /// transition speed is `v_t` (same units): `v/v_t`, well above the transition.
 pub fn inductrack_lift_drag(v: f64, v_t: f64) -> f64 {
@@ -151,5 +163,23 @@ mod tests {
         assert!((sar_partial_body(0.5) - 6.0).abs() < 1e-12);
         // Dang et al. 2010: 160 aT/√Hz over 0.45 cm³ is 44ħ.
         assert!(close(energy_resolution(160e-18, 0.45e-6), 43.5, 3e-3));
+    }
+
+    #[test]
+    fn magnetic_systematics_in_precision_gravity() {
+        // A 0.2 kg gold sphere (chi = -3.4e-5) against the Cavendish pull of 10 kg at 10 cm.
+        let (volume, chi) = (0.2 / 19_300.0, -3.4e-5);
+        let signal = metrology::G * 10.0 * 0.2 / 0.1f64.powi(2);
+        assert!(close(signal, 1.335e-8, 1e-3));
+        // Earth's own field gradient (50 uT over an Earth radius) is 2.5e-11 of the signal.
+        let earth = 3.0 * 5e-5 * 5e-5 / 6.371e6;
+        assert!(close(susceptibility_force(volume, chi, earth).abs() / signal, 2.47e-11, 1e-2));
+        // A lab gradient of 1.05e-9 T^2/m, for instance 100 uT falling off over 10 m, biases it
+        // at 2.2e-5: the size of the spread between the published measurements of G.
+        let lab = 1.047e-9;
+        assert!(close(susceptibility_force(volume, chi, lab).abs() / signal, 2.2e-5, 1e-2));
+        // It is linear in the gradient and reverses with the sign of the susceptibility.
+        assert!(close(susceptibility_force(volume, chi, 2.0 * lab) / susceptibility_force(volume, chi, lab), 2.0, 1e-12));
+        assert!(susceptibility_force(volume, -chi, lab) == -susceptibility_force(volume, chi, lab));
     }
 }

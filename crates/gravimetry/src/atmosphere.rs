@@ -47,6 +47,18 @@ pub fn vertical_wavenumber_sq(omega: f64, kh: f64, c: f64) -> f64 {
     (omega * omega - wa * wa) / (c * c) - kh * kh * (1.0 - n * n / (omega * omega))
 }
 
+/// How much a wave's particle velocity grows climbing to altitude `z` (m) in an atmosphere of
+/// scale height `scale_height` (m): conserving the energy flux `½ρv²c` through exponentially
+/// thinning air gives `exp(z/2H)`, a factor of 1.3×10³ by 100 km for H = 7 km.
+///
+/// `None` above `ceiling`, where the formula stops applying: molecular viscosity and thermal
+/// conduction dissipate the wave instead, so extrapolating it to 300 km (a factor of 2×10⁹) is
+/// meaningless. The turbopause is near 105 km and dissipation grows quickly above it, so a
+/// ceiling of 110–150 km is usual; the caller states its own.
+pub fn wave_growth(z: f64, scale_height: f64, ceiling: f64) -> Option<f64> {
+    (z <= ceiling).then(|| (z / (2.0 * scale_height)).exp())
+}
+
 /// Mass per square metre above the ground that a surface-pressure change `dp` (Pa) represents:
 /// `Δp/g`, kg/m². A 1 hPa pulse is 10 kg/m², the same as 1 cm of water.
 pub fn pressure_to_mass(dp: f64) -> f64 {
@@ -98,5 +110,17 @@ mod tests {
         // Tonga's Lamb wave over 4 km and 5 km of ocean raises the sea by 0.63 and 0.94 of Δp/(ρg).
         assert!((forced_ocean_response(318.2, 4000.0) - 0.6328).abs() < 1e-4);
         assert!((forced_ocean_response(318.2, 5000.0) - 0.9396).abs() < 1e-4);
+    }
+
+    #[test]
+    fn waves_grow_then_dissipate() {
+        // Energy-flux conservation: a factor of 1.27e3 by 100 km for H = 7 km.
+        assert!((wave_growth(100e3, 7e3, 150e3).unwrap() / 1265.0 - 1.0).abs() < 1e-3);
+        // The formula is refused where dissipation takes over, instead of returning 2e9 at 300 km.
+        assert!(wave_growth(300e3, 7e3, 150e3).is_none());
+        assert!((wave_growth(0.0, 7e3, 150e3).unwrap() - 1.0).abs() < 1e-12);
+        // The Hunga Tonga Lamb wave: 780 Pa gives 2.04 m/s of surface particle velocity.
+        let v0: f64 = 780.0 / (1.2 * 318.0);
+        assert!((v0 - 2.04).abs() < 0.01);
     }
 }

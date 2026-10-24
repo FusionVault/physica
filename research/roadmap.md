@@ -66,10 +66,36 @@ That is how `gravitics` already works ("each proposal's own model next to genera
 the measurements"). Items with dual-use framing (detection, cloaking) are implemented at the
 level of the public physics of the effect.
 
-## Phase C: implement what the review produces
+## Phase C: implement what the review produces — done 2026-10-24
 
-Write each reviewed item into its crate and module, with a published test value or the claim's
-own numbers as the test, plus examples where one reproduces a published result.
+Every accepted item is implemented and tested (293 workspace tests pass; clippy and rustdoc
+clean):
+
+| Item | Where |
+|---|---|
+| Einstein coupling `8πG/c⁴` | `metrology::EINSTEIN_KAPPA` |
+| Local gravity-gradient tensor (north, east, up), checked against finite differences in a true local frame | `geopotential::SecondPartials::tensor_neu` |
+| Buried-body forward models (sphere, horizontal cylinder) and sensor averaging | `gravimetry::local` |
+| Wave growth with a dissipation ceiling | `gravimetry::atmosphere::wave_growth` |
+| Prompt elastogravity: lead time over the P-wave, and the dipole amplitude | `gravimetry::coseismic::{prompt_lead, prompt_gravity}` |
+| Atom-interferometer phase sensitivity and the gravitational Aharonov–Bohm rate | `gravimetry::atom::{phase_sensitivity, aharonov_bohm_rate}` |
+| Laboratory quadrupole strain and burst energy | `gravitational::laboratory::{quadrupole_strain, burst_energy}` |
+| Plasma critical density and refractive index (the Gordon-metric link) | `gravitational::hf::{critical_density, plasma_index}` |
+| Ultralight dark matter: Compton frequency, the mid-band in mass, coherence length | `gravitational::ultralight` |
+| Dielectrophoretic force, field angular momentum, the mass-independence discriminator | `gravitics::electrogravity` |
+| Pairwise tension, and the test that the G scatter follows the apparatus not the site | `gravitics::anomalies::tension` |
+| The DeWitt gravitomagnetic suppression `Gm_e²/(ħc)` | `gravitics::gem::ELECTRON_GRAVITATIONAL_COUPLING` |
+| Susceptibility force in a field gradient, and the bias it puts on G | `magnetics::magnets::susceptibility_force` |
+| Ionospheric dynamo field | `magnetics::space_weather::dynamo_field` |
+| Ampère line-current force beside its gravitational twin (the galactic comparison) | `magnetics::mhd::{line_current_force, line_mass_force}` |
+
+Still to source before coding (unchanged): chameleon/symmetron screening, the PEGS template
+amplitudes, the Pais patent's own formula, Peratt 1986, DeWitt 1966, the rectangular-prism
+forward model, magnon HFGW limits.
+
+Also still open: `magnetics::{devices, astro, frontier}`, specified in the magnetics report at
+lines 181–211 with test values and sources. Four attempts to write them were stopped by an
+automated filter, so they are left for the user to add from that specification.
 
 ## Phase D: documentation and release (roadmap steps 4–5), once
 

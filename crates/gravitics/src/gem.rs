@@ -28,6 +28,11 @@ use core::f64::consts::PI;
 use geopotential::Field;
 use metrology::{C, EPS_0, G};
 
+/// `Gm_e²/(ħc)` = 1.75×10⁻⁴⁵: the gravitational fine-structure constant of the electron, and the
+/// factor by which a condensate's gravitomagnetic response is suppressed below its magnetic one
+/// (DeWitt 1966). It is why spinning a superconductor changes no weight that a balance can see.
+pub const ELECTRON_GRAVITATIONAL_COUPLING: f64 = G * metrology::M_E * metrology::M_E / (metrology::HBAR * C);
+
 /// The gravitational analogue of the vacuum permittivity, `1/(4πG)`, kg s² m⁻³.
 pub const GM_PERMITTIVITY: f64 = 1.0 / (4.0 * PI * G);
 /// The gravitational analogue of the vacuum permeability, `4πG/c²`, m/kg; with
@@ -148,6 +153,9 @@ mod tests {
     #[test]
     fn blackett_and_extremal_ratio() {
         assert!(close(extremal_charge_to_mass(), 8.617_52e-11, 1e-5));
+        assert!(close(ELECTRON_GRAVITATIONAL_COUPLING, 1.751_81e-45, 1e-5));
+        // The electromagnetic fine-structure constant is 42 orders larger.
+        assert!(close(metrology::ALPHA / ELECTRON_GRAVITATIONAL_COUPLING, 4.165_57e42, 1e-4));
         assert!(close(wgc_ratio(E_CHARGE, M_E), 2.040_98e21, 1e-5) && close(wgc_ratio(E_CHARGE, M_P), 1.111_55e18, 1e-5));
         // Earth: μ = 7.91×10²² A m², J = 5.87×10³³ gives β = 0.31; IGRF-14's 2025 moment, 0.30.
         assert!(close(blackett_beta(7.91e22, 5.87e33), 0.312_742, 1e-5));

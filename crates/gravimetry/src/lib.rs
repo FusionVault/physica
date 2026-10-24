@@ -7,6 +7,7 @@ pub mod atom;
 pub mod coseismic;
 pub mod gradiometry;
 pub mod kalman;
+pub mod local;
 pub mod missions;
 pub mod noise;
 pub mod sim;

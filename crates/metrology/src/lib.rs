@@ -35,6 +35,10 @@ pub const M_P: f64 = 1.672_621_923_69e-27;
 pub const AMU: f64 = 1.660_539_066_60e-27;
 /// Mass of a hydrogen atom, kg.
 pub const M_H: f64 = 1.007_825_032_23 * AMU;
+/// Einstein's coupling constant `8πG/c⁴`, s² kg⁻¹ m⁻¹: the stiffness of spacetime in
+/// `G_μν = κT_μν`. Its reciprocal, 4.8×10⁴² N, is why laboratory stress-energy curves spacetime
+/// so little.
+pub const EINSTEIN_KAPPA: f64 = 8.0 * core::f64::consts::PI * G / (C * C * C * C);
 /// Bohr magneton `eħ/2m_e`, J/T.
 pub const MU_B: f64 = 9.274_010_078_3e-24;
 /// Proton gyromagnetic ratio, s⁻¹ T⁻¹ (γ_p/2π = 42.577 MHz/T, the MRI Larmor frequency).
@@ -85,6 +89,7 @@ mod tests {
         assert!((PLANCK_LENGTH / (HBAR * G / C.powi(3)).sqrt() - 1.0).abs() < 1e-5);
         assert!((SOLAR_MASS / 1.988_4e30 - 1.0).abs() < 1e-4);
         assert!((MU_B / (E_CHARGE * HBAR / (2.0 * M_E)) - 1.0).abs() < 1e-9);
+        assert!((EINSTEIN_KAPPA / 2.076_647e-43 - 1.0).abs() < 1e-6);
         assert!((PARSEC / (AU * 648_000.0 / core::f64::consts::PI) - 1.0).abs() < 1e-12);
     }
 }

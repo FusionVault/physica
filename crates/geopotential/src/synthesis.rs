@@ -43,6 +43,28 @@ pub struct SecondPartials {
     pub dlatlon: f64,
 }
 
+impl SecondPartials {
+    /// The gravity-gradient (tidal) tensor `Γᵢⱼ = ∂²V/∂xᵢ∂xⱼ` in the local frame at geocentric
+    /// radius `r` (m) and latitude `lat` (radians), s⁻², as the symmetric matrix
+    /// `[[Γnn, Γne, Γnu], [Γne, Γee, Γeu], [Γnu, Γeu, Γuu]]` with x = north, y = east, z = up.
+    /// Multiply by 1e9 for Eötvös. Its trace vanishes in free space (Laplace's equation), and a
+    /// gradiometer measures it directly: a rigid vehicle's own acceleration is common to both
+    /// proof masses and cancels, leaving only this.
+    ///
+    /// For a point mass it is `diag(−GM/r³, −GM/r³, +2GM/r³)`. Undefined exactly at a pole.
+    pub fn tensor_neu(&self, r: f64, lat: f64) -> [[f64; 3]; 3] {
+        let (sec, tan) = (1.0 / lat.cos(), lat.tan());
+        let (vr, vlat, vlon) = (self.first.dr, self.first.dlat, self.first.dlon);
+        let nn = vr / r + self.dlatlat / (r * r);
+        let ee = vr / r - tan * vlat / (r * r) + self.dlonlon * sec * sec / (r * r);
+        let uu = self.drr;
+        let nu = (self.drlat - vlat / r) / r;
+        let eu = (self.drlon - vlon / r) * sec / r;
+        let ne = (self.dlatlon + tan * vlon) * sec / (r * r);
+        [[nn, ne, nu], [ne, ee, eu], [nu, eu, uu]]
+    }
+}
+
 impl Coefficients {
     /// `V` with its first and second partial derivatives at geocentric radius `r` (m), latitude
     /// `lat` and longitude `lon` (radians). Finite at the poles.
@@ -335,5 +357,54 @@ mod tests {
         let ewh = d.grid(&Functional::WaterHeight { love: &love }, R, &[core::f64::consts::FRAC_PI_2], &[0.0])[0];
         let expect = R * 5517.0 / 3000.0 * 5.0 / 0.697 * 1e-10 * 5f64.sqrt();
         assert!((ewh - expect).abs() < 1e-15 && (ewh - 0.0188).abs() < 1e-4, "{ewh}");
+    }
+
+    /// The gradient tensor against finite differences of the potential in a true local Cartesian
+    /// frame, and against the point-mass form.
+    #[test]
+    fn gradient_tensor_in_the_local_frame() {
+        let (gm, radius) = (3.986_004_415e14, 6_378_136.3);
+        let mut field = Coefficients::zeros(gm, radius, 4);
+        field.set(0, 0, 1.0, 0.0);
+        field.set(2, 0, -4.841_695e-4, 0.0);
+        field.set(2, 2, 2.439_37e-6, -1.400_31e-6);
+        field.set(3, 1, 2.030_45e-6, 2.482_42e-7);
+        field.set(4, 4, -1.880_28e-7, 3.088_01e-7);
+
+        let (r, lat, lon) = (7_000e3, 0.4, 1.1);
+        let got = field.second_partials(r, lat, lon).tensor_neu(r, lat);
+
+        // Displace in the local frame, convert back to spherical, and evaluate V there.
+        let (sp, cp) = lat.sin_cos();
+        let (sl, cl) = lon.sin_cos();
+        let p0 = [r * cp * cl, r * cp * sl, r * sp];
+        let axes = [[-sp * cl, -sp * sl, cp], [-sl, cl, 0.0], [cp * cl, cp * sl, sp]];
+        let v_at = |d: [f64; 3]| {
+            let p: Vec<f64> = (0..3).map(|k| p0[k] + (0..3).map(|a| d[a] * axes[a][k]).sum::<f64>()).collect();
+            let rr = (p[0] * p[0] + p[1] * p[1] + p[2] * p[2]).sqrt();
+            field.partials(rr, (p[2] / rr).asin(), p[1].atan2(p[0])).v
+        };
+        // h balances round-off (∝1/h², from differencing a 10⁷-sized potential) against
+        // truncation (∝h²); the residual noise floor is about 1e-14 s⁻².
+        let h = 400.0;
+        for i in 0..3 {
+            for j in 0..3 {
+                let step = |a: f64, b: f64| { let mut d = [0.0; 3]; d[i] += a; d[j] += b; v_at(d) };
+                let fd = (step(h, h) - step(h, -h) - step(-h, h) + step(-h, -h)) / (4.0 * h * h);
+                assert!((got[i][j] - fd).abs() < 1e-13, "({i},{j}): {} vs {fd}", got[i][j]);
+            }
+        }
+        // Laplace: the trace vanishes.
+        assert!((0..3).map(|k| got[k][k]).sum::<f64>().abs() < 1e-16);
+
+        // A point mass: diag(-GM/r^3, -GM/r^3, +2GM/r^3), with no off-diagonal terms.
+        let mut mono = Coefficients::zeros(gm, radius, 0);
+        mono.set(0, 0, 1.0, 0.0);
+        let t = mono.second_partials(r, lat, lon).tensor_neu(r, lat);
+        let g3 = gm / r.powi(3);
+        assert!((t[0][0] + g3).abs() < 1e-18 && (t[1][1] + g3).abs() < 1e-18 && (t[2][2] - 2.0 * g3).abs() < 1e-18);
+        assert!(t[0][1].abs() < 1e-20 && t[0][2].abs() < 1e-20 && t[1][2].abs() < 1e-20);
+        // 1 Eotvos is 1e-9 s^-2: the radial gradient 2GM/r^3 at 7000 km is about 2330 E.
+        assert!((2.0 * g3 * 1e9 - 2325.0).abs() < 5.0);
     }
 }

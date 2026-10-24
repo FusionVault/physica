@@ -104,6 +104,26 @@ pub fn ion_break_frequency(v: f64, n: f64, t_ev: f64, b: f64) -> f64 {
     v / (2.0 * PI * scale)
 }
 
+/// Attraction per unit length (N/m) between two parallel currents `i1`, `i2` (A) a distance `r`
+/// (m) apart: `μ₀I₁I₂/(2πr)`. It falls off as `1/r`, more slowly than gravity's `1/r²` between
+/// point masses, which is the basis of the claim that filamentary currents could do the work
+/// attributed to dark matter.
+///
+/// The comparison is worth making in numbers. Two parallel gas filaments of line mass `λ` attract
+/// gravitationally at `2Gλ₁λ₂/r`, also as `1/r`, so neither wins by geometry: what decides it is
+/// the coefficient. At galactic scale the gravitational term dominates by about twelve orders of
+/// magnitude even for mega-ampere currents, as this module's test shows.
+pub fn line_current_force(i1: f64, i2: f64, r: f64) -> f64 {
+    MU_0 * i1 * i2 / (2.0 * PI * r)
+}
+
+/// Gravitational attraction per unit length (N/m) between two parallel filaments of line mass
+/// `lambda1`, `lambda2` (kg/m) a distance `r` (m) apart: `2Gλ₁λ₂/r`, the gravitational twin of
+/// [`line_current_force`].
+pub fn line_mass_force(lambda1: f64, lambda2: f64, r: f64) -> f64 {
+    2.0 * metrology::G * lambda1 * lambda2 / r
+}
+
 /// Density compression `X = ρ₂/ρ₁` across a perpendicular MHD shock of Alfvén Mach number `m_a`,
 /// upstream beta `beta` and adiabatic index `gamma`: the positive root of
 /// `(2−γ)X² + [γ(1+β) + (γ−1)M_A²]X − (γ+1)M_A² = 0`, which tends to `(γ+1)/(γ−1)` (4) for
@@ -181,5 +201,25 @@ mod tests {
         assert!(close(perpendicular_shock(8.0, 2.1, 5.0 / 3.0).unwrap(), 3.483_387, 1e-6));
         assert!(close(perpendicular_shock(1e5, 1.0, 5.0 / 3.0).unwrap(), 4.0, 1e-6));
         assert!(perpendicular_shock(1.0, 1.0, 5.0 / 3.0).is_none());
+    }
+
+    /// Both line forces fall as 1/r, so the comparison is one of coefficients. At galactic scale
+    /// gravity wins by twelve orders of magnitude even for mega-ampere Birkeland currents.
+    #[test]
+    fn filamentary_currents_against_gravity() {
+        let pc = metrology::PARSEC;
+        let lambda = metrology::SOLAR_MASS / pc; // one solar mass per parsec
+        let magnetic = line_current_force(1e6, 1e6, pc);
+        let gravitational = line_mass_force(lambda, lambda, pc);
+        assert!(close(magnetic, 6.4815e-12, 1e-4) && close(gravitational, 17.9637, 1e-4));
+        assert!(close(magnetic / gravitational, 3.606e-13, 1e-3));
+        // Both scale as 1/r, so the ratio is scale-free: no separation makes magnetism win.
+        let far = line_current_force(1e6, 1e6, 1e3 * pc) / line_mass_force(lambda, lambda, 1e3 * pc);
+        assert!(close(far, magnetic / gravitational, 1e-12));
+        // Matching gravity at a parsec would need a current of 1.7e12 A.
+        let needed = (gravitational * 2.0 * PI * pc / MU_0).sqrt();
+        assert!(close(needed, 1.6648e12, 1e-3), "{needed:e}");
+        // In a laboratory pinch the balance is the other way round, as `plasmoid` records.
+        assert!(line_current_force(1e6, 1e6, 0.01) > line_mass_force(1e-6, 1e-6, 0.01));
     }
 }
