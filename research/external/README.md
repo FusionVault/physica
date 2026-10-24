@@ -8,7 +8,7 @@ calculator or a test, what needs a source checked first, and what stays out.
 | Batch | Items | Review status |
 |---|---|---|
 | [2026-10-24, cross-crate frontier regimes](2026-10-24-cross-crate-frontier-regimes.md) | (5 regimes) | [Reviewed](2026-10-24-cross-crate-frontier-regimes-review.md) 2026-10-24 |
-| [2026-10-24, BAASS, Peratt and Pais (livestream summary)](2026-10-24-baass-peratt-pais-video.md) | (5 pillars) | Not reviewed |
+| [2026-10-24, BAASS, Peratt and Pais (livestream summary)](2026-10-24-baass-peratt-pais-video.md) | (5 pillars) | [Reviewed](2026-10-24-baass-peratt-pais-video-review.md) 2026-10-24 |
 
 ## How a batch is reviewed
 
