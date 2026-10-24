@@ -1,7 +1,7 @@
 [package]
 name = "metrology"
 version = "0.2.0"
-description = "The physical constants the quantum-gravimeter crates share: CODATA 2018 fundamental constants, standard gravity, and the astronomical units of mass, distance and time."
+description = "The physical constants the physica crates share: CODATA 2018 fundamental constants, standard gravity, and the astronomical units of mass, distance and time."
 keywords = ["constants", "physics", "codata", "si", "units"]
 categories = ["science"]
 edition.workspace = true

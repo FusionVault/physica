@@ -128,9 +128,9 @@ Every formula is tested against numbers published in, or recomputed from, the pa
 
 All formulas are written from the papers, not translated from other codes, so the crate stays
 MIT-licensed. The research behind the newer modules is in the report on
-[where gravity physics is still open](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/gravity-anomalies/report.md).
+[where gravity physics is still open](https://github.com/FusionVault/physica/blob/main/research/topics/gravity-anomalies/report.md).
 
-One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [physica](https://github.com/FusionVault/physica):
 [`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·

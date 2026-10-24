@@ -7,7 +7,7 @@ edition = "2024"
 rust-version = "1.85"
 license = "MIT"
 authors = ["Daniel Garden"]
-repository = "https://github.com/FusionVault/quantum-gravimeter"
+repository = "https://github.com/FusionVault/physica"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }

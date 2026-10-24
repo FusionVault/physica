@@ -5,7 +5,7 @@ missions with quantum (cold-atom) sensors, and simulate what gravity field they 
 turn the monthly fields of GRACE and GRACE-FO into maps of water storage, and model the gravity
 change an earthquake causes. Built on [`geopotential`](https://crates.io/crates/geopotential).
 
-![Water storage anomaly in July 2026](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/water_2026-07.svg)
+![Water storage anomaly in July 2026](https://raw.githubusercontent.com/FusionVault/physica/main/figures/water_2026-07.svg)
 
 *Water stored on land and in the ocean in July 2026, against the 2004–2009 average.*
 
@@ -45,12 +45,12 @@ println!("{:.0} mm of water at the North Pole", water[0] * 1000.0); // 19 mm
 
 With real data, read each month with `geopotential::read_gfc` and the low-degree corrections
 with `technotes::read_tn14` and `read_tn13`. The
-[full chain](https://github.com/FusionVault/quantum-gravimeter/blob/main/lab/src/main.rs)
+[full chain](https://github.com/FusionVault/physica/blob/main/lab/src/main.rs)
 replaces C̄20, C̄30 and degree 1 before subtracting the baseline.
 
 ## Example: a quantum accelerometer against GRACE-FO
 
-![Instrument noise of electrostatic and cold-atom accelerometers and laser ranging](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/noise_spectra.svg)
+![Instrument noise of electrostatic and cold-atom accelerometers and laser ranging](https://raw.githubusercontent.com/FusionVault/physica/main/figures/noise_spectra.svg)
 
 *Instrument noise, reproducing Figure 1 of
 [Zingerle et al. (2024)](https://doi.org/10.1029/2024EA003630) from its equations.*
@@ -73,7 +73,7 @@ assert!(quantum < today / 3.0);
 
 ## Example: the gravity change of an earthquake
 
-![The 2025 Kamchatka earthquake in GRACE-FO against the USGS fault model](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/e1_kamchatka.svg)
+![The 2025 Kamchatka earthquake in GRACE-FO against the USGS fault model](https://raw.githubusercontent.com/FusionVault/physica/main/figures/e1_kamchatka.svg)
 
 *Left: the gravity step the July 2025 Kamchatka earthquake left in GRACE-FO. Right: the USGS
 fault model through the same filter, computed with this crate.*
@@ -145,7 +145,7 @@ maximum likelihood over many series at once.
 | `kalman` | A Kalman smoother for series with gaps and per-month errors, and a maximum-likelihood fit of its settings ([Rauch et al. 1965](https://doi.org/10.2514/3.3166)) |
 | `atmosphere` | Sound, buoyancy and Lamb waves in the air, the mass of a pressure change, and the ocean's forced response to a fast pressure pulse ([Wright et al. 2022](https://doi.org/10.1038/s41586-022-05012-5); [Proudman 1929](https://doi.org/10.1111/j.2044-8312.1929.tb05286.x)) |
 
-![Closed-loop simulation of four mission classes](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/sst_closed_loop.svg)
+![Closed-loop simulation of four mission classes](https://raw.githubusercontent.com/FusionVault/physica/main/figures/sst_closed_loop.svg)
 
 *The simulated error of four mission classes, from today's to a quantum pair, against the
 errors of a real month.*
@@ -188,7 +188,7 @@ errors of a real month.*
 **Not included yet:** glacial isostatic adjustment, DDK filters, basin averages and leakage
 corrections; time-variable gravity in the simulator, so no temporal aliasing.
 
-One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [physica](https://github.com/FusionVault/physica):
 [`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·

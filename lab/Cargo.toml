@@ -1,7 +1,7 @@
 [package]
 name = "lab"
 version = "0.0.0"
-description = "The research workbench behind quantum-gravimeter: regenerates every figure (SVG) and reruns every analysis from the crates. Not published."
+description = "The research workbench behind physica: regenerates every figure (SVG) and reruns every analysis from the crates. Not published."
 publish = false
 edition.workspace = true
 rust-version.workspace = true

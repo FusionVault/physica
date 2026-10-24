@@ -44,9 +44,9 @@ The figures and analysis outputs are in [`figures/`](../figures), made by the
 exists (W1), or before the analysis is run on it (T1), and the tag is pushed so its date is
 public. The registrations and the freeze are kept exactly as tagged, so the paths inside them
 refer to the repository at their tag:
-[`prereg/W1-2026-10-24`](https://github.com/FusionVault/quantum-gravimeter/tree/prereg/W1-2026-10-24),
-[`prereg/T1-2026-10-24`](https://github.com/FusionVault/quantum-gravimeter/tree/prereg/T1-2026-10-24) and
-[`prereg/T1-frozen`](https://github.com/FusionVault/quantum-gravimeter/tree/prereg/T1-frozen).
+[`prereg/W1-2026-10-24`](https://github.com/FusionVault/physica/tree/prereg/W1-2026-10-24),
+[`prereg/T1-2026-10-24`](https://github.com/FusionVault/physica/tree/prereg/T1-2026-10-24) and
+[`prereg/T1-frozen`](https://github.com/FusionVault/physica/tree/prereg/T1-frozen).
 
 ## Audits
 

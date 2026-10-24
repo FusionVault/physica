@@ -1,4 +1,4 @@
-//! The research workbench behind the quantum-gravimeter crates: every figure (SVG, with a CSV of
+//! The research workbench behind the physica crates: every figure (SVG, with a CSV of
 //! the plotted values) and every analysis, rerun from the crates and the public data.
 //!
 //! Run it with no arguments for the list of commands.

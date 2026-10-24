@@ -11,7 +11,7 @@ whole parallel track of physics, and gravity's open anomalies, three ways:
 Use it to explore a proposal, to design an experiment that could test one, or to see how large
 an effect must be before an instrument can see it.
 
-![Each proposal's own numbers against general relativity and experiment](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/claims_gap.svg)
+![Each proposal's own numbers against general relativity and experiment](https://raw.githubusercontent.com/FusionVault/physica/main/figures/claims_gap.svg)
 
 ## Install
 
@@ -102,21 +102,21 @@ assert!((near * 1e3 - 13.28).abs() < 0.01);
 | `spacetime` | Alcubierre warp-bubble energy ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026)), the quantum inequality, Casimir plates and spheres, wormhole tensions, light bending in Puthoff's polarizable vacuum against general relativity, Forward's induced acceleration, and horizon temperatures (Unruh, Hawking, Gibbons–Hawking) with black-hole lifetimes and zero-point energy |
 | `strong_field` | The Schwinger limit: the critical field, the pair-production and vacuum-decay rates, laser a₀ and the quantum parameter χ (with explicit intensity conventions), Ritus–Narozhny, Breit–Wheeler suppression, vacuum birefringence, Euler–Heisenberg, supercritical atoms, and the graphene analogue. The Schwinger exponent is exactly a Boltzmann factor at twice the Unruh temperature, and a test pins that identity |
 
-![The energy a warp bubble needs](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/warp_energy.svg)
+![The energy a warp bubble needs](https://raw.githubusercontent.com/FusionVault/physica/main/figures/warp_energy.svg)
 
 *A warp bubble's negative energy grows as its wall thins. Quantum field theory allows walls only
 about 100 Planck lengths thick, where a 100 m bubble needs billions of times the ordinary matter
 in the observable universe.*
 
-![Thrust per watt](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/thrust_per_watt.svg)
+![Thrust per watt](https://raw.githubusercontent.com/FusionVault/physica/main/figures/thrust_per_watt.svg)
 
 *Thrust per watt: the propellantless proposals, a photon rocket, ion wind, and the best
 measurement.*
 
 The research behind every number, with its sources and the status of each proposal, is in the
-reports on [fringe physics and the DIRDs](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/fringe-physics-and-dirds/report.md),
-[the Coulomb barrier and the Schwinger limit](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/coulomb-and-schwinger/report.md)
-and [where gravity physics is still open](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/gravity-anomalies/report.md).
+reports on [fringe physics and the DIRDs](https://github.com/FusionVault/physica/blob/main/research/topics/fringe-physics-and-dirds/report.md),
+[the Coulomb barrier and the Schwinger limit](https://github.com/FusionVault/physica/blob/main/research/topics/coulomb-and-schwinger/report.md)
+and [where gravity physics is still open](https://github.com/FusionVault/physica/blob/main/research/topics/gravity-anomalies/report.md).
 
 ## Applications
 
@@ -153,7 +153,7 @@ Every test reproduces a published number from the paper's own inputs, mostly to 
 The formulas were independently re-derived from their sources and every test value recomputed;
 the Casimir formulas are also checked against each other.
 
-One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [physica](https://github.com/FusionVault/physica):
 [`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·

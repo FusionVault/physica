@@ -119,7 +119,7 @@ geodetic latitude and height above the WGS84 ellipsoid for the field elements.
 
 Every example above is compiled and run as a test, and so are the programs in `examples/`.
 
-One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [physica](https://github.com/FusionVault/physica):
 [`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·

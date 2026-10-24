@@ -64,8 +64,8 @@ assert!(magnetic_over_gravitational(1e6, pinch) > 1e27);
 | `conversion` | N-stage direct-collector efficiency, engineering gain of magnetic and inertial plants, pulsed inductive breakeven, laser p–¹¹B gain | Moir & Barr 1973 (Nucl. Fusion 13, 35); [Margarone et al. 2020](https://doi.org/10.3389/fphy.2020.00343) |
 
 The research behind it, with every claim's status, is in the reports on the
-[Coulomb barrier and the Schwinger limit](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/coulomb-and-schwinger/report.md)
-and on [Z-pinches, plasmoids and aneutronic fusion](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/plasmoids-and-fusion/report.md).
+[Coulomb barrier and the Schwinger limit](https://github.com/FusionVault/physica/blob/main/research/topics/coulomb-and-schwinger/report.md)
+and on [Z-pinches, plasmoids and aneutronic fusion](https://github.com/FusionVault/physica/blob/main/research/topics/plasmoids-and-fusion/report.md).
 
 ## Applications
 
@@ -92,7 +92,7 @@ and on [Z-pinches, plasmoids and aneutronic fusion](https://github.com/FusionVau
 - **Aneutronic power:** NRL's bremsstrahlung limit and Putvinski's synchrotron ratios.
 - **Laser shots:** Margarone's and the PALS shots' energy returns.
 
-One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [physica](https://github.com/FusionVault/physica):
 [`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·

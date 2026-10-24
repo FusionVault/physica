@@ -1,6 +1,6 @@
 # metrology
 
-The physical constants the quantum-gravimeter crates share, defined once: the exact SI defining
+The physical constants the physica crates share, defined once: the exact SI defining
 constants, the CODATA 2018 values of G, α, μ₀, ε₀ and the particle masses, standard gravity, and
 the astronomical units of mass, distance and time.
 
@@ -44,7 +44,7 @@ version to pin the constants, which is what reproducing a published number needs
 A test checks that the derived constants agree with each other: `ħ = h/2π`, `R = N_A k_B`,
 `μ₀ε₀c² = 1`, `α = e²/4πε₀ħc`, the Planck length, and the solar mass.
 
-One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [physica](https://github.com/FusionVault/physica):
 [`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·

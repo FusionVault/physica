@@ -1,7 +1,7 @@
 [package]
 name = "physica"
 version = "0.1.0"
-description = "The quantum-gravimeter crate family in one dependency: constants, Earth's gravity and magnetic fields, satellite gravimetry, gravitational waves, frontier gravity, fusion plasma and magnetism, plus tested cross-domain analogies between them."
+description = "The physica crate family in one dependency: constants, Earth's gravity and magnetic fields, satellite gravimetry, gravitational waves, frontier gravity, fusion plasma and magnetism, plus tested cross-domain analogies between them."
 keywords = ["physics", "gravity", "geomagnetism", "plasma", "gravitational-waves"]
 categories = ["science"]
 edition.workspace = true

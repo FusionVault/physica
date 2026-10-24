@@ -1,6 +1,6 @@
 # physica
 
-The whole quantum-gravimeter family in one dependency, plus the equations its domains share.
+The whole physica family in one dependency, plus the equations its domains share.
 
 Seven crates cover Earth's gravity field, satellite gravimetry, gravitational waves, frontier
 gravity proposals, fusion plasma, magnetism and the constants behind them. They are published
@@ -101,9 +101,9 @@ on the ball from five crates (charge, polarisation, gas, magnetism, the field's 
 the claim's own model with its constants), integrated at 1 ms. It is a calibration case for the
 physics, so it lives in the examples, not the library. A 3D model of the same rig, computed
 with the same equations, is in the repository's
-[`web/`](https://github.com/FusionVault/quantum-gravimeter/tree/main/web) directory.
+[`web/`](https://github.com/FusionVault/physica/tree/main/web) directory.
 
-One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [physica](https://github.com/FusionVault/physica):
 [`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·

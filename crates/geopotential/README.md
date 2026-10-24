@@ -5,7 +5,7 @@ file, from static models such as GOCO06s to every monthly GRACE field. Then eval
 potential, the gravity vector or the gravity-gradient tensor at any point, or draw maps of the
 geoid, gravity anomalies or water height. Pure Rust, no required dependencies.
 
-![The geoid from the GOCO06s satellite model](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/geoid_goco06s.svg)
+![The geoid from the GOCO06s satellite model](https://raw.githubusercontent.com/FusionVault/physica/main/figures/geoid_goco06s.svg)
 
 *The geoid from GOCO06s, drawn with this crate.*
 
@@ -57,7 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-![The error of every coefficient of the July 2026 GRACE-FO field](https://raw.githubusercontent.com/FusionVault/quantum-gravimeter/main/figures/error_triangle_2026-07.svg)
+![The error of every coefficient of the July 2026 GRACE-FO field](https://raw.githubusercontent.com/FusionVault/physica/main/figures/error_triangle_2026-07.svg)
 
 *The calibrated error of each coefficient of the July 2026 COST-G field, read with `read_gfc`.*
 
@@ -106,7 +106,7 @@ zip.
   malformed record fails with its line number. The fixtures' sources are listed in
   `tests/data/README.md`.
 
-One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [physica](https://github.com/FusionVault/physica):
 [`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·

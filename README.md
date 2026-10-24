@@ -1,13 +1,14 @@
-# quantum-gravimeter
+# physica
 
-Rust crates for gravity, from the satellites that weigh Earth's water to the edges of physics.
-Read the gravity fields measured by GRACE, GRACE-FO and GOCE and turn them into maps of water,
-ice and earthquakes; simulate the quantum (cold-atom) sensors of future missions; chart
-gravitational waves from nanohertz to terahertz; evaluate Earth's magnetic field and the
-magnetohydrodynamics behind magnets, plasmas and space weather; compute the frontier proposals
-for controlling gravity next to general relativity and the measurements; and model the plasmas
-and fusion reactions that come up along the way. Every formula is tested against published numbers, and
-the data tests are registered before the data decides them.
+Rust crates for physics from the measured to the novel, computed and tested: one library for the
+fields Earth and its satellites measure, and for the frontier proposals set beside general
+relativity and the experiments. Read the gravity fields measured by GRACE, GRACE-FO and GOCE and
+turn them into maps of water, ice and earthquakes; simulate the quantum (cold-atom) sensors of
+future missions; chart gravitational waves from nanohertz to terahertz; evaluate Earth's magnetic
+field and the magnetohydrodynamics behind magnets, plasmas and space weather; compute the frontier
+proposals for controlling gravity next to general relativity and the measurements; and model the
+plasmas and fusion reactions that come up along the way. Every formula is tested against
+published numbers, and the data tests are registered before the data decides them.
 
 ![Water storage anomaly in July 2026, from GRACE-FO](figures/water_2026-07.svg)
 
