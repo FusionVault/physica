@@ -59,6 +59,7 @@ use core::f64::consts::PI;
 
 use metrology::{C, E_CHARGE, EPS_0, G, H};
 
+
 /// The dielectrophoretic (Kelvin) force (N) on a neutral dielectric of volume `volume` (m³) and
 /// relative permittivity `eps_r` in a field whose squared magnitude has gradient `grad_e2`
 /// (V²/m³): `F = ½Vε₀(ε_r − 1)∇(E²)`, the dilute limit.
@@ -165,6 +166,74 @@ pub fn electric_pressure(e: f64) -> f64 {
 /// central mass written as a frequency: an identity, not a new constraint linking the constants.
 pub fn five_constants(radius: f64, period: f64, frequency: f64) -> f64 {
     4.0 * PI * PI * radius.powi(3) * C * C / (period * period * G * H * frequency)
+}
+
+/// The depolarisation factor along the long axis of a prolate spheroid whose long axis is
+/// `aspect` times its short ones: `L = (1 − e²)/e³ (atanh e − e)`, with `e² = 1 − 1/aspect²`. A
+/// sphere gives 1/3; the two short axes share the rest, `(1 − L)/2` each (Osborn, Phys. Rev. 67,
+/// 351, 1945).
+pub fn depolarisation(aspect: f64) -> f64 {
+    let e2 = 1.0 - 1.0 / (aspect * aspect);
+    if e2 < 0.09 {
+        // (1 − e²) Σ e²ᵏ/(2k + 3): the closed form loses digits as e → 0.
+        (1.0 - e2) * (0..24).map(|k| e2.powi(k) / (2 * k + 3) as f64).sum::<f64>()
+    } else {
+        let e = e2.sqrt();
+        (1.0 - e2) / (e2 * e) * (e.atanh() - e)
+    }
+}
+
+/// The polarisability per unit volume, in units of ε₀, of a dielectric prolate spheroid of axis
+/// ratio `aspect`: `(ε_r − 1)/(1 + L(ε_r − 1))` along its long axis and across it. A sphere
+/// gives `3K` both ways ([`clausius_mossotti`]); the difference is what lets a field turn a body
+/// that is not quite round.
+pub fn spheroid_polarisability(eps_r: f64, aspect: f64) -> (f64, f64) {
+    let long = depolarisation(aspect);
+    let alpha = |l: f64| (eps_r - 1.0) / (1.0 + l * (eps_r - 1.0));
+    (alpha(long), alpha((1.0 - long) / 2.0))
+}
+
+/// The torque (N m) a field `e` (V/m) puts on a body of volume `volume` (m³) whose polarisability
+/// per unit volume differs by `d_alpha` (units of ε₀) between its long and short axes, when the
+/// long axis is `angle` (rad) from the field: `½ε₀VΔα E² sin 2θ`, turning the long axis toward
+/// the field.
+pub fn alignment_torque(volume: f64, d_alpha: f64, e: f64, angle: f64) -> f64 {
+    0.5 * EPS_0 * volume * d_alpha * e * e * (2.0 * angle).sin()
+}
+
+/// The attraction (N) between a charge `charge` (C) and a flat dielectric of permittivity
+/// `eps_r` at distance `distance` (m), through its image: `q²(ε_r − 1)/(16πε₀d²(ε_r + 1))`
+/// (Jackson, *Classical Electrodynamics*, §4.4). A conductor gives `q²/(16πε₀d²)`.
+pub fn image_force(charge: f64, distance: f64, eps_r: f64) -> f64 {
+    charge * charge * (eps_r - 1.0) / (16.0 * PI * EPS_0 * distance * distance * (eps_r + 1.0))
+}
+
+/// Zhang's mass–charge conversion constant `k_mq` (C s/kg) in `q = k_mq dM/dt`, as his papers give
+/// it: "experimentally calibrated" (Paper J, §5.5), `eG/c³` (Paper E, Eq. E42), and the
+/// "canonical" `eG/(4πc³)` (Paper J, §5.5). They span 45 orders of magnitude.
+pub const ZHANG_KMQ: [(&str, f64); 3] = [
+    ("calibrated (Paper J)", 7.08e-11),
+    ("eG/c³ (Paper E)", E_CHARGE * G / (C * C * C)),
+    ("eG/(4πc³) (Paper J)", E_CHARGE * G / (4.0 * PI * C * C * C)),
+];
+
+/// Zhang's space–mass coupling constant `μ_g` (kg/m) and the gravitational constant it gives,
+/// `G = 4πc²/μ_g` (Papers E and J): 6.685×10⁻¹¹, which the papers call within 0.16% of CODATA.
+pub const ZHANG_MU_G: f64 = 1.6895e28;
+
+/// The constant `f` (kg s/C) of Zhang's vortex gravitational field, `∇×A = B/f`, and of
+/// `E = −f ∂A/∂t` (*Unified Field Theory*, 7th ed., ch. 34 and 36): his charge and mass constants
+/// combined with `4πε₀G`, which in the papers' notation is `k_mq/(4πε₀G)`. The 2025 air-gap paper
+/// calls the same constant `k`.
+pub fn vortex_constant(k_mq: f64) -> f64 {
+    k_mq / (4.0 * PI * EPS_0 * G)
+}
+
+/// The angular acceleration (rad/s²) Zhang's vortex field gives any body centred on a field line
+/// of a magnetic field `b` (T), for his constant `f` ([`vortex_constant`]). From `∇×A = B/f`, a
+/// uniform field makes `A_φ = Br/(2f)`, a rigid spin-up at `B/(2f)` whatever the body is made of.
+pub fn vortex_spin(b: f64, f: f64) -> f64 {
+    b / (2.0 * f)
 }
 
 /// How much more a classical polarisation force accelerates a light test body than a dense one of
@@ -313,6 +382,65 @@ mod tests {
         let (r, gm): (f64, f64) = (1e7, 4e14);
         let t = 2.0 * PI * (r * r * r / gm).sqrt();
         assert!(close(five_constants(r, t, gm / G * C * C / H), 1.0, 1e-12));
+    }
+
+    #[test]
+    fn spheroids_turn_in_a_field() {
+        // A sphere: L = 1/3 and 3K both ways.
+        assert!(close(depolarisation(1.0), 1.0 / 3.0, 1e-15));
+        let (long, short) = spheroid_polarisability(2.3, 1.0);
+        assert!(close(long, 3.0 * clausius_mossotti(2.3), 1e-14) && close(short, long, 1e-14));
+        // Osborn's table: a 2:1 prolate spheroid has L = 0.1736 along its long axis.
+        assert!(close(depolarisation(2.0), 0.17356, 1e-4), "{}", depolarisation(2.0));
+        // The series and the closed form agree where they meet.
+        let edge = 1.0 / (1.0f64 - 0.09).sqrt();
+        assert!(close(depolarisation(edge * (1.0 - 1e-9)), depolarisation(edge * (1.0 + 1e-9)), 1e-8));
+        // A needle of conductor: L → 0, polarisability without bound.
+        assert!(spheroid_polarisability(1e9, 50.0).0 > 300.0);
+        // A polyethylene ball 1% out of round: Δα = 0.003 27 ε₀, so a horizontal 5.6×10⁴ V/m
+        // at 45° turns it with 1.7×10⁻¹¹ N m.
+        let (long, short) = spheroid_polarisability(2.3, 1.01);
+        let d = long - short;
+        assert!(close(d, 3.2733e-3, 1e-4), "{d}");
+        let tau = alignment_torque(4.0 / 3.0 * PI * 4.447e-3f64.powi(3), d, 5.63e4, PI / 4.0);
+        assert!(close(tau, 1.6921e-11, 1e-4), "{tau:e}");
+    }
+
+    #[test]
+    fn the_image_force() {
+        // 1 nC 5 cm from glass (ε_r = 6): 6.4×10⁻⁷ N, and a conductor's q²/(16πε₀d²) as ε_r → ∞.
+        assert!(close(image_force(1e-9, 0.05, 6.0), 6.4197e-7, 1e-4), "{:e}", image_force(1e-9, 0.05, 6.0));
+        assert!(close(image_force(1e-9, 0.05, 1e12), 1e-18 / (16.0 * PI * EPS_0 * 0.0025), 1e-9));
+    }
+
+    #[test]
+    fn zhangs_constants_in_his_own_terms() {
+        let f: Vec<f64> = ZHANG_KMQ.iter().map(|&(_, k)| vortex_constant(k)).collect();
+        // The three values of f: 9.5×10⁹, 5.3×10⁻³⁵ and 4.3×10⁻³⁶ kg s/C. Paper E's is exactly
+        // e/(4πε₀c³): G cancels.
+        assert!(close(f[0], 9.534e9, 1e-3), "{:e}", f[0]);
+        assert!(close(f[1], E_CHARGE / (4.0 * PI * EPS_0 * C * C * C), 1e-12));
+        assert!(close(f[2], f[1] / (4.0 * PI), 1e-12));
+        // The patent rig's 7.4×10⁻¹¹ T at the ball: 3.9×10⁻²¹ rad/s² with the calibrated value,
+        // 7×10²³ rad/s² with Paper E's.
+        assert!(close(vortex_spin(7.404e-11, f[0]), 3.883e-21, 1e-3));
+        assert!(vortex_spin(7.404e-11, f[1]) > 1e23);
+        // Earth's own field, 5×10⁻⁵ T and always on, is 7×10⁵ times the rig's: with Paper E's
+        // constant everything on Earth would spin up at 5×10²⁹ rad/s².
+        assert!(vortex_spin(5e-5, f[1]) > 4e29);
+        // G = 4πc²/μ_g = 6.6849×10⁻¹¹: 1 390 ppm above the highest of CODATA's 16 measurements
+        // and 34σ from it (BIPM-01), 70σ from CODATA 2022's 6.674 30(15).
+        let g = 4.0 * PI * C * C / ZHANG_MU_G;
+        assert!(close(g, 6.685e-11, 2e-4), "{g:e}");
+        let (top, u) = crate::anomalies::CODATA_2022_G.iter().map(|&(_, v, u)| (v, u)).fold((0.0, 0.0), |a, b| if b.0 > a.0 { b } else { a });
+        assert!((g * 1e11 / top - 1.0) * 1e6 > 1390.0 && (g * 1e11 - top) / u > 34.0);
+        assert!((g * 1e11 - 6.674_30) / 0.000_15 > 70.0);
+        // Paper J's closures with its own numbers: (e k_mq)² μ_g/(ħc) is 6.9×10⁻⁵, not
+        // α = 7.3×10⁻³, and (4π k_mq μ_g)⁻¹ is 6.7×10⁻²⁰, not ε₀ = 8.9×10⁻¹².
+        let k = ZHANG_KMQ[0].1;
+        let alpha = (E_CHARGE * k).powi(2) * ZHANG_MU_G / (metrology::HBAR * C);
+        assert!(close(alpha, 6.88e-5, 1e-2), "{alpha:e}");
+        assert!(close(1.0 / (4.0 * PI * k * ZHANG_MU_G), 6.65e-20, 1e-2));
     }
 
     #[test]

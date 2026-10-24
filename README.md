@@ -30,7 +30,8 @@ the data tests are registered before the data decides them.
 
 [`web/`](web) holds 3D models of the physics, computed in the browser with the crates' equations.
 The first one rebuilds the rig of US 12,417,870 (a ball between high-voltage coils, claimed to
-move by a gravitational field), with its computed field lines and every force on the ball.
+move by a gravitational field) and simulates the ball under every force and torque, checking
+itself against the Rust crates on load.
 
 ## Quick start
 

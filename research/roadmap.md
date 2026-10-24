@@ -110,26 +110,36 @@ automated filter, so they are left for the user to add from that specification.
 
 303 workspace tests pass; clippy and rustdoc clean.
 
-## Phase E: Zhang's unified field theory and US 12,417,870 — done 2026-10-24
+## Phase E: Zhang's unified field theory and US 12,417,870 — done 2026-10-25
 
-Asked for by the user: a 3D rebuild of the patent's rig from real physics, and the physics the
-patent needs. Reviewed in
+Asked for by the user: a 3D rebuild of the patent's rig from real physics, the physics the patent
+needs, and Zhang's own constant `k`, with every formula in the crates. Reviewed in
 [`external/2026-10-24-zhang-unified-field-theory-review.md`](external/2026-10-24-zhang-unified-field-theory-review.md),
-with the theory's 18 equations and four rigs computed both ways.
+with the theory's equations and four rigs computed both ways.
 
-- `gravitics::electrodes` (new): coaxial ring electrodes, the field and charges of coil and wire
-  rigs.
+- `gravitics::electrodes` (new): electrodes of rings and straight wire segments, the field and
+  charges of any coil-and-lead rig.
 - `gravitics::electrogravity`: the sphere's dielectrophoresis, the Pauthenier charge, the
-  polarisation-torque ceiling, a thread's torsion, the Thomson–Purcell kink field (Zhang's
-  `E_θ/e_r`), the carriers' drift (the theory's own bound), the gravity of field energy, the
-  electric pressure, and the five-constant identity.
-- `plasmoid::discharge` (new): Paschen breakdown, the mean free path, Peek's corona onset.
-- `physica/examples/gravity_patent.rs`, and the 3D model [`web/gravity-patent.html`](../web/gravity-patent.html).
-- Two statements in the batch-2 review corrected from the primary sources (Setup 1's polarity,
-  Setup 2's magnetic field).
-- Still open: the constant `k` in `∇×A = B/k` (perhaps in the "mass–charge conversion constant"
-  paper), the seven-cable ratio of the weighing rig (×7.1 against ×4.4 from a cage model; it
-  needs the real layout in 3D), and the Michelson and 80 V rigs, which have no published details.
+  polarisation-torque ceiling, a thread's torsion, spheroid depolarisation and the torque on a
+  body not quite round, the image force, the Thomson–Purcell kink field (Zhang's `E_θ/e_r`), the
+  carriers' drift (the theory's own bound), the gravity of field energy, the electric pressure,
+  the five-constant identity, and Zhang's `k_mq` (three values), `μ_g` and vortex constant
+  `f = k_mq/(4πε₀G)`.
+- `plasmoid::discharge` (new): Paschen breakdown, the mean free path, Peek's corona onset, gas
+  density and speed, slip-corrected drag on a moving or turning sphere, ion mobility, the
+  floating potential.
+- `physica/examples/gravity_patent.rs`: the rig simulated at 1 ms steps under every force and
+  torque, plus the weighing rig. It is a calibration case, so it is an example, not library code.
+- [`web/gravity-patent.html`](../web/gravity-patent.html): the same simulation in 3D, checked
+  against the example's pinned values on load.
+- Three statements in the batch-2 review and this review's first version corrected from the
+  primary sources and the 3D solution (Setup 1's polarity, Setup 2's magnetic field, the
+  symmetric drive with leads).
+- Found: Zhang's G is 34σ above every CODATA measurement; Paper J's closures do not hold with its
+  own numbers; the two closed-form `k_mq` would spin everything in Earth's field.
+- Still open: the weighing rig's seven-cable ratio (×7.1 against ×4.4 from a cage model; it
+  needs the real layout in 3D), the paper behind the "calibrated" `k_mq`, and the Michelson and
+  80 V rigs, which have no published details.
 
 Not yet published: the new modules wait for the next release of `gravitics`, `plasmoid` and
 `physica`.

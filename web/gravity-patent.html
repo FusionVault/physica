@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Gravity Patent Rig</title>
-<meta name="description" content="US 12,417,870 rebuilt in 3D: the coils' computed electric field, every classical force on the ball, the gas in its vacuum, and the claim in its own terms.">
+<meta name="description" content="US 12,417,870 rebuilt in 3D and simulated: the coils' and leads' computed field, every force and torque on the ball, the gas in its vacuum, and Zhang's own model with his constants.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 :root {
   color-scheme: dark;
   --bg: #07090d;
-  --panel: rgba(12, 16, 22, 0.92);
+  --panel: rgba(12, 16, 22, 0.93);
   --panel-solid: #0c1016;
   --line: #1d2633;
   --fg: #dfe6ee;
@@ -23,6 +23,7 @@
   --glow: #b07cff;
   --claim: #f2b544;
   --ok: #7fd49b;
+  --bad: #ff8a7a;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -39,7 +40,7 @@ body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--sans); ove
 .label b { font-weight: 600; }
 .label.live b { color: var(--coil); }
 .label.copper b { color: var(--copper); }
-.label.field b { color: var(--field); }
+.label.claim { color: var(--claim); }
 .hide-labels .label { display: none; }
 
 header {
@@ -49,6 +50,11 @@ header {
 header h1 { margin: 0; font: 600 18px/1.2 var(--sans); letter-spacing: 0.01em; text-wrap: balance; }
 header p { margin: 4px 0 0; max-width: 46ch; color: var(--muted); font-size: 13px; }
 header .tag { font: 500 11px var(--mono); color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+#warning {
+  position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  max-width: 52ch; padding: 10px 12px; border: 1px solid #5c4314; border-radius: 6px; background: rgba(40, 28, 8, 0.92);
+  color: var(--claim); font-size: 12.5px;
+}
 
 #panel {
   position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%);
@@ -56,28 +62,30 @@ header .tag { font: 500 11px var(--mono); color: var(--faint); letter-spacing: 0
   padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) 16px;
   display: flex; flex-direction: column; gap: 14px;
 }
-#panel h2 { margin: 0; font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+#panel h2 { margin: 0 0 4px; font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.buttons { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.buttons button { padding: 11px 14px; border-radius: 6px; cursor: pointer; font: 600 13px var(--sans); letter-spacing: 0.05em; text-transform: uppercase; }
+#power { border: 1px solid #2b5463; background: #0f2a33; color: var(--field); }
+#power[aria-pressed=true] { background: #3a1412; border-color: #6b2a24; color: var(--bad); }
+#reset { border: 1px solid var(--line); background: transparent; color: var(--muted); }
 .controls { display: grid; gap: 10px; }
 .row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
 .row label { font-size: 12.5px; color: var(--fg); }
 .row output { font: 12px var(--mono); color: var(--field); text-align: right; }
 .row input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--field); }
+.row select { grid-column: 1 / -1; width: 100%; background: #0f151d; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: 12.5px var(--sans); }
 .row .hint { grid-column: 1 / -1; font-size: 11.5px; color: var(--faint); margin-top: -2px; }
-.seg { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg { grid-column: 1 / -1; display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .seg button { flex: 1; background: transparent; color: var(--muted); border: 0; padding: 7px 8px; font: 500 12px var(--sans); cursor: pointer; }
 .seg button[aria-pressed=true] { background: #16202c; color: var(--fg); }
 .seg button + button { border-left: 1px solid var(--line); }
-#power {
-  width: 100%; padding: 11px; border-radius: 6px; border: 1px solid #2b5463; cursor: pointer;
-  background: #0f2a33; color: var(--field); font: 600 13px var(--sans); letter-spacing: 0.05em; text-transform: uppercase;
-}
-#power[aria-pressed=true] { background: #3a1412; border-color: #6b2a24; color: #ff8a7a; }
 .toggles { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
 .toggles label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .toggles input { accent-color: var(--field); }
+details > summary { cursor: pointer; font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 
 table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-td { padding: 5px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+td { padding: 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 td:last-child { text-align: right; font: 12px var(--mono); color: var(--fg); white-space: nowrap; padding-left: 10px; }
 td small { display: block; color: var(--faint); font: 11px var(--sans); white-space: normal; }
 tr.claim td:first-child { color: var(--claim); }
@@ -86,18 +94,22 @@ tr.gr td:first-child { color: var(--ok); }
 .status.on { background: #2d1a47; color: var(--glow); }
 .status.off { background: #12202a; color: var(--muted); }
 .status.hot { background: #3a2410; color: var(--copper); }
+#check { font: 12px var(--mono); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line); }
+#check.pass { color: var(--ok); border-color: #1f4a30; }
+#check.fail { color: var(--bad); border-color: #5c2420; }
 .note { font-size: 12px; color: var(--muted); margin: 0; }
 .note b { color: var(--fg); font-weight: 500; }
-ol.settle { margin: 0; padding-left: 18px; font-size: 12px; color: var(--muted); display: grid; gap: 4px; }
+ul.list, ol.list { margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: var(--muted); display: grid; gap: 4px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 11.5px; color: var(--muted); }
 .legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c); border-radius: 2px; }
-#error { position: fixed; left: 16px; bottom: 16px; max-width: 46ch; color: #ff8a7a; font-size: 13px; }
+#error { position: fixed; left: 16px; bottom: 16px; max-width: 46ch; color: var(--bad); font-size: 13px; }
 
 @media (max-width: 760px) {
   body { overflow: auto; }
   #stage { position: relative; height: 62vh; }
   header { position: absolute; }
   header p { display: none; }
+  #warning { position: absolute; top: calc(62vh - 90px); bottom: auto; right: 16px; }
   #panel { position: relative; width: 100%; border-left: 0; border-top: 1px solid var(--line); background: var(--panel-solid);
     padding-left: max(16px, env(safe-area-inset-left, 0px)); }
 }
@@ -106,66 +118,105 @@ ol.settle { margin: 0; padding-left: 18px; font-size: 12px; color: var(--muted);
 <body>
 <div id="stage"></div>
 <header>
-  <div class="tag">US 12,417,870 · rebuilt from its embodiment</div>
+  <div class="tag">US 12,417,870 · rebuilt and simulated</div>
   <h1>Gravity Patent Rig</h1>
-  <p>A 0.35 g polyethylene ball between two open high-voltage coils in a 10 cm vacuum tank, claimed to move by a gravitational field. The field lines and every number are computed live from the rig's geometry.</p>
+  <p>A 0.35 g polyethylene ball between two open high-voltage coils in a 10 cm vacuum tank, claimed to move by a gravitational field. The field, every force and torque on the ball, and its motion are computed live with the equations of the Rust crates.</p>
 </header>
+<div id="warning" hidden></div>
 
 <aside id="panel">
-  <button id="power" aria-pressed="false">Switch on</button>
+  <div class="buttons">
+    <button id="power" aria-pressed="false">Switch on</button>
+    <button id="reset" title="Back to the patent's settings, the ball at rest, the supply off">Reset</button>
+  </div>
 
   <section class="controls" aria-label="Controls">
     <div class="row"><label for="volts">Voltage on the upper coil</label><output id="volts-out"></output>
-      <input id="volts" type="range" min="0" max="100" step="1" value="50">
+      <input id="volts" type="range" min="0" max="100" step="1">
       <div class="hint">The patent: about 50 kV at 10 µA. Zhang's book: 100 kV.</div></div>
     <div class="row"><label for="press">Pressure in the tank</label><output id="press-out"></output>
-      <input id="press" type="range" min="-3" max="5" step="0.05" value="1">
-      <div class="hint">The patent only says "near vacuum". A rotary pump gives 1–100 Pa.</div></div>
+      <input id="press" type="range" min="-3" max="5" step="0.05">
+      <div class="hint">The patent only says "near vacuum". A rotary pump gives about 1 Pa; from about 4 to 150 Pa the gas breaks down.</div></div>
     <div class="row"><label>Drive</label><span></span>
-      <div class="seg" style="grid-column:1/-1" role="group" aria-label="Drive">
-        <button data-drive="single" aria-pressed="true">Patent: upper live, lower grounded</button>
-        <button data-drive="sym" aria-pressed="false">Symmetric ±V/2</button></div></div>
+      <div class="seg" role="group" aria-label="Drive">
+        <button data-drive="single">Patent: upper live</button>
+        <button data-drive="sym">Symmetric ±V/2</button></div></div>
     <div class="row"><label>Ball</label><span></span>
-      <div class="seg" style="grid-column:1/-1" role="group" aria-label="Ball material">
-        <button data-ball="pe" aria-pressed="true">Polyethylene, 950 kg/m³</button>
-        <button data-ball="ptfe" aria-pressed="false">PTFE, 2200 kg/m³</button></div></div>
+      <div class="seg" role="group" aria-label="Ball material">
+        <button data-ball="pe">Polyethylene</button>
+        <button data-ball="ptfe">PTFE (mass test)</button></div></div>
+    <div class="row"><label for="charge">Charge on the ball</label><output id="charge-out"></output>
+      <input id="charge" type="range" min="-2" max="2" step="0.05">
+      <div class="hint">Not in the patent. Handling leaves a polymer ball with a fraction of a nanocoulomb.</div></div>
+    <div class="row"><label for="dipole">Uneven charge (patches)</label><output id="dipole-out"></output>
+      <input id="dipole" type="range" min="0" max="1" step="0.01">
+      <div class="hint">The patches' dipole, as a charge across the ball's radius. It turns the ball toward the leads' sideways field.</div></div>
+    <div class="row"><label for="aspect">Out of round</label><output id="aspect-out"></output>
+      <input id="aspect" type="range" min="0" max="5" step="0.1">
+      <div class="hint">A ball that is not quite round is turned by the field too (spheroid depolarisation).</div></div>
     <div class="row"><label for="period">Thread's free twist period</label><output id="period-out"></output>
-      <input id="period" type="range" min="5" max="120" step="1" value="30">
-      <div class="hint">Sets the cotton thread's torsion constant, κ = 4π²I/T², for the polyethylene ball.</div></div>
-    <div class="row"><label for="asym">Symmetry breaking</label><output id="asym-out"></output>
-      <input id="asym" type="range" min="0" max="5" step="0.1" value="0.5">
-      <div class="hint">The share of the torque ceiling that the staggered ends, the helix or a seam turn into an aligning torque. Not measured: set it.</div></div>
+      <input id="period" type="range" min="5" max="120" step="1">
+      <div class="hint">Sets the cotton thread's torsion constant, κ = 4π²I/T², with the polyethylene ball.</div></div>
+    <div class="row"><label for="zhang">Zhang's vortex field</label><span></span>
+      <select id="zhang">
+        <option value="-1">Off: standard physics only</option>
+        <option value="0">On, k_mq = 7.08×10⁻¹¹ C s/kg ("calibrated", Paper J)</option>
+        <option value="1">On, k_mq = eG/c³ (Paper E)</option>
+        <option value="2">On, k_mq = eG/(4πc³) (Paper J)</option>
+      </select>
+      <div class="hint">∇×A = B/f with f = k_mq/(4πε₀G), from his book; Earth's field drives it too, supply on or off.</div></div>
+    <div class="row"><label for="mag">Show the swing</label><span></span>
+      <select id="mag">
+        <option value="1">true size</option>
+        <option value="20">20× larger</option>
+        <option value="100">100× larger</option>
+      </select>
+      <div class="hint">The swing is a fraction of a millimetre; the twist is always shown true.</div></div>
     <div class="toggles">
-      <label><input type="checkbox" id="t-lines" checked> Field lines</label>
+      <label><input type="checkbox" id="t-lines"> Field lines</label>
       <label><input type="checkbox" id="t-slice"> Field slice</label>
-      <label><input type="checkbox" id="t-claim"> Claimed vortex</label>
-      <label><input type="checkbox" id="t-labels" checked> Labels</label>
+      <label><input type="checkbox" id="t-labels"> Labels</label>
     </div>
     <div class="legend">
       <span style="--c: var(--field)">electric field</span>
       <span style="--c: var(--coil)">silicone coils</span>
-      <span style="--c: var(--copper)">bare copper ends</span>
-      <span style="--c: var(--glow)">glow discharge</span>
-      <span style="--c: var(--claim)">claimed field</span>
+      <span style="--c: var(--copper)">bare copper</span>
+      <span style="--c: var(--glow)">glow</span>
+      <span style="--c: var(--claim)">Zhang's field</span>
     </div>
   </section>
 
-  <section>
-    <h2>At the ball, now</h2>
-    <table id="readout"></table>
-  </section>
+  <section><h2>The ball, now</h2><table id="state"></table></section>
+  <section><h2>Every force on it, against its weight</h2><table id="forces"></table></section>
+  <section><h2>Torques about the thread</h2><table id="torques"></table></section>
+  <section><h2>The gas and the fields</h2><table id="gas"></table></section>
+  <section><h2>The claim in its own terms</h2><table id="claim"></table></section>
+
+  <div id="check">Checking against the Rust crates…</div>
+
+  <details>
+    <summary>What is modelled, and what is not</summary>
+    <ul class="list">
+      <li><b>Field:</b> the coils as 24 charged rings, the four leads as wire segments, solved for their charges (gravitics::electrodes). The coils are drawn as helices.</li>
+      <li><b>Forces:</b> weight, buoyancy, the polarisation pull, the Coulomb force, the force on the charge patches, the image in the wall, gas drag at any Knudsen number, ion drag, the Lorentz force and diamagnetism in the coil's and Earth's fields (WMM2025 at Zhang's lab), and the gravity of the field's energy.</li>
+      <li><b>Torques:</b> the thread's torsion and damping (Q = 20), the gas's spin drag, the field on the ball's shape and on its patches, and Zhang's vortex when chosen.</li>
+      <li><b>Gas:</b> past Paschen breakdown the gas clamps the voltage across the tank and the walls hold the rest; a glow drains the ball to its floating potential.</li>
+      <li><b>Assumed:</b> the tank's 22 cm length and north-pointing axis, the lead layout, the supply's 50 ms rise and 1 s decay, 1% ripple, a 3 eV glow.</li>
+      <li><b>Left out:</b> the silicone and glass dielectrics, the thread's own charge, the ripple's own forces (about 2%), radiometric forces and vibration.</li>
+    </ul>
+  </details>
 
   <section>
     <h2>What would settle it</h2>
-    <ol class="settle">
-      <li>Pump below 0.1 Pa and record it: no glow, no ions.</li>
-      <li>Switch to the symmetric drive. The pull toward the live coil vanishes; a field made by the charges should not change.</li>
-      <li>Swap in the PTFE ball. Classical forces give it 2.6× less acceleration; gravity gives the same.</li>
-      <li>Measure the ball's charge with a Faraday cup, and time its free twist.</li>
+    <ol class="list">
+      <li>Pump below 0.1 Pa and record it.</li>
+      <li>Measure the ball's charge with a Faraday cup, then neutralise it: a neutral, round ball barely moves.</li>
+      <li>Swap in the PTFE ball: classical forces move it less; a gravitational field moves both alike.</li>
+      <li>Swap which coil is grounded, or drive ±V/2: the live-side pull changes; a field from accelerating charges should not care.</li>
     </ol>
   </section>
 
-  <p class="note">Computed with the equations of <b>gravitics::electrodes</b>, <b>gravitics::electrogravity</b> and <b>plasmoid::discharge</b>; <b>physica/examples/gravity_patent.rs</b> asserts the same numbers. Assumed beyond the patent: the tank's 22 cm length, the coils' 3.5 cm mean radius, the lead layout at the break, the thread's period and the symmetry breaking.</p>
+  <p class="note">The simulation is <b>physica/examples/gravity_patent.rs</b>, ported line for line; the physics is in <b>gravitics::electrodes</b>, <b>gravitics::electrogravity</b>, <b>plasmoid::discharge</b> and <b>magnetics</b>.</p>
 </aside>
 <div id="error" hidden></div>
 
@@ -180,110 +231,326 @@ ol.settle { margin: 0; padding-left: 18px; font-size: 12px; color: var(--muted);
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 "use strict";
-// ---------------------------------------------------------------------------------------------
-// Physics, SI units. The same equations as gravitics::electrodes, gravitics::electrogravity and
-// plasmoid::discharge; the numbers at 50 kV match physica/examples/gravity_patent.rs.
-// ---------------------------------------------------------------------------------------------
-const EPS0 = 8.8541878128e-12, MU0 = 1.25663706212e-6, C = 299792458, G = 6.6743e-11;
-const QE = 1.602176634e-19, KB = 1.380649e-23, G0 = 9.80665, KC = 1 / (4 * Math.PI * EPS0);
+// =============================================================================================
+// The crates' physics, ported line for line. SI units. Each block names its Rust source.
+// =============================================================================================
+const PI = Math.PI;
+// metrology
+const C = 299792458, G = 6.6743e-11, E_CHARGE = 1.602176634e-19, K_B = 1.380649e-23;
+const MU_0 = 1.25663706212e-6, EPS_0 = 8.8541878128e-12, M_E = 9.1093837015e-31, AMU = 1.6605390666e-27;
+const R_GAS = 8.314462618, G0 = 9.80665;
 
-function elliptic(m) { // complete K(m), E(m) by the arithmetic-geometric mean
-  let a = 1, b = Math.sqrt(1 - m), c = Math.sqrt(m), s = 0.5 * m, w = 0.5;
-  for (let i = 0; i < 64 && c > 2.2e-16 * a; i++) {
-    const an = 0.5 * (a + b), bn = Math.sqrt(a * b);
-    c = 0.5 * (a - b); a = an; b = bn; w *= 2; s += w * c * c;
+// gravitics::electrodes
+const KC = 1 / (4 * PI * EPS_0);
+function elliptic(m) {
+  let a = 1, b = Math.sqrt(1 - m), c = Math.sqrt(m), sum = 0.5 * m, weight = 0.5;
+  for (let i = 0; i < 64; i++) {
+    if (c <= 2.220446049250313e-16 * a) break;
+    const an = 0.5 * (a + b), bn = Math.sqrt(a * b), cn = 0.5 * (a - b);
+    a = an; b = bn; c = cn; weight *= 2; sum += weight * c * c;
   }
-  const k = Math.PI / (2 * a);
-  return [k, k * (1 - s)];
+  const k = PI / (2 * a);
+  return [k, k * (1 - sum)];
 }
-function ringPhi(q, R, z0, rho, z) {
-  const s = (R + rho) ** 2 + (z - z0) ** 2;
-  return KC * q * 2 / Math.PI * elliptic(4 * R * rho / s)[0] / Math.sqrt(s);
+const dist = (a, b) => Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+function stack(radius, z0, step, n) { const r = []; for (let i = 0; i < n; i++) r.push({ ring: true, radius, z: z0 + step * i }); return r; }
+function polyline(points, step) {
+  const out = [];
+  for (let w = 0; w + 1 < points.length; w++) {
+    const p = points[w], q = points[w + 1], n = Math.max(1, Math.ceil(dist(p, q) / step));
+    for (let i = 0; i < n; i++) out.push({ ring: false, a: lerp(p, q, i / n), b: lerp(p, q, (i + 1) / n) });
+  }
+  return out;
 }
-function ringE(q, R, z0, rho, z, out) {
-  const dz = z - z0, s = (R + rho) ** 2 + dz * dz, d = (R - rho) ** 2 + dz * dz;
-  const [k, e] = elliptic(4 * R * rho / s), rs = Math.sqrt(s);
-  out[0] += rho === 0 ? 0 : KC * q / (Math.PI * rho * rs) * (k - (R * R - rho * rho + dz * dz) / d * e);
-  out[1] += KC * q * 2 / Math.PI * dz * e / (rs * d);
+function ringPotential(q, ring, rho, z) {
+  const s = (ring.radius + rho) ** 2 + (z - ring.z) ** 2;
+  return q * KC * 2 / PI * elliptic(4 * ring.radius * rho / s)[0] / Math.sqrt(s);
 }
-function solveCharges(rings, wire, pots) {
-  const n = rings.length;
-  const P = rings.map((ri, i) => rings.map((rj, j) => i === j
-    ? Math.log(8 * ri.R / wire) / (4 * Math.PI * Math.PI * EPS0 * ri.R)
-    : ringPhi(1, rj.R, rj.z, ri.R, ri.z)).concat([pots[i]]));
-  for (let c = 0; c < n; c++) {
-    let p = c;
-    for (let r = c + 1; r < n; r++) if (Math.abs(P[r][c]) > Math.abs(P[p][c])) p = r;
-    [P[c], P[p]] = [P[p], P[c]];
-    for (let r = c + 1; r < n; r++) {
-      const f = P[r][c] / P[c][c];
-      for (let k = c; k <= n; k++) P[r][k] -= f * P[c][k];
-    }
+function ringField(q, ring, rho, z) {
+  const r = ring.radius, dz = z - ring.z, s = (r + rho) ** 2 + dz * dz, d = (r - rho) ** 2 + dz * dz;
+  const [k, e] = elliptic(4 * r * rho / s), c = q * KC;
+  const ez = c * 2 / PI * dz * e / (Math.sqrt(s) * d);
+  const erho = rho === 0 ? 0 : c / (PI * rho * Math.sqrt(s)) * (k - (r * r - rho * rho + dz * dz) / d * e);
+  return [erho, ez];
+}
+function unitPotential(el, p) {
+  if (el.ring) return ringPotential(1, el, Math.hypot(p[0], p[1]), p[2]);
+  const l = dist(el.a, el.b), r1 = dist(p, el.a), r2 = dist(p, el.b);
+  return KC / l * Math.log((r1 + r2 + l) / (r1 + r2 - l));
+}
+function segmentField(s, p) {
+  const l = dist(s.a, s.b);
+  const u = [(s.b[0] - s.a[0]) / l, (s.b[1] - s.a[1]) / l, (s.b[2] - s.a[2]) / l];
+  const w = [p[0] - s.a[0], p[1] - s.a[1], p[2] - s.a[2]];
+  const along = w[0] * u[0] + w[1] * u[1] + w[2] * u[2];
+  const perp = [w[0] - along * u[0], w[1] - along * u[1], w[2] - along * u[2]];
+  const d = Math.sqrt(perp[0] * perp[0] + perp[1] * perp[1] + perp[2] * perp[2]);
+  const s1 = -along, s2 = l - along, r1 = Math.hypot(s1, d), r2 = Math.hypot(s2, d);
+  const par = KC / l * (1 / r2 - 1 / r1);
+  const across = d > 0 ? KC / l * (s2 / r2 - s1 / r1) / d / d : 0;
+  return [par * u[0] + across * perp[0], par * u[1] + across * perp[1], par * u[2] + across * perp[2]];
+}
+function unitField(el, p) {
+  if (!el.ring) return segmentField(el, p);
+  const rho = Math.hypot(p[0], p[1]), [erho, ez] = ringField(1, el, rho, p[2]);
+  return rho === 0 ? [0, 0, ez] : [erho * p[0] / rho, erho * p[1] / rho, ez];
+}
+function coefficient(ei, ej, wire) {
+  if (ei === ej) {
+    if (ei.ring) return Math.log(8 * ei.radius / wire) / (4 * PI * PI * EPS_0 * ei.radius);
+    const l = dist(ei.a, ei.b); return KC / l * 2 * Math.asinh(l / (2 * wire));
+  }
+  if (ei.ring && ej.ring) return unitPotential(ej, [ei.radius, 0, ei.z]);
+  if (ei.ring) {
+    let sum = 0;
+    for (let k = 0; k < 16; k++) { const t = 2 * PI * k / 16; sum += unitPotential(ej, [ei.radius * Math.cos(t), ei.radius * Math.sin(t), ei.z]); }
+    return sum / 16;
+  }
+  return unitPotential(ej, lerp(ei.a, ei.b, 0.5));
+}
+function gauss(p) {
+  const n = p.length;
+  for (let col = 0; col < n; col++) {
+    let pivot = col;
+    for (let r = col + 1; r < n; r++) if (Math.abs(p[r][col]) >= Math.abs(p[pivot][col])) pivot = r;
+    [p[col], p[pivot]] = [p[pivot], p[col]];
+    const pr = p[col];
+    for (let r = col + 1; r < n; r++) { const f = p[r][col] / pr[col]; for (let k = col; k <= n; k++) p[r][k] -= f * pr[k]; }
   }
   const q = new Array(n).fill(0);
-  for (let r = n - 1; r >= 0; r--) {
-    let s = P[r][n];
-    for (let k = r + 1; k < n; k++) s -= P[r][k] * q[k];
-    q[r] = s / P[r][r];
-  }
+  for (let r = n - 1; r >= 0; r--) { let s = 0; for (let k = r + 1; k < n; k++) s += p[r][k] * q[k]; q[r] = (p[r][n] - s) / p[r][r]; }
   return q;
 }
-function fieldAt(rings, q, rho, z) {
-  const out = [0, 0];
-  for (let i = 0; i < rings.length; i++) ringE(q[i], rings[i].R, rings[i].z, Math.abs(rho), z, out);
+function solve(elements, wire, potentials) {
+  return gauss(elements.map((ei, i) => elements.map(ej => coefficient(ei, ej, wire)).concat([potentials[i]])));
+}
+function fieldAt(elements, charges, p) {
+  const out = [0, 0, 0];
+  for (let i = 0; i < elements.length; i++) { const f = unitField(elements[i], p); out[0] += charges[i] * f[0]; out[1] += charges[i] * f[1]; out[2] += charges[i] * f[2]; }
   return out;
 }
 
-// The rig: 12 turns of 1.5 mm copper per coil, mean radius 3.5 cm, 6.5–17.5 cm from the centre.
-const WIRE = 0.75e-3, TURNS = 12, COIL_R = 0.035;
-const RINGS = [];
-for (let i = 0; i < TURNS; i++) RINGS.push({ R: COIL_R, z: 0.065 + 0.01 * i });
-for (let i = 0; i < TURNS; i++) RINGS.push({ R: COIL_R, z: -(0.065 + 0.01 * i) });
-const DRIVES = {}; // charges per volt of the control voltage, for each drive
-for (const [name, top, bottom] of [["single", 1, 0], ["sym", 0.5, -0.5]]) {
-  const pots = RINGS.map((r, i) => (i < TURNS ? top : bottom));
-  const q = solveCharges(RINGS, WIRE, pots);
-  const e2 = z => { const [a, b] = fieldAt(RINGS, q, 0, z); return a * a + b * b; };
-  DRIVES[name] = {
-    q, pots,
-    e1: Math.sqrt(e2(0)),                                  // V/m per volt
-    g1: (e2(1e-4) - e2(-1e-4)) / 2e-4,                     // V²/m³ per volt²
-    u1: 0.5 * q.reduce((s, qi, i) => s + qi * pots[i], 0), // J per volt²
-    live: q.slice(0, TURNS).reduce((a, b) => a + b, 0),
-    ground: q.slice(TURNS).reduce((a, b) => a + b, 0),
+// gravitics::electrogravity
+const clausiusMossotti = eps => (eps - 1) / (eps + 2);
+const sphereForce = (a, eps, g) => 2 * PI * EPS_0 * a ** 3 * clausiusMossotti(eps) * g;
+const torsionConstant = (inertia, period) => 4 * PI * PI * inertia / (period * period);
+function depolarisation(aspect) {
+  const e2 = 1 - 1 / (aspect * aspect);
+  if (e2 < 0.09) { let s = 0; for (let k = 0; k < 24; k++) s += e2 ** k / (2 * k + 3); return (1 - e2) * s; }
+  const e = Math.sqrt(e2); return (1 - e2) / (e2 * e) * (Math.atanh(e) - e);
+}
+function spheroidPolarisability(eps, aspect) {
+  const long = depolarisation(aspect), alpha = l => (eps - 1) / (1 + l * (eps - 1));
+  return [alpha(long), alpha((1 - long) / 2)];
+}
+const alignmentTorque = (volume, dAlpha, e, angle) => 0.5 * EPS_0 * volume * dAlpha * e * e * Math.sin(2 * angle);
+const imageForce = (q, d, eps) => q * q * (eps - 1) / (16 * PI * EPS_0 * d * d * (eps + 1));
+const ZHANG_KMQ = [["calibrated (Paper J)", 7.08e-11], ["eG/c³ (Paper E)", E_CHARGE * G / (C * C * C)], ["eG/(4πc³) (Paper J)", E_CHARGE * G / (4 * PI * C * C * C)]];
+const vortexConstant = kmq => kmq / (4 * PI * EPS_0 * G);
+const vortexSpin = (b, f) => b / (2 * f);
+const COPPER_ELECTRONS = 8.47e28;
+const driftVelocity = (current, density, area) => current / (density * E_CHARGE * area);
+// gravitics::propulsion
+const ionWindThrust = (current, gap, mobility) => current * gap / mobility;
+// magnetics::magnets
+function solenoidBz(z, r, l, n, i) { const end = s => s / Math.sqrt(s * s + r * r); return MU_0 * n * i / 2 * (end(z + l / 2) - end(z - l / 2)); }
+const susceptibilityForce = (volume, chi, bdb) => chi * volume / MU_0 * bdb;
+// plasmoid::discharge
+const TORR_CM = 133.322368 * 0.01, AIR = { a: 15 / TORR_CM, b: 365 / TORR_CM };
+const AIR_DIAMETER = 3.711e-10, AIR_MOLAR_MASS = 0.0289647, AIR_VISCOSITY = 1.81e-5, AIR_ION_MOBILITY = 2.0e-4, N2_ION_MASS = 28 * AMU;
+function paschen(gas, gamma, pd) { const d = Math.log(gas.a * pd) - Math.log(Math.log(1 + 1 / gamma)); return d > 0 ? gas.b * pd / d : null; }
+const meanFreePath = (p, T, d) => K_B * T / (Math.SQRT2 * PI * d * d * p);
+const peekOnset = (radius, delta) => 3.0e6 * delta * (1 + 0.0301 / Math.sqrt(delta * radius));
+const gasDensity = (p, T, M) => p * M / (R_GAS * T);
+const meanSpeed = (T, M) => Math.sqrt(8 * R_GAS * T / (PI * M));
+const cunningham = kn => 1 + kn * (1.257 + 0.4 * Math.exp(-1.1 / kn));
+const sphereDrag = (a, eta, kn) => 6 * PI * eta * a / cunningham(kn);
+function sphereSpinDrag(a, eta, rho, v) { const dense = 8 * PI * eta * a ** 3, thin = 2 * PI / 3 * rho * v * a ** 4; return 1 / (1 / dense + 1 / thin); }
+const ionMobility = (reduced, p, T) => reduced * (101325 / p) * (T / 273.15);
+const floatingPotential = (te, m) => -0.5 * te * Math.log(m / (2 * PI * M_E));
+
+// =============================================================================================
+// The rig: physica/examples/gravity_patent.rs
+// =============================================================================================
+const WIRE = 0.75e-3, TANK_RADIUS = 0.05, SUSPENSION = [0, 0, 0.05], COIL_RADIUS = 0.035;
+const LEAKAGE = 10e-6 / 50e3, RIPPLE_FREQUENCY = 30e3, GLOW_CHARGING = 1e-3, DT = 1e-3;
+const LEAD_TOP_INNER = [[0, -0.035, 0.06], [-0.005, -0.054, 0.056], [-0.016, -0.061, 0.04], [-0.016, -0.061, -0.016], [-0.016, -0.061, -0.027]];
+const LEAD_BOTTOM_INNER = [[0, -0.035, -0.06], [0.005, -0.054, -0.056], [0.016, -0.061, -0.04], [0.016, -0.061, 0.016], [0.016, -0.061, 0.027]];
+const LEAD_TOP_OUTER = [[0, -0.035, 0.18], [0, -0.05, 0.205], [-0.09, -0.03, 0.215], [-0.21, 0, 0.15], [-0.25, 0, -0.06], [-0.26, 0, -0.176]];
+const LEAD_BOTTOM_OUTER = [[0, -0.035, -0.18], [0, -0.05, -0.205], [-0.06, -0.06, -0.225], [-0.12, -0.06, -0.234]];
+// Earth's field at Lujiang from magnetics::main_field::wmm2025 (x north, y west, z up), pinned
+// by the example's reference test.
+const EARTH_FIELD = [3.324258878254768e-5, 3.3134199224025104e-6, -3.7219057353397724e-5];
+
+function geometry() {
+  const parts = [];
+  for (const [z0, step, live] of [[0.065, 0.01, true], [-0.065, -0.01, false]]) for (const r of stack(COIL_RADIUS, z0, step, 12)) parts.push([r, live]);
+  for (const [points, step, live] of [[LEAD_TOP_INNER, 0.01, true], [LEAD_BOTTOM_INNER, 0.01, false], [LEAD_TOP_OUTER, 0.02, true], [LEAD_BOTTOM_OUTER, 0.02, false]])
+    for (const s of polyline(points, step)) parts.push([s, live]);
+  return [parts.map(p => p[0]), parts.map(p => p[1])];
+}
+function polyethylene() {
+  const radius = Math.cbrt(3 * 0.35e-3 / 950 / (4 * PI));
+  return { radius, density: 950, eps: 2.3, susceptibility: -9.7e-6, aspect: 1.01, charge: 0.2e-9, dipole: 0.1e-9 * radius };
+}
+function ptfe() { return Object.assign(polyethylene(), { density: 2200, eps: 2.1, susceptibility: -1.05e-5 }); }
+const volume = b => 4 / 3 * PI * b.radius ** 3, mass = b => b.density * volume(b), inertia = b => 0.4 * mass(b) * b.radius * b.radius;
+function defaultSettings() {
+  const ball = polyethylene();
+  return { volts: 50e3, drive: "single", pressure: 1, temperature: 293.15, ball, torsion: torsionConstant(inertia(ball), 30), thread_q: 20,
+    rise: 0.05, fall: 1.0, ripple: 0.01, electron_temperature: 3, earth_field: EARTH_FIELD.slice(), vortex: null };
+}
+const [ELEMENTS, LIVE] = geometry();
+const UNIT = {}; // charges per supply volt, per drive, solved once each
+function unitCharges(drive) {
+  if (!UNIT[drive]) {
+    const [top, bottom] = drive === "single" ? [1, 0] : [0.5, -0.5];
+    const volts = LIVE.map(l => (l ? top : bottom));
+    const unit = solve(ELEMENTS, WIRE, volts);
+    let capacitance = 0, energy = 0;
+    unit.forEach((q, i) => { if (LIVE[i]) capacitance += q; energy += q * volts[i]; });
+    const e = fieldAt(ELEMENTS, unit, [0, 0, 0]);
+    UNIT[drive] = { unit, capacitance, energy: 0.5 * energy, centre: Math.sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]) };
+  }
+  return UNIT[drive];
+}
+function makeRig(settings) {
+  const u = unitCharges(settings.drive);
+  return {
+    settings, unit: u.unit, centre: u.centre, capacitance: u.capacitance, energy: u.energy,
+    unitField(p) { return fieldAt(ELEMENTS, this.unit, p); },
+    breakdown() { const span = 2 * TANK_RADIUS, v = paschen(AIR, 0.01, this.settings.pressure * span); return v === null ? null : v / (this.centre * span); },
+    atRest() { return { t: 0, on: false, supply: 0, wall: 0, position: [0, 0, 0], velocity: [0, 0, 0], twist: 0, spin: 0, charge: this.settings.ball.charge, dipole: this.settings.ball.dipole, glow: false }; },
   };
 }
+const norm2 = v => v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const add = (...vs) => [0, 1, 2].map(k => vs.reduce((s, v) => s + v[k], 0));
 
-const BALLS = { pe: { name: "polyethylene", rho: 950, eps: 2.3 }, ptfe: { name: "PTFE", rho: 2200, eps: 2.1 } };
-const BALL_R = Math.cbrt(3 * (0.35e-3 / 950) / (4 * Math.PI)); // 0.35 g of polyethylene: 4.447 mm
-const cm = eps => (eps - 1) / (eps + 2);
+function step(rig, s) {
+  const set = rig.settings, ball = set.ball;
+  const m = mass(ball), a = ball.radius, vol = volume(ball);
+  // The supply.
+  const target = s.on ? set.volts : 0, tau = s.on ? set.rise : set.fall, before = s.supply;
+  s.supply += (target - before) * (1 - Math.exp(-DT / tau));
+  const ramp = (s.supply - before) / DT;
+  // The gas.
+  const wallBefore = s.wall, limit = rig.breakdown();
+  let clamping = false;
+  if (limit !== null && Math.abs(s.supply - s.wall) > limit * (1 + 1e-9)) { s.wall = s.supply - limit * Math.sign(s.supply - s.wall); clamping = true; }
+  const sustained = limit !== null && set.ripple * Math.abs(s.supply) > limit;
+  s.glow = clamping || sustained;
+  const across = s.supply - s.wall;
+  let glowCurrent = rig.capacitance * Math.abs(s.wall - wallBefore) / DT;
+  if (sustained) glowCurrent += 2 * PI * RIPPLE_FREQUENCY * rig.capacitance * set.ripple * Math.abs(s.supply);
+  glowCurrent = Math.min(glowCurrent, LEAKAGE * set.volts);
+  // The field and the gradient of its square.
+  const field = p => rig.unitField(p).map(e => e * across);
+  const r = s.position, e = field(r), h = 1e-4;
+  const shifted = (k, d) => { const p = r.slice(); p[k] += d; return field(p); };
+  const gradE2 = [0, 1, 2].map(k => (norm2(shifted(k, h)) - norm2(shifted(k, -h))) / (2 * h));
+  // The ball's charge and patches.
+  if (s.glow) {
+    const floating = 4 * PI * EPS_0 * a * floatingPotential(set.electron_temperature, N2_ION_MASS), decay = Math.exp(-DT / GLOW_CHARGING);
+    s.charge = floating + (s.charge - floating) * decay;
+    s.dipole *= decay;
+  }
+  const q = s.charge;
+  const rhoGas = gasDensity(set.pressure, set.temperature, AIR_MOLAR_MASS);
+  const knudsen = meanFreePath(set.pressure, set.temperature, AIR_DIAMETER) / a;
+  // Forces.
+  const weight = [0, 0, -m * G0], buoyancy = [0, 0, rhoGas * vol * G0];
+  const polarisation = gradE2.map(g => sphereForce(a, ball.eps, g));
+  const coulomb = e.map(x => q * x);
+  const axis = [Math.cos(s.twist), Math.sin(s.twist), 0];
+  const plus = field([r[0] + h * axis[0], r[1] + h * axis[1], r[2]]), minus = field([r[0] - h * axis[0], r[1] - h * axis[1], r[2]]);
+  const dipoleForce = [0, 1, 2].map(k => s.dipole * (plus[k] - minus[k]) / (2 * h));
+  let image = [0, 0, 0];
+  const off = Math.hypot(r[1], r[2]);
+  if (off !== 0) { const f = imageForce(q, TANK_RADIUS - off, 6) - imageForce(q, TANK_RADIUS + off, 6); image = [0, f * r[1] / off, f * r[2] / off]; }
+  const size = Math.sqrt(norm2(e));
+  const push = ionWindThrust(glowCurrent, 2 * TANK_RADIUS, ionMobility(AIR_ION_MOBILITY, set.pressure, set.temperature)) * (a / TANK_RADIUS) ** 2;
+  const ionDrag = size > 0 ? e.map(x => push * x / size) : [0, 0, 0];
+  const gasDrag = s.velocity.map(v => -sphereDrag(a, AIR_VISCOSITY, knudsen) * v);
+  const current = LEAKAGE * s.supply + rig.capacitance * ramp;
+  const coil = z => solenoidBz(0.12 - z, COIL_RADIUS, 0.12, 100, current);
+  const b = [set.earth_field[0], set.earth_field[1], set.earth_field[2] + coil(r[2])];
+  const lorentz = cross(s.velocity, b).map(x => q * x);
+  const magnetisation = [0, 0, susceptibilityForce(vol, ball.susceptibility, b[2] * (coil(r[2] + h) - coil(r[2] - h)) / (2 * h))];
+  let fieldGravity = [0, 0, 0];
+  if (set.drive === "single") {
+    const toCoil = [-r[0], -r[1], 0.12 - r[2]], d = Math.sqrt(norm2(toCoil));
+    const pull = G * m * rig.energy * s.supply * s.supply / (C * C * d * d);
+    fieldGravity = toCoil.map(x => pull * x / d);
+  }
+  const total = [0, 1, 2].map(k => weight[k] + buoyancy[k] + polarisation[k] + coulomb[k] + dipoleForce[k] + image[k] + ionDrag[k] + gasDrag[k] + lorentz[k] + magnetisation[k] + fieldGravity[k]);
+  // The thread.
+  let v = [0, 1, 2].map(k => s.velocity[k] + total[k] / m * DT);
+  const moved = [0, 1, 2].map(k => r[k] + v[k] * DT - SUSPENSION[k]);
+  const length = SUSPENSION[2], n = moved.map(x => x / Math.sqrt(norm2(moved)));
+  s.position = [0, 1, 2].map(k => SUSPENSION[k] + length * n[k]);
+  const radial = v[0] * n[0] + v[1] * n[1] + v[2] * n[2];
+  s.velocity = [0, 1, 2].map(k => v[k] - radial * n[k]);
+  // Torques about the thread.
+  const I = inertia(ball), horizontal = Math.hypot(e[0], e[1]), azimuth = Math.atan2(e[1], e[0]);
+  const [long, short] = spheroidPolarisability(ball.eps, ball.aspect);
+  const threadTorque = -set.torsion * s.twist;
+  const dampingTorque = -(I * Math.sqrt(set.torsion / I) / set.thread_q + sphereSpinDrag(a, AIR_VISCOSITY, rhoGas, meanSpeed(set.temperature, AIR_MOLAR_MASS))) * s.spin;
+  const alignment = -alignmentTorque(vol, long - short, horizontal, s.twist - azimuth);
+  const dipoleTorque = s.dipole * horizontal * Math.sin(azimuth - s.twist);
+  const vortexTorque = set.vortex === null ? 0 : I * vortexSpin(b[2], set.vortex);
+  s.spin += (threadTorque + dampingTorque + alignment + dipoleTorque + vortexTorque) / I * DT;
+  s.twist += s.spin * DT;
+  s.t += DT;
+  return { field: e, across, glow: s.glow, glowCurrent, current, b, weight, buoyancy, polarisation, coulomb, dipoleForce, image, ionDrag, gasDrag, lorentz, magnetisation, fieldGravity,
+    threadTorque, dampingTorque, alignment, dipoleTorque, vortexTorque };
+}
+function run(rig, s, duration) { let r = null; const n = Math.round(duration / DT); for (let i = 0; i < n; i++) r = step(rig, s); return r; }
 
-// Gas: air's Townsend constants (Raizer), gamma = 0.01, a 10 cm path; Lennard-Jones diameter.
-const TORR_CM = 133.322368 * 0.01, TA = 15 / TORR_CM, TB = 365 / TORR_CM, LNLN = Math.log(Math.log(101));
-const paschen = pd => { const d = Math.log(TA * pd) - LNLN; return d > 0 ? TB * pd / d : Infinity; };
-const meanFreePath = p => KB * 293.15 / (Math.SQRT2 * Math.PI * (3.711e-10) ** 2 * p);
-const PEEK = 3e6 * (1 + 0.0301 / Math.sqrt(WIRE)); // corona onset at the bare 0.75 mm copper, V/m
-const tipField = v => v / (WIRE * Math.log(0.2 / WIRE));
-// Magnetism and the theory's own bound, from the charging current (10 µA at 50 kV, scaled).
-const solenoidB = (z, r, l, n, i) => { const e = s => s / Math.sqrt(s * s + r * r); return MU0 * n * i / 2 * (e(z + l / 2) - e(z - l / 2)); };
-const DRIFT_PER_AMP = 1 / (8.47e28 * QE * Math.PI * WIRE * WIRE);
+// The check against the Rust crates: the same numbers reference_values_for_the_web_model pins.
+function selfCheck() {
+  const fails = [], close = (name, a, b, rel) => { if (!(Math.abs(a / b - 1) < rel)) fails.push(`${name}: ${a} vs ${b}`); };
+  const rig = makeRig(defaultSettings());
+  const u = rig.unitField([0, 0, 0]);
+  [0.9962119559096491, 0.525028041381924, -5.229823828310781].forEach((b, k) => close(`field ${"xyz"[k]}`, u[k], b, 1e-12));
+  close("capacitance", rig.capacitance, 9.462167488509768e-12, 1e-12);
+  close("energy", rig.energy, 4.731083744254884e-12, 1e-12);
+  close("torsion", rig.settings.torsion, 1.2145511684106775e-10, 1e-12);
+  close("tip field", TIP_FIELD.single, 363.0165401117953, 1e-9);
+  let s = Object.assign(rig.atRest(), { on: true });
+  run(rig, s, 1.0);
+  close("twist after 1 s", s.twist, 0.9287236305772963, 1e-9);
+  close("spin after 1 s", s.spin, 0.4290742138095987, 1e-9);
+  close("x after 1 s", s.position[0], 7.407758897706475e-5, 1e-9);
+  close("y after 1 s", s.position[1], 4.120759664600089e-5, 1e-9);
+  const rig10 = makeRig(Object.assign(defaultSettings(), { pressure: 10 }));
+  s = Object.assign(rig10.atRest(), { on: true });
+  run(rig10, s, 1.0);
+  close("wall at 10 Pa", s.wall, 49425.71288005668, 1e-12);
+  close("charge at 10 Pa", s.charge, -6.681877402210595e-12, 1e-9);
+  close("twist at 10 Pa", s.twist, 2.804066201676511e-5, 1e-6);
+  return fails;
+}
 
-// ---------------------------------------------------------------------------------------------
+// =============================================================================================
 // Formatting
-// ---------------------------------------------------------------------------------------------
+// =============================================================================================
 const SUP = { "-": "⁻", "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
 function sci(x, digits = 2) {
-  if (!isFinite(x)) return "—";
+  if (x === null || !isFinite(x)) return "—";
   if (x === 0) return "0";
   const exp = Math.floor(Math.log10(Math.abs(x)));
   if (exp >= -2 && exp <= 3) return x.toFixed(Math.max(0, digits - 1 - exp));
-  const m = x / 10 ** exp;
-  return `${m.toFixed(digits - 1)}×10${String(exp).split("").map(c => SUP[c]).join("")}`;
+  return `${(x / 10 ** exp).toFixed(digits - 1)}×10${String(exp).split("").map(c => SUP[c]).join("")}`;
 }
+const mag = v => Math.sqrt(norm2(v));
+const row = (name, sub, value, cls = "") => `<tr class="${cls}"><td>${name}${sub ? `<small>${sub}</small>` : ""}</td><td>${value}</td></tr>`;
 
-// ---------------------------------------------------------------------------------------------
-// Scene, in centimetres. The coil axis is vertical (y); the tank lies along x.
-// ---------------------------------------------------------------------------------------------
+// =============================================================================================
+// Scene, in centimetres; scene (x, y, z) = rig (x, z, −y), y up.
+// =============================================================================================
+const toScene = p => new THREE.Vector3(p[0] * 100, p[2] * 100, -p[1] * 100);
 const stage = document.getElementById("stage");
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -292,135 +559,110 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 stage.appendChild(renderer.domElement);
 const labelRenderer = new THREE.CSS2DRenderer();
-labelRenderer.domElement.style.position = "absolute";
-labelRenderer.domElement.style.top = "0";
-labelRenderer.domElement.style.pointerEvents = "none";
+Object.assign(labelRenderer.domElement.style, { position: "absolute", top: "0", pointerEvents: "none" });
 stage.appendChild(labelRenderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x07090d);
 scene.fog = new THREE.Fog(0x07090d, 90, 200);
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 500);
-camera.position.set(46, 20, 60);
+const HOME = new THREE.Vector3(46, 20, 60);
+camera.position.copy(HOME);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0, 0);
-controls.enableDamping = true;
-controls.minDistance = 12;
-controls.maxDistance = 140;
+controls.enableDamping = true; controls.minDistance = 6; controls.maxDistance = 140;
 
 scene.add(new THREE.HemisphereLight(0x8fb4ff, 0x14100c, 0.55));
 const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(20, 40, 25); scene.add(key);
 const rim = new THREE.DirectionalLight(0x6fe3ff, 0.35); rim.position.set(-30, 10, -20); scene.add(rim);
-
-// Bench
 const bench = new THREE.Mesh(new THREE.CircleGeometry(80, 64), new THREE.MeshStandardMaterial({ color: 0x0e1218, roughness: 0.9 }));
-bench.rotation.x = -Math.PI / 2; bench.position.y = -24; scene.add(bench);
+bench.rotation.x = -PI / 2; bench.position.y = -24; scene.add(bench);
 const grid = new THREE.GridHelper(120, 60, 0x151d27, 0x0f151d); grid.position.y = -23.95; scene.add(grid);
 
 function label(html, cls, pos) {
   const div = document.createElement("div");
-  div.className = "label " + (cls || "");
-  div.innerHTML = html;
-  const obj = new THREE.CSS2DObject(div);
-  obj.position.copy(pos);
-  scene.add(obj);
-  return obj;
+  div.className = "label " + (cls || ""); div.innerHTML = html;
+  const obj = new THREE.CSS2DObject(div); obj.position.copy(pos); scene.add(obj); return obj;
 }
 
-// The tank: glass, 10 cm across, laid along x, with steel flanges and a pump port.
-const glass = new THREE.MeshPhysicalMaterial({ color: 0xbfe6ff, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false });
+// The tank, along the rig's x axis.
+const glass = new THREE.MeshPhysicalMaterial({ color: 0xbfe6ff, roughness: 0.05, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false });
 const tank = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 22, 72, 1, true), glass);
-tank.rotation.z = Math.PI / 2; scene.add(tank);
+tank.rotation.z = PI / 2; scene.add(tank);
 const steel = new THREE.MeshStandardMaterial({ color: 0x8b96a3, metalness: 0.85, roughness: 0.35 });
-for (const x of [-11, 11]) {
-  const flange = new THREE.Mesh(new THREE.CylinderGeometry(6.2, 6.2, 0.8, 72), steel);
-  flange.rotation.z = Math.PI / 2; flange.position.x = x; scene.add(flange);
-}
-const port = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 8, 32), steel);
-port.rotation.z = Math.PI / 2; port.position.x = 15.4; scene.add(port);
+for (const x of [-11, 11]) { const f = new THREE.Mesh(new THREE.CylinderGeometry(6.2, 6.2, 0.8, 72), steel); f.rotation.z = PI / 2; f.position.x = x; scene.add(f); }
+const port = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 8, 32), steel); port.rotation.z = PI / 2; port.position.x = 15.4; scene.add(port);
 label("to the pump", "", new THREE.Vector3(20.5, 1.6, 0));
 label("<b>Vacuum tank</b> · 10 cm", "", new THREE.Vector3(-8, -6.6, 5));
 
-// The coils: helices of red silicone wire, 1 cm thick, 12 turns, 8 cm across.
-const silicone = new THREE.MeshStandardMaterial({ color: 0x8f1712, roughness: 0.5, metalness: 0.0 });
+// The coils as helices (the physics treats each turn as a ring).
+const silicone = new THREE.MeshStandardMaterial({ color: 0x8f1712, roughness: 0.5 });
 class Helix extends THREE.Curve {
-  constructor(y0, dir, phase) { super(); this.y0 = y0; this.dir = dir; this.phase = phase; }
-  getPoint(t, target = new THREE.Vector3()) {
-    const a = this.phase + this.dir * 2 * Math.PI * TURNS * t;
-    return target.set(3.5 * Math.cos(a), this.y0 + this.dir * 12 * t, 3.5 * Math.sin(a));
-  }
+  constructor(y0, dir) { super(); this.y0 = y0; this.dir = dir; }
+  getPoint(t, target = new THREE.Vector3()) { const a = PI / 2 + this.dir * 2 * PI * 12 * t; return target.set(3.5 * Math.cos(a), this.y0 + this.dir * 12 * t, 3.5 * Math.sin(a)); }
 }
-const coilTop = new Helix(6, 1, Math.PI / 2), coilBottom = new Helix(-6, -1, Math.PI / 2);
-for (const h of [coilTop, coilBottom]) scene.add(new THREE.Mesh(new THREE.TubeGeometry(h, 900, 0.5, 14, false), silicone));
+for (const h of [new Helix(6, 1), new Helix(-6, -1)]) scene.add(new THREE.Mesh(new THREE.TubeGeometry(h, 900, 0.5, 14, false), silicone));
 const upperLabel = label("<b>Upper coil</b> · live", "live", new THREE.Vector3(5.4, 15.5, 0));
 const lowerLabel = label("<b>Lower coil</b> · grounded", "", new THREE.Vector3(5.4, -15.5, 0));
 
-// Leads: the far ends to the supply and to ground; the near ends cut and staggered (FIG. 3).
-function lead(points, mat, r = 0.5) {
-  const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
-  scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 120, r, 12, false), mat));
+// The leads, along exactly the polylines the physics uses.
+const copper = new THREE.MeshStandardMaterial({ color: 0xd98b4a, metalness: 0.9, roughness: 0.25 });
+function tube(points, mat, r) {
+  const path = new THREE.CurvePath();
+  for (let i = 0; i + 1 < points.length; i++) path.add(new THREE.LineCurve3(toScene(points[i]), toScene(points[i + 1])));
+  scene.add(new THREE.Mesh(new THREE.TubeGeometry(path, 40 * points.length, r, 12, false), mat));
+  for (const p of points.slice(1, -1)) { const j = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), mat); j.position.copy(toScene(p)); scene.add(j); }
 }
-const copper = new THREE.MeshStandardMaterial({ color: 0xd98b4a, metalness: 0.9, roughness: 0.25, emissive: 0x000000 });
-lead([[0, 18, 3.5], [0, 20.5, 5], [-9, 21.5, 3], [-21, 15, 0], [-25, -6, 0], [-26, -17.6, 0]], silicone);
-lead([[0, -18, 3.5], [0, -20.5, 5], [-6, -22.5, 6], [-12, -23.4, 6]], silicone);
-lead([[0, 6, 3.5], [-0.5, 5.6, 5.4], [-1.6, 4, 6.1], [-1.6, -1.6, 6.1]], silicone);
-lead([[0, -6, 3.5], [0.5, -5.6, 5.4], [1.6, -4, 6.1], [1.6, 1.6, 6.1]], silicone);
-const tips = [];
-for (const [x, y, dir] of [[-1.6, -1.6, -1], [1.6, 1.6, 1]]) {
-  const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 1.1, 12), copper);
-  tip.position.set(x, y + dir * 0.55, 6.1); scene.add(tip);
-  const glowTex = makeGlowTexture("rgba(190,140,255,1)");
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xb07cff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }));
-  sprite.position.set(x, y + dir * 1.15, 6.1); sprite.scale.set(2.2, 2.2, 1);
-  scene.add(sprite); tips.push(sprite);
-}
+for (const lead of [LEAD_TOP_INNER, LEAD_BOTTOM_INNER]) { tube(lead.slice(0, 4), silicone, 0.5); tube(lead.slice(3), copper, 0.075); }
+for (const lead of [LEAD_TOP_OUTER, LEAD_BOTTOM_OUTER]) tube(lead, silicone, 0.5);
+const glowTexture = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const g = c.getContext("2d"), grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, "rgba(190,140,255,1)"); grad.addColorStop(0.25, "rgba(190,140,255,0.45)"); grad.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grad; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c);
+})();
+const tips = [LEAD_TOP_INNER, LEAD_BOTTOM_INNER].map(lead => {
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture, color: 0xb07cff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }));
+  sprite.position.copy(toScene(lead[4])); sprite.scale.set(2.2, 2.2, 1); scene.add(sprite); return sprite;
+});
 label("<b>Open break</b> · bare copper, staggered", "copper", new THREE.Vector3(3.5, -3.4, 8.5));
-
-// The supply and the ground.
 const box = new THREE.Mesh(new THREE.BoxGeometry(9, 6, 7), new THREE.MeshStandardMaterial({ color: 0x1a222d, metalness: 0.4, roughness: 0.6 }));
 box.position.set(-26, -21, 0); scene.add(box);
 label("<b>HV supply</b> · 2GF-200 kV", "live", new THREE.Vector3(-26, -16.6, 0));
 const gnd = new THREE.Group();
-for (const [w, y] of [[5, 0], [3.4, -0.8], [1.8, -1.6]]) {
-  const bar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.25, 0.6), steel); bar.position.y = y; gnd.add(bar);
-}
+for (const [w, y] of [[5, 0], [3.4, -0.8], [1.8, -1.6]]) { const bar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.25, 0.6), steel); bar.position.y = y; gnd.add(bar); }
 gnd.position.set(-12, -23.6, 6); scene.add(gnd);
 label("ground", "", new THREE.Vector3(-12, -21.6, 6));
 
-// The ball on its cotton thread, with a stripe so its twist shows.
+// The ball, its thread, and a bar along its long axis and charge dipole.
 const ballGroup = new THREE.Group(); scene.add(ballGroup);
-const ballMat = new THREE.MeshStandardMaterial({ color: 0xd8342a, roughness: 0.35, map: stripeTexture() });
-const ball = new THREE.Mesh(new THREE.SphereGeometry(BALL_R * 100, 48, 32), ballMat);
-ballGroup.add(ball);
-const thread = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 5 - BALL_R * 100, 6), new THREE.MeshBasicMaterial({ color: 0xe8e2d4 }));
-thread.position.y = (5 + BALL_R * 100) / 2; scene.add(thread);
+const ballMat = new THREE.MeshStandardMaterial({ color: 0xd8342a, roughness: 0.35 });
+const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(polyethylene().radius * 100, 48, 32), ballMat);
+ballGroup.add(ballMesh);
+// A pointer along the ball's body x axis, its long axis and patch dipole, so the twist shows.
+const pointer = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, polyethylene().radius * 100 * 1.7, 10), new THREE.MeshBasicMaterial({ color: 0xf4efe6 }));
+pointer.rotation.z = PI / 2; pointer.position.x = polyethylene().radius * 100 * 0.85; ballGroup.add(pointer);
+const tipCone = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.22, 12), new THREE.MeshBasicMaterial({ color: 0xf4efe6 }));
+tipCone.rotation.z = -PI / 2; tipCone.position.x = polyethylene().radius * 100 * 1.8; ballGroup.add(tipCone);
+const threadGeo = new THREE.BufferGeometry().setFromPoints([toScene(SUSPENSION), new THREE.Vector3()]);
+const threadLine = new THREE.Line(threadGeo, new THREE.LineBasicMaterial({ color: 0xe8e2d4 }));
+scene.add(threadLine);
 const ballLabel = label("<b>Ball</b> · 0.35 g on cotton", "", new THREE.Vector3(-4.5, 2.2, -2));
 
-function stripeTexture() {
-  const c = document.createElement("canvas"); c.width = 256; c.height = 128;
-  const g = c.getContext("2d");
-  g.fillStyle = "#d8342a"; g.fillRect(0, 0, 256, 128);
-  g.fillStyle = "#f4efe6"; g.fillRect(0, 0, 18, 128);
-  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
-}
-function makeGlowTexture(color) {
-  const c = document.createElement("canvas"); c.width = c.height = 128;
-  const g = c.getContext("2d"), grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-  grad.addColorStop(0, color); grad.addColorStop(0.25, color.replace(",1)", ",0.45)")); grad.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
-  return new THREE.CanvasTexture(c);
-}
-
-// The glow discharge, when the gas in the tank breaks down.
+// Glow in the tank.
 const glowMat = new THREE.MeshBasicMaterial({ color: 0x8a52ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
 const glowVol = new THREE.Mesh(new THREE.CylinderGeometry(4.85, 4.85, 21.6, 48, 1, true), glowMat);
-glowVol.rotation.z = Math.PI / 2; scene.add(glowVol);
+glowVol.rotation.z = PI / 2; scene.add(glowVol);
 const glowCore = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 21, 48, 1, false), glowMat.clone());
-glowCore.rotation.z = Math.PI / 2; scene.add(glowCore);
+glowCore.rotation.z = PI / 2; scene.add(glowCore);
 
-// ---------------------------------------------------------------------------------------------
-// Field lines: traced in the meridian plane from the positively charged turns, then revolved.
-// ---------------------------------------------------------------------------------------------
+// Zhang's vortex field about Earth's vertical field line through the ball: drawn when chosen.
+const VN = 700, vpos = new Float32Array(VN * 3), vseed = [];
+for (let i = 0; i < VN; i++) vseed.push({ r: 0.7 + Math.random() * 3.3, a: Math.random() * 2 * PI, y: (Math.random() - 0.5) * 6 });
+const vortexGeo = new THREE.BufferGeometry(); vortexGeo.setAttribute("position", new THREE.BufferAttribute(vpos, 3));
+const vortex = new THREE.Points(vortexGeo, new THREE.PointsMaterial({ color: 0xf2b544, size: 0.16, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+vortex.visible = false; scene.add(vortex);
+
+// Field lines: traced in 3D along E from the positively charged pieces, coloured by strength.
 const lineMat = new THREE.ShaderMaterial({
   uniforms: { time: { value: 0 }, level: { value: 0 } },
   vertexShader: `attribute float s; attribute float strength; varying float vS; varying float vStr;
@@ -435,260 +677,252 @@ const lineMat = new THREE.ShaderMaterial({
     }`,
   transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
 });
-let lineObj = null, sliceObj = null;
-
-function traceLines(drive) {
-  const { q } = DRIVES[drive];
-  const lines = [];
-  const stopNear = 0.0042, maxLen = 0.7, bound = 0.32;
-  RINGS.forEach((ring, idx) => {
-    if (q[idx] <= 0 || idx % 2 === 1) return; // every other positive turn
-    for (let k = 0; k < 6; k++) {
-      const a = (k + 0.5) / 6 * 2 * Math.PI;
-      let p = [ring.R + 0.0055 * Math.cos(a), ring.z + 0.0055 * Math.sin(a)];
-      const pts = [p.slice()], mags = [];
-      let len = 0;
-      for (let step = 0; step < 1400 && len < maxLen; step++) {
-        const f = (x) => { const e = fieldAt(RINGS, q, x[0], x[1]); const m = Math.hypot(e[0], e[1]) || 1e-30; return [e[0] / m, e[1] / m, m]; };
-        const near = Math.min(...RINGS.map(r => Math.hypot(p[0] - r.R, p[1] - r.z)));
-        const h = Math.min(0.006, Math.max(0.0012, near * 0.35));
-        const k1 = f(p), k2 = f([p[0] + h / 2 * k1[0], p[1] + h / 2 * k1[1]]);
-        const k3 = f([p[0] + h / 2 * k2[0], p[1] + h / 2 * k2[1]]), k4 = f([p[0] + h * k3[0], p[1] + h * k3[1]]);
-        p = [Math.abs(p[0] + h / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0])), p[1] + h / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1])];
-        len += h; pts.push(p.slice()); mags.push(k1[2]);
-        if (Math.hypot(p[0], p[1]) > bound) break;
-        if (step > 4 && RINGS.some((r, j) => Math.hypot(p[0] - r.R, p[1] - r.z) < stopNear && (j !== idx || len > 0.03))) break;
-      }
-      mags.push(mags[mags.length - 1] || 0);
-      lines.push({ pts, mags });
+const LINES = {}, SLICES = {};
+function nearConductor(p) {
+  for (const el of ELEMENTS) {
+    if (el.ring) { if (Math.hypot(Math.hypot(p[0], p[1]) - el.radius, p[2] - el.z) < 0.004) return true; }
+    else {
+      const l = dist(el.a, el.b), u = [(el.b[0] - el.a[0]) / l, (el.b[1] - el.a[1]) / l, (el.b[2] - el.a[2]) / l];
+      const w = [p[0] - el.a[0], p[1] - el.a[1], p[2] - el.a[2]], t = Math.max(0, Math.min(l, w[0] * u[0] + w[1] * u[1] + w[2] * u[2]));
+      if (dist(p, [el.a[0] + t * u[0], el.a[1] + t * u[1], el.a[2] + t * u[2]]) < 0.004) return true;
     }
-  });
-  return lines;
+  }
+  return false;
 }
-
 function buildLines(drive) {
-  if (lineObj) { scene.remove(lineObj); lineObj.geometry.dispose(); }
-  const lines = traceLines(drive), AZ = 8;
-  const pos = [], sArr = [], str = [];
-  const lmin = Math.log10(2e2), lmax = Math.log10(4e6); // V/m at 50 kV, for colour
-  for (const { pts, mags } of lines) {
-    for (let j = 0; j < AZ; j++) {
-      const phi = (j / AZ) * 2 * Math.PI + 0.13;
-      const cx = Math.cos(phi), cz = Math.sin(phi);
-      let s = 0;
-      for (let i = 0; i < pts.length - 1; i++) {
-        const [r0, z0] = pts[i], [r1, z1] = pts[i + 1];
-        const seg = Math.hypot(r1 - r0, z1 - z0) * 100;
-        pos.push(r0 * 100 * cx, z0 * 100, r0 * 100 * cz, r1 * 100 * cx, z1 * 100, r1 * 100 * cz);
-        const t0 = Math.min(1, Math.max(0, (Math.log10(mags[i] * 5e4) - lmin) / (lmax - lmin)));
-        const t1 = Math.min(1, Math.max(0, (Math.log10(mags[i + 1] * 5e4) - lmin) / (lmax - lmin)));
-        sArr.push(s, s + seg); str.push(t0, t1); s += seg;
-      }
+  if (LINES[drive]) return LINES[drive];
+  const { unit } = unitCharges(drive), pos = [], sArr = [], str = [];
+  const lmin = Math.log10(2e2), lmax = Math.log10(4e6);
+  const dir = p => { const e = fieldAt(ELEMENTS, unit, p), m = Math.sqrt(norm2(e)) || 1e-30; return [e[0] / m, e[1] / m, e[2] / m, m]; };
+  const seeds = [];
+  ELEMENTS.forEach((el, i) => {
+    if (unit[i] <= 0) return;
+    if (el.ring) { if (i % 2) return; for (let k = 0; k < 8; k++) { const t = (k + 0.5) / 8 * 2 * PI; for (const c of [0, PI]) seeds.push([(el.radius + 0.006 * Math.cos(c)) * Math.cos(t), (el.radius + 0.006 * Math.cos(c)) * Math.sin(t), el.z + 0.006 * Math.sin(c)]); } }
+    else if (i % 3 === 0 && dist(lerp(el.a, el.b, 0.5), [0, 0, 0]) < 0.12) { const m = lerp(el.a, el.b, 0.5); for (const o of [[0.006, 0, 0], [-0.006, 0, 0], [0, 0.006, 0]]) seeds.push([m[0] + o[0], m[1] + o[1], m[2] + o[2]]); }
+  });
+  for (const seed of seeds) {
+    let p = seed.slice(), s = 0, prev = toScene(p), m0 = dir(p)[3];
+    for (let k = 0; k < 500; k++) {
+      const k1 = dir(p), h = 0.004;
+      const k2 = dir([p[0] + h / 2 * k1[0], p[1] + h / 2 * k1[1], p[2] + h / 2 * k1[2]]);
+      p = [p[0] + h * k2[0], p[1] + h * k2[1], p[2] + h * k2[2]];
+      const cur = toScene(p), seg = cur.distanceTo(prev);
+      const t0 = Math.min(1, Math.max(0, (Math.log10(m0 * 5e4) - lmin) / (lmax - lmin)));
+      const t1 = Math.min(1, Math.max(0, (Math.log10(k2[3] * 5e4) - lmin) / (lmax - lmin)));
+      pos.push(prev.x, prev.y, prev.z, cur.x, cur.y, cur.z); sArr.push(s, s + seg); str.push(t0, t1);
+      s += seg; prev = cur; m0 = k2[3];
+      if (Math.sqrt(norm2(p)) > 0.3 || (k > 3 && nearConductor(p))) break;
     }
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute("s", new THREE.Float32BufferAttribute(sArr, 1));
   geo.setAttribute("strength", new THREE.Float32BufferAttribute(str, 1));
-  lineObj = new THREE.LineSegments(geo, lineMat);
-  lineObj.visible = document.getElementById("t-lines").checked;
-  scene.add(lineObj);
+  LINES[drive] = new THREE.LineSegments(geo, lineMat);
+  return LINES[drive];
 }
-
 function buildSlice(drive) {
-  if (sliceObj) { scene.remove(sliceObj); sliceObj.material.map.dispose(); sliceObj.geometry.dispose(); }
-  const { q } = DRIVES[drive];
-  const W = 160, H = 240, X = 0.2, Y = 0.3; // half-width and half-height, m
+  if (SLICES[drive]) return SLICES[drive];
+  const { unit } = unitCharges(drive), W = 100, H = 150, X = 0.2, Z = 0.3;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
-  const g = c.getContext("2d"), img = g.createImageData(W, H);
-  const lmin = Math.log10(3e3), lmax = Math.log10(3e6);
+  const g = c.getContext("2d"), img = g.createImageData(W, H), lmin = Math.log10(3e3), lmax = Math.log10(3e6);
   for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
-    const x = (i + 0.5) / W * 2 * X - X, y = Y - (j + 0.5) / H * 2 * Y;
-    const near = RINGS.some(r => Math.hypot(Math.abs(x) - r.R, y - r.z) < 0.005);
-    const e = near ? [0, 0] : fieldAt(RINGS, q, Math.abs(x), y);
-    const t = near ? 0 : Math.min(1, Math.max(0, (Math.log10(Math.hypot(e[0], e[1]) * 5e4) - lmin) / (lmax - lmin)));
+    const p = [(i + 0.5) / W * 2 * X - X, 0, Z - (j + 0.5) / H * 2 * Z];
+    const t = nearConductor(p) ? 0 : Math.min(1, Math.max(0, (Math.log10(Math.sqrt(norm2(fieldAt(ELEMENTS, unit, p))) * 5e4) - lmin) / (lmax - lmin)));
     const o = 4 * (j * W + i);
-    img.data[o] = 90 * t * t * t; img.data[o + 1] = 190 * Math.pow(t, 1.6); img.data[o + 2] = 235 * t; img.data[o + 3] = 255 * Math.pow(t, 2.2) * 0.55;
+    img.data[o] = 90 * t ** 3; img.data[o + 1] = 190 * t ** 1.6; img.data[o + 2] = 235 * t; img.data[o + 3] = 255 * t ** 2.2 * 0.55;
   }
   g.putImageData(img, 0, 0);
-  const tex = new THREE.CanvasTexture(c);
-  sliceObj = new THREE.Mesh(new THREE.PlaneGeometry(X * 200, Y * 200),
-    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, opacity: 0 }));
-  sliceObj.visible = document.getElementById("t-slice").checked;
-  scene.add(sliceObj);
+  SLICES[drive] = new THREE.Mesh(new THREE.PlaneGeometry(X * 200, Z * 200),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, opacity: 0 }));
+  return SLICES[drive];
 }
 
-// The claimed vortex field: drawn, not computed. The theory gives it no size (k unset).
-const vortexGeo = new THREE.BufferGeometry();
-const VN = 900, vpos = new Float32Array(VN * 3), vseed = [];
-for (let i = 0; i < VN; i++) vseed.push({ r: 0.7 + Math.random() * 3.3, a: Math.random() * 2 * Math.PI, y: (Math.random() - 0.5) * 6 });
-vortexGeo.setAttribute("position", new THREE.BufferAttribute(vpos, 3));
-const vortex = new THREE.Points(vortexGeo, new THREE.PointsMaterial({ color: 0xf2b544, size: 0.16, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
-vortex.visible = false; scene.add(vortex);
-const vortexLabel = label("<b>Claimed vortex field</b> · no size given", "", new THREE.Vector3(0, 6.2, -5.2));
-vortexLabel.visible = false;
-vortexLabel.element.style.color = "var(--claim)";
-
-// ---------------------------------------------------------------------------------------------
-// Bloom, if the post-processing scripts loaded.
-// ---------------------------------------------------------------------------------------------
-let composer = null, bloom = null;
+let composer = null;
 if (THREE.EffectComposer && THREE.UnrealBloomPass) {
   composer = new THREE.EffectComposer(renderer);
   composer.addPass(new THREE.RenderPass(scene, camera));
-  bloom = new THREE.UnrealBloomPass(new THREE.Vector2(1, 1), 0.7, 0.4, 0.62);
-  composer.addPass(bloom);
+  composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(1, 1), 0.7, 0.4, 0.62));
 }
-
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
-  renderer.setSize(w, h); labelRenderer.setSize(w, h);
-  if (composer) composer.setSize(w, h);
-  // On a wide screen the panel covers the right 400 px: centre the rig in what is left.
-  const off = window.innerWidth > 760 ? Math.min(400, w / 2) : 0;
+  renderer.setSize(w, h); labelRenderer.setSize(w, h); if (composer) composer.setSize(w, h);
+  const off = window.innerWidth > 760 ? Math.min(400, w / 2) : 0; // centre the rig beside the panel
   camera.aspect = (w + off) / h;
-  camera.fov = camera.aspect < 1 ? 58 : 38; // portrait phones need more height
+  camera.fov = camera.aspect < 1 ? 58 : 38;
   if (off) camera.setViewOffset(w + off, h, off, 0, w, h); else camera.clearViewOffset();
   camera.updateProjectionMatrix();
 }
 window.addEventListener("resize", resize);
 
-// ---------------------------------------------------------------------------------------------
-// State and the ball's dynamics
-// ---------------------------------------------------------------------------------------------
-const state = { on: false, vSet: 50e3, v: 0, p: 10, drive: "single", ball: "pe", period: 30, asym: 0.005, theta: 0, omega: 0, turns: 0 };
-const STAGGER = 0.6; // azimuth (rad) of the horizontal field the staggered ends add
+// =============================================================================================
+// State, controls and the loop
+// =============================================================================================
 const $ = id => document.getElementById(id);
+let settings, rig, state, magnify = 20, runaway = false, shownLines = null, shownSlice = null;
+const DEFAULTS = { volts: 50, press: 0, charge: 0.2, dipole: 0.1, aspect: 1, period: 30, zhang: "-1", mag: "20", lines: true, slice: false, labels: true, drive: "single", ball: "pe" };
 
-function derived() {
-  const d = DRIVES[state.drive], b = BALLS[state.ball];
-  const mass = b.rho * 4 / 3 * Math.PI * BALL_R ** 3, K = cm(b.eps), v = state.v;
-  const E = d.e1 * v, grad = d.g1 * v * v;
-  const pull = 2 * Math.PI * EPS0 * BALL_R ** 3 * K * grad;
-  const charge = 12 * Math.PI * EPS0 * BALL_R ** 2 * E * b.eps / (b.eps + 2);
-  const torque = 2 * Math.PI * EPS0 * BALL_R ** 3 * E * E * (1 - K);
-  const inertiaPE = 0.4 * 0.35e-3 * BALL_R ** 2, inertia = 0.4 * mass * BALL_R ** 2;
-  const kappa = 4 * Math.PI ** 2 * inertiaPE / state.period ** 2;
-  const vb = paschen(state.p * 0.1), glow = v >= vb;
-  const current = 10e-6 * v / 50e3;
-  const B = solenoidB(0.12, COIL_R, 0.12, 100, current);
-  const drift = current * DRIFT_PER_AMP;
-  const U = d.u1 * v * v;
-  return { d, b, mass, K, E, grad, pull, charge, torque, inertia, kappa, vb, glow, B, drift, U,
-    corona: tipField(v) > PEEK, lambda: meanFreePath(state.p), weight: mass * G0 };
+function applyControls() {
+  const ballKind = document.querySelector("[data-ball][aria-pressed=true]").dataset.ball;
+  const ball = ballKind === "pe" ? polyethylene() : ptfe();
+  ball.charge = +$("charge").value * 1e-9;
+  ball.dipole = +$("dipole").value * 1e-9 * ball.radius;
+  ball.aspect = 1 + +$("aspect").value / 100;
+  const pe = polyethylene();
+  const z = +$("zhang").value;
+  settings = Object.assign(defaultSettings(), {
+    volts: +$("volts").value * 1e3, pressure: 10 ** +$("press").value, ball,
+    drive: document.querySelector("[data-drive][aria-pressed=true]").dataset.drive,
+    torsion: torsionConstant(inertia(pe), +$("period").value),
+    vortex: z < 0 ? null : vortexConstant(ZHANG_KMQ[z][1]),
+  });
+  rig = makeRig(settings);
+  magnify = +$("mag").value;
+  $("volts-out").textContent = `${$("volts").value} kV`;
+  $("press-out").textContent = `${sci(settings.pressure)} Pa`;
+  $("charge-out").textContent = `${(+$("charge").value).toFixed(2)} nC`;
+  $("dipole-out").textContent = `${(+$("dipole").value).toFixed(2)} nC`;
+  $("aspect-out").textContent = `${(+$("aspect").value).toFixed(1)}%`;
+  $("period-out").textContent = `${$("period").value} s`;
+  ballMat.color.set(ballKind === "pe" ? 0xd8342a : 0xf1efe9);
+  ballLabel.element.innerHTML = ballKind === "pe" ? "<b>Ball</b> · 0.35 g on cotton" : "<b>Ball</b> · PTFE, 0.81 g";
+  const sym = settings.drive === "sym";
+  upperLabel.element.innerHTML = sym ? "<b>Upper coil</b> · +V/2" : "<b>Upper coil</b> · live";
+  lowerLabel.element.innerHTML = sym ? "<b>Lower coil</b> · −V/2" : "<b>Lower coil</b> · grounded";
+  lowerLabel.element.classList.toggle("live", sym);
+  if (shownLines) scene.remove(shownLines);
+  if (shownSlice) scene.remove(shownSlice);
+  shownLines = buildLines(settings.drive); shownSlice = buildSlice(settings.drive);
+  scene.add(shownLines); scene.add(shownSlice);
+  shownLines.visible = $("t-lines").checked; shownSlice.visible = $("t-slice").checked;
+  document.body.classList.toggle("hide-labels", !$("t-labels").checked);
+  vortex.visible = settings.vortex !== null;
+  // A constant whose vortex outruns any thread: say so instead of integrating nonsense.
+  runaway = settings.vortex !== null && Math.abs(inertia(ball) * vortexSpin(EARTH_FIELD[2], settings.vortex)) > 1e3 * settings.torsion;
+  const w = $("warning");
+  w.hidden = !runaway;
+  if (runaway) w.textContent = `With this constant, Zhang's vortex would spin the ball up at ${sci(Math.abs(vortexSpin(EARTH_FIELD[2], settings.vortex)))} rad/s² from Earth's own field, with the supply off. No thread or ball survives that, and nothing on Earth is seen to spin, so this value is ruled out. The ball is shown spinning, not simulated.`;
 }
-
-function step(dt) {
-  const target = state.on ? state.vSet : 0;
-  const tau = state.on ? 0.35 : 1.6; // the multiplier charges fast and bleeds slowly
-  state.v += (target - state.v) * (1 - Math.exp(-dt / tau));
-  const x = derived();
-  // Torsion pendulum: thread restoring torque, damping, and an aligning torque that is the
-  // chosen share of the polarisation ceiling, toward the stagger's azimuth.
-  const zeta = 0.015 + 0.25 * Math.min(1, state.p / 1e5);
-  const w0 = Math.sqrt(x.kappa / x.inertia);
-  const sub = 8, h = dt / sub;
-  for (let i = 0; i < sub; i++) {
-    const tq = -x.kappa * state.theta - 2 * zeta * w0 * x.inertia * state.omega + state.asym * x.torque * Math.sin(2 * (STAGGER - state.theta));
-    state.omega += tq / x.inertia * h;
-    state.theta += state.omega * h;
-  }
-  return x;
-}
-
-function row(name, sub, value, cls = "") {
-  return `<tr class="${cls}"><td>${name}${sub ? `<small>${sub}</small>` : ""}</td><td>${value}</td></tr>`;
-}
-function renderReadout(x) {
-  const kv = state.v / 1e3, r = [];
-  r.push(row("Voltage now", state.on ? "switched on" : "switched off", `${kv.toFixed(1)} kV`));
-  r.push(row("Field at the ball", state.drive === "single" ? "points down, toward the grounded coil" : "symmetric drive", `${sci(x.E)} V/m`));
-  r.push(row("∇E² at the ball", "", `${sci(x.grad)} V²/m³`));
-  r.push(row("Charge on the coils", "live / grounded", `${sci(x.d.live * state.v * 1e9, 3)} / ${sci(x.d.ground * state.v * 1e9, 3)} nC`));
-  const pull = Math.abs(x.pull / x.weight) < 1e-12 ? 0 : x.pull / x.weight;
-  r.push(row("Pull toward the live coil", `on the ${x.b.name} ball, against its ${sci(x.weight * 1e3, 3)} mN weight`, `${sci(pull)} × weight`));
-  r.push(x.glow
-    ? row("Ions charge it", `up to ${sci(x.charge * 1e9, 2)} nC (Pauthenier); the field then pulls`, `${sci(x.charge * x.E / x.weight)} × weight`)
-    : row("Ions", "no glow at this pressure, so nothing new charges the ball", "none"));
-  r.push(row("Polarisation-torque ceiling", `would wind the thread (κ = ${sci(x.kappa)} N m/rad)`, `${sci(x.torque)} N m · ${sci(x.torque / x.kappa / (2 * Math.PI))} turns`));
-  r.push(row("Ball's twist now", "from the symmetry breaking you set", `${(state.theta * 180 / Math.PI).toFixed(1)}°`));
-  r.push(row("Gas: mean free path", `at ${sci(state.p)} Pa; the tank is 10 cm`, `${sci(x.lambda)} m`));
-  r.push(row("Gas: breakdown over 10 cm", "Paschen, air", `${isFinite(x.vb) ? sci(x.vb, 3) + " V" : "none"} <span class="status ${x.glow ? "on" : "off"}">${x.glow ? "glow" : "dark"}</span>`));
-  r.push(row("Bare copper ends, in air", "Peek's corona onset 6.3 MV/m", `<span class="status ${x.corona ? "hot" : "off"}">${x.corona ? "corona" : "quiet"}</span>`));
-  r.push(row("Magnetic field at the ball", `from the charging current; Earth's is 5×10⁻⁵ T`, `${sci(x.B)} T`));
-  r.push(row("The claim in its own terms", "its field is the carriers' acceleration: at the 30 kHz ripple the ball moves", `${sci(x.drift / (2 * Math.PI * 3e4))} m`, "claim"));
-  r.push(row("General relativity", `the ${sci(x.U * 1e3, 2)} mJ of field energy pulls`, `${sci(G * x.U / (C * C * 0.06 * 0.06))} m/s²`, "gr"));
-  const pe = BALLS.pe, pt = BALLS.ptfe;
-  r.push(row("Mass test", "classical pull: polyethylene against PTFE acceleration; gravity gives 1", `${((cm(pe.eps) / pe.rho) / (cm(pt.eps) / pt.rho)).toFixed(2)}×`));
-  $("readout").innerHTML = r.join("");
-}
-
-// ---------------------------------------------------------------------------------------------
-// Controls
-// ---------------------------------------------------------------------------------------------
-function syncOutputs() {
-  $("volts-out").textContent = `${(state.vSet / 1e3).toFixed(0)} kV`;
-  $("press-out").textContent = `${sci(state.p)} Pa`;
-  $("period-out").textContent = `${state.period} s`;
-  $("asym-out").textContent = `${(state.asym * 100).toFixed(1)}%`;
+function reset() {
+  $("volts").value = DEFAULTS.volts; $("press").value = DEFAULTS.press; $("charge").value = DEFAULTS.charge; $("dipole").value = DEFAULTS.dipole;
+  $("aspect").value = DEFAULTS.aspect; $("period").value = DEFAULTS.period; $("zhang").value = DEFAULTS.zhang; $("mag").value = DEFAULTS.mag;
+  $("t-lines").checked = DEFAULTS.lines; $("t-slice").checked = DEFAULTS.slice; $("t-labels").checked = DEFAULTS.labels;
+  document.querySelectorAll("[data-drive]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.drive === DEFAULTS.drive)));
+  document.querySelectorAll("[data-ball]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ball === DEFAULTS.ball)));
+  applyControls();
+  state = rig.atRest();
+  $("power").setAttribute("aria-pressed", "false"); $("power").textContent = "Switch on";
+  camera.position.copy(HOME); controls.target.set(0, 0, 0); controls.update();
 }
 $("power").addEventListener("click", () => {
   state.on = !state.on;
   $("power").setAttribute("aria-pressed", String(state.on));
   $("power").textContent = state.on ? "Switch off" : "Switch on";
 });
-$("volts").addEventListener("input", e => { state.vSet = +e.target.value * 1e3; syncOutputs(); });
-$("press").addEventListener("input", e => { state.p = 10 ** +e.target.value; syncOutputs(); });
-$("period").addEventListener("input", e => { state.period = +e.target.value; syncOutputs(); });
-$("asym").addEventListener("input", e => { state.asym = +e.target.value / 100; syncOutputs(); });
-document.querySelectorAll("[data-drive]").forEach(btn => btn.addEventListener("click", () => {
-  state.drive = btn.dataset.drive;
-  document.querySelectorAll("[data-drive]").forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
-  buildLines(state.drive); buildSlice(state.drive);
-  const sym = state.drive === "sym";
-  upperLabel.element.innerHTML = sym ? "<b>Upper coil</b> · +V/2" : "<b>Upper coil</b> · live";
-  lowerLabel.element.innerHTML = sym ? "<b>Lower coil</b> · −V/2" : "<b>Lower coil</b> · grounded";
-  lowerLabel.element.classList.toggle("live", sym);
+$("reset").addEventListener("click", reset);
+for (const id of ["volts", "press", "charge", "dipole", "aspect", "period"]) $(id).addEventListener("input", applyControls);
+for (const id of ["zhang", "mag", "t-lines", "t-slice", "t-labels"]) $(id).addEventListener("change", applyControls);
+// A new ball carries its own charge and patches; the other settings act on the ball as it is.
+for (const id of ["charge", "dipole"]) $(id).addEventListener("change", () => { state.charge = settings.ball.charge; state.dipole = settings.ball.dipole; });
+document.querySelectorAll("[data-drive], [data-ball]").forEach(btn => btn.addEventListener("click", () => {
+  const attr = btn.dataset.drive ? "data-drive" : "data-ball";
+  document.querySelectorAll(`[${attr}]`).forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+  applyControls();
+  if (attr === "data-ball") { state.charge = settings.ball.charge; state.dipole = settings.ball.dipole; }
 }));
-document.querySelectorAll("[data-ball]").forEach(btn => btn.addEventListener("click", () => {
-  state.ball = btn.dataset.ball;
-  document.querySelectorAll("[data-ball]").forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
-  ballMat.color.set(state.ball === "pe" ? 0xd8342a : 0xf1efe9);
-  ballLabel.element.innerHTML = state.ball === "pe" ? "<b>Ball</b> · 0.35 g on cotton" : "<b>Ball</b> · PTFE, 0.81 g";
-}));
-$("t-lines").addEventListener("change", e => { if (lineObj) lineObj.visible = e.target.checked; });
-$("t-slice").addEventListener("change", e => { if (sliceObj) sliceObj.visible = e.target.checked; });
-$("t-claim").addEventListener("change", e => { vortex.visible = vortexLabel.visible = e.target.checked; });
-$("t-labels").addEventListener("change", e => document.body.classList.toggle("hide-labels", !e.target.checked));
 
-// ---------------------------------------------------------------------------------------------
-// Loop
-// ---------------------------------------------------------------------------------------------
-buildLines(state.drive); buildSlice(state.drive); syncOutputs(); resize();
-let last = performance.now(), readoutClock = 0, t = 0;
+function readouts(r) {
+  const W = mass(settings.ball) * G0, b = settings.ball;
+  const e = r.field, tilt = Math.atan2(Math.hypot(e[0], e[1]), -e[2]) * 180 / PI;
+  const swing = Math.hypot(state.position[0], state.position[1]);
+  $("state").innerHTML = [
+    row("Supply", state.on ? "switched on" : "switched off", `${(state.supply / 1e3).toFixed(1)} kV`),
+    row("Across the tank's gas", r.glow ? "the gas is breaking down; the walls hold the rest" : "", `${sci(r.across, 3)} V`),
+    row("Field at the ball", `tilted ${tilt.toFixed(1)}° from vertical by the leads`, `${sci(mag(e))} V/m`),
+    row("Charge on the ball", "kept in vacuum, drained by a glow", `${sci(state.charge * 1e9, 3)} nC`),
+    row("Turned", "about the thread, from its rest", `${(state.twist * 180 / PI).toFixed(1)}°`),
+    row("Swung", magnify > 1 ? `sideways; drawn ${magnify}× larger` : "sideways", `${sci(swing * 1e6, 3)} µm`),
+  ].join("");
+  const f = (name, sub, v) => row(name, sub, `${sci(mag(v) / W)}`);
+  $("forces").innerHTML = [
+    row("Weight", `${b.density === 950 ? "polyethylene" : "PTFE"}, ${sci(mass(b) * 1e3, 3)} g`, `${sci(W * 1e3, 3)} mN`),
+    f("Coulomb", "the field on the ball's charge", r.coulomb),
+    f("Polarisation", "pull toward the strong field", r.polarisation),
+    f("Charge patches", "the dipole in the field's gradient", r.dipoleForce),
+    f("Gas drag", "at this Knudsen number", r.gasDrag),
+    f("Image in the wall", "glass, ε_r = 6", r.image),
+    f("Ion drag", "from a glow's current", r.ionDrag),
+    f("Buoyancy", "", r.buoyancy),
+    f("Lorentz", "the coil's and Earth's field on the moving charge", r.lorentz),
+    f("Diamagnetism", "", r.magnetisation),
+    row("Gravity of the field's energy", "general relativity; below what a double adds to g", sci(mag(r.fieldGravity) / W), "gr"),
+  ].join("");
+  $("torques").innerHTML = [
+    row("Charge patches", "their dipole lines up with the sideways field", `${sci(r.dipoleTorque)} N m`),
+    row("Shape", "a ball not quite round lines up too", `${sci(r.alignment)} N m`),
+    row("Thread", `κ = ${sci(settings.torsion)} N m/rad`, `${sci(r.threadTorque)} N m`),
+    row("Damping", "the thread's own, and the gas's spin drag", `${sci(r.dampingTorque)} N m`),
+    row("Zhang's vortex", settings.vortex === null ? "off" : `f = ${sci(settings.vortex)} kg s/C`, `${sci(r.vortexTorque)} N m`, "claim"),
+  ].join("");
+  const vb = rig.breakdown(), lam = meanFreePath(settings.pressure, settings.temperature, AIR_DIAMETER);
+  const tipField = Math.abs(state.supply) * TIP_FIELD[settings.drive];
+  $("gas").innerHTML = [
+    row("Mean free path", `at ${sci(settings.pressure)} Pa; the tank is 10 cm`, `${sci(lam)} m`),
+    row("Breakdown", "Paschen over the tank, in volts of the supply", `${vb === null ? "none" : sci(vb, 3) + " V"} <span class="status ${r.glow ? "on" : "off"}">${r.glow ? "glow" : "dark"}</span>`),
+    row("Bare copper ends, in air", `surface field ${sci(tipField)} V/m; Peek's onset ${sci(PEEK)} V/m`, `<span class="status ${tipField > PEEK ? "hot" : "off"}">${tipField > PEEK ? "corona" : "quiet"}</span>`),
+    row("Magnetic field at the ball", `coil ${sci(r.b[2] - settings.earth_field[2])} T; Earth's, vertical`, `${sci(r.b[2])} T`),
+  ].join("");
+  const drift = driftVelocity(Math.abs(r.current), COPPER_ELECTRONS, PI * WIRE * WIRE);
+  $("claim").innerHTML = [
+    row("His field as the charges' acceleration", "the most it can move the ball, at the 30 kHz ripple", `${sci(drift / (2 * PI * RIPPLE_FREQUENCY))} m`, "claim"),
+    ...ZHANG_KMQ.map(([name, k]) => row(`His vortex, k_mq ${name}`, "spin-up from Earth's field alone", `${sci(Math.abs(vortexSpin(EARTH_FIELD[2], vortexConstant(k))))} rad/s²`, "claim")),
+    row("His G = 4πc²/μ_g", "6.685×10⁻¹¹; the highest of 16 measurements is 6.6756, 34σ below", "6.685×10⁻¹¹", "claim"),
+  ].join("");
+}
+
+// The tips' surface field per supply volt: the solved line charge of each bare tip segment.
+const PEEK = peekOnset(WIRE, 1);
+const TIP_FIELD = {};
+for (const drive of ["single", "sym"]) {
+  const { unit } = unitCharges(drive);
+  let worst = 0;
+  ELEMENTS.forEach((el, i) => { if (!el.ring && (dist(el.b, LEAD_TOP_INNER[4]) < 1e-9 || dist(el.b, LEAD_BOTTOM_INNER[4]) < 1e-9)) worst = Math.max(worst, Math.abs(unit[i] / dist(el.a, el.b)) / (2 * PI * EPS_0 * WIRE)); });
+  TIP_FIELD[drive] = worst;
+}
+
+reset(); resize();
+const fails = selfCheck();
+$("check").className = fails.length ? "fail" : "pass";
+$("check").textContent = fails.length ? `Does not match the Rust crates: ${fails.join("; ")}` : "Matches the Rust crates: 14 reference values agree (fields to 10⁻¹², the 1 s trajectory to 10⁻⁹).";
+
+let last = performance.now(), pending = 0, clock = 0, t = 0, report = step(rig, Object.assign(rig.atRest(), {}));
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
-  const x = step(dt);
-  const level = Math.min(1, state.v / 50e3);
-  lineMat.uniforms.time.value = t;
-  lineMat.uniforms.level.value = Math.pow(level, 0.7);
-  if (sliceObj) sliceObj.material.opacity = Math.pow(level, 0.8);
-  ballGroup.rotation.y = state.theta;
+  const dt = Math.min(0.1, (now - last) / 1000); last = now; t += dt;
+  pending += dt;
+  while (pending >= DT) {
+    if (runaway) { state.supply += ((state.on ? settings.volts : 0) - state.supply) * (1 - Math.exp(-DT / (state.on ? settings.rise : settings.fall))); state.twist += 40 * DT; state.t += DT; }
+    else report = step(rig, state);
+    pending -= DT;
+  }
+  const level = Math.min(1, Math.abs(state.supply - state.wall) / 50e3);
+  lineMat.uniforms.time.value = t; lineMat.uniforms.level.value = Math.pow(level, 0.7);
+  if (shownSlice) shownSlice.material.opacity = Math.pow(level, 0.8);
+  // The ball: twist true, swing magnified about the rest position.
+  const shown = state.position.map((x, k) => x * (k < 2 ? magnify : 1));
+  const p = toScene(shown);
+  ballGroup.position.copy(p); ballGroup.rotation.y = state.twist;
+  threadGeo.setFromPoints([toScene(SUSPENSION), new THREE.Vector3(p.x, p.y + polyethylene().radius * 100, p.z)]);
   const flicker = 0.85 + 0.15 * Math.sin(t * 61) * Math.sin(t * 23.7);
-  const glow = x.glow ? Math.min(1, 0.35 + 0.65 * Math.log10(state.v / x.vb + 1)) : 0;
-  glowVol.material.opacity = 0.16 * glow * flicker;
-  glowCore.material.opacity = 0.07 * glow * flicker;
-  for (const s of tips) s.material.opacity = x.corona ? (0.55 + 0.45 * Math.random()) * Math.min(1, state.v / 60e3 + 0.3) : 0;
-  copper.emissive.setRGB(x.corona ? 0.25 : 0, x.corona ? 0.12 : 0, x.corona ? 0.3 : 0);
+  const glow = state.glow ? Math.min(1, 0.4 + Math.log10(1 + report.glowCurrent / 1e-7)) : 0;
+  glowVol.material.opacity = 0.16 * glow * flicker; glowCore.material.opacity = 0.07 * glow * flicker;
+  const corona = Math.abs(state.supply) * TIP_FIELD[settings.drive] > PEEK;
+  for (const s of tips) s.material.opacity = corona ? 0.55 + 0.45 * Math.random() : 0;
   if (vortex.visible) {
-    for (let i = 0; i < VN; i++) {
-      const sd = vseed[i]; sd.a += dt * (0.6 + 1.6 / sd.r);
-      vpos[3 * i] = sd.r * Math.cos(sd.a); vpos[3 * i + 1] = sd.y; vpos[3 * i + 2] = sd.r * Math.sin(sd.a);
-    }
+    for (let i = 0; i < VN; i++) { const sd = vseed[i]; sd.a += dt * (runaway ? 3 : 0.4) * (0.6 + 1.6 / sd.r); vpos[3 * i] = sd.r * Math.cos(sd.a); vpos[3 * i + 1] = sd.y; vpos[3 * i + 2] = sd.r * Math.sin(sd.a); }
     vortexGeo.attributes.position.needsUpdate = true;
   }
-  readoutClock += dt;
-  if (readoutClock > 0.2) { readoutClock = 0; renderReadout(x); }
+  clock += dt;
+  if (clock > 0.2 && report) { clock = 0; readouts(report); }
   controls.update();
   if (composer) composer.render(); else renderer.render(scene, camera);
   labelRenderer.render(scene, camera);

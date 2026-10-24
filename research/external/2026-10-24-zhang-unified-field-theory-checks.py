@@ -1,5 +1,6 @@
 """Checks for the review of research/external/2026-10-24-zhang-unified-field-theory.md.
 Standard library only. Run from outside the repository: python3 -I <path>. Takes a few seconds."""
+import math
 from math import pi, sqrt, log, sin, e as EULER
 EPS0 = 8.8541878128e-12; MU0 = 1.25663706212e-6; C = 299792458.0; G = 6.67430e-11; H = 6.62607015e-34
 QE = 1.602176634e-19; KB = 1.380649e-23; G0 = 9.80665; GM_EARTH = 3.986004418e14
@@ -126,3 +127,77 @@ print("== 7. The five-constant equation is Kepler's third law")
 mass = GM_EARTH * (1 + 1 / 81.30057) / G; nu = mass * C * C / H; r, T = 384399e3, 27.321661 * 86400
 print(f"  Moon: 4 pi^2 r^3 c^2/(T^2 G h nu) = {4*pi*pi*r**3*C*C/(T*T*G*H*nu):.5f}  (nu = {nu:.3e} Hz)")
 print("  GW170817 bounds the speed of gravity: -3e-15 < (v - c)/c < 7e-16 (gravitational::propagation::speed_bounds)")
+
+print("== 8. Zhang's constant k (the book's f) from his three values of k_mq")
+HBAR = 1.054571817e-34; QE_ = QE
+for name, kmq in (("calibrated, Paper J", 7.08e-11), ("eG/c^3, Paper E", QE_ * G / C ** 3), ("eG/(4 pi c^3), Paper J", QE_ * G / (4 * pi * C ** 3))):
+    f = kmq / (4 * pi * EPS0 * G)
+    print(f"  k_mq {kmq:.3e} ({name}): f = {f:.4e} kg s/C; spin-up B/(2f): rig 7.404e-11 T -> {7.404e-11/(2*f):.3e}, Earth 5e-5 T -> {5e-5/(2*f):.3e} rad/s^2")
+print(f"  Paper E's f is e/(4 pi eps0 c^3) = {QE_/(4*pi*EPS0*C**3):.4e}: G cancels")
+gz = 4 * pi * C * C / 1.6895e28
+print(f"  G = 4 pi c^2/mu_g = {gz:.5e}; vs BIPM-01 6.67559(27): {(gz*1e11-6.67559)/0.00027:.1f} sigma; vs CODATA 6.67430(15): {(gz*1e11-6.67430)/0.00015:.1f} sigma")
+kmq = 7.08e-11; mu = 1.6895e28
+print(f"  Paper J's closures with its own numbers: (e k_mq)^2 mu_g/(hbar c) = {(QE_*kmq)**2*mu/(HBAR*C):.3e} (alpha 7.297e-3); (4 pi k_mq mu_g)^-1 = {1/(4*pi*kmq*mu):.3e} (eps0 8.854e-12)")
+
+print("== 9. The rig's field in 3D: coil rings plus the four leads as wire segments")
+def dist(a, b): return sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+def lerp(a, b, t): return [x + (y - x) * t for x, y in zip(a, b)]
+def seg_phi(a, b, p):
+    L, r1, r2 = dist(a, b), dist(p, a), dist(p, b); return K / L * log((r1 + r2 + L) / (r1 + r2 - L))
+def seg_E(a, b, p):
+    L = dist(a, b); u = [(y - x) / L for x, y in zip(a, b)]; w = [x - y for x, y in zip(p, a)]
+    al = sum(x * y for x, y in zip(w, u)); perp = [x - al * y for x, y in zip(w, u)]; d = sqrt(sum(x * x for x in perp))
+    s1, s2 = -al, L - al; r1, r2 = sqrt(s1 * s1 + d * d), sqrt(s2 * s2 + d * d)
+    par = K / L * (1 / r2 - 1 / r1); ac = K / L * (s2 / r2 - s1 / r1) / d / d if d > 0 else 0
+    return [par * x + ac * y for x, y in zip(u, perp)]
+def poly(pts, step):
+    out = []
+    for p, q in zip(pts[:-1], pts[1:]):
+        n = max(1, math.ceil(dist(p, q) / step))
+        out += [("s", lerp(p, q, i / n), lerp(p, q, (i + 1) / n)) for i in range(n)]
+    return out
+els = [("r", 0.035, 0.065 + 0.01 * i) for i in range(12)] + [("r", 0.035, -(0.065 + 0.01 * i)) for i in range(12)]
+live = [True] * 12 + [False] * 12
+for pts, step, lv in (([[0, -0.035, 0.06], [-0.005, -0.054, 0.056], [-0.016, -0.061, 0.04], [-0.016, -0.061, -0.016], [-0.016, -0.061, -0.027]], 0.01, True),
+                      ([[0, -0.035, -0.06], [0.005, -0.054, -0.056], [0.016, -0.061, -0.04], [0.016, -0.061, 0.016], [0.016, -0.061, 0.027]], 0.01, False),
+                      ([[0, -0.035, 0.18], [0, -0.05, 0.205], [-0.09, -0.03, 0.215], [-0.21, 0, 0.15], [-0.25, 0, -0.06], [-0.26, 0, -0.176]], 0.02, True),
+                      ([[0, -0.035, -0.18], [0, -0.05, -0.205], [-0.06, -0.06, -0.225], [-0.12, -0.06, -0.234]], 0.02, False)):
+    ss = poly(pts, step); els += ss; live += [lv] * len(ss)
+def phi_el(e, p):
+    return ring_phi(1.0, e[1], e[2], math.hypot(p[0], p[1]), p[2]) if e[0] == "r" else seg_phi(e[1], e[2], p)
+def coef(ei, ej):
+    if ei is ej:
+        return log(8 * ei[1] / 0.75e-3) / (4 * pi * pi * EPS0 * ei[1]) if ei[0] == "r" else K / dist(ei[1], ei[2]) * 2 * math.asinh(dist(ei[1], ei[2]) / 1.5e-3)
+    if ei[0] == "r" and ej[0] == "r": return ring_phi(1.0, ej[1], ej[2], ei[1], ei[2])
+    if ei[0] == "r": return sum(phi_el(ej, [ei[1] * math.cos(2 * pi * k / 16), ei[1] * math.sin(2 * pi * k / 16), ei[2]]) for k in range(16)) / 16
+    return phi_el(ej, lerp(ei[1], ei[2], 0.5))
+P = [[coef(ei, ej) for ej in els] + [1.0 if live[i] else 0.0] for i, ei in enumerate(els)]
+n = len(P)
+for c in range(n):
+    p = max(range(c, n), key=lambda r: abs(P[r][c])); P[c], P[p] = P[p], P[c]
+    for r in range(c + 1, n):
+        f = P[r][c] / P[c][c]
+        for k in range(c, n + 1): P[r][k] -= f * P[c][k]
+q = [0.0] * n
+for r in range(n - 1, -1, -1): q[r] = (P[r][n] - sum(P[r][k] * q[k] for k in range(r + 1, n))) / P[r][r]
+E = [0.0, 0.0, 0.0]
+for e, qi in zip(els, q):
+    if e[0] == "r": er, ez = ring_E(qi, e[1], e[2], 0.0, 0.0); E[2] += ez
+    else: E = [x + qi * y for x, y in zip(E, seg_E(e[1], e[2], [0.0, 0.0, 0.0]))]
+print(f"  {n} elements; field at the ball per supply volt: {E[0]:.6f}, {E[1]:.6f}, {E[2]:.6f} V/m (Rust: 0.996212, 0.525028, -5.229824)")
+print(f"  capacitance {sum(qi for qi, l in zip(q, live) if l)*1e12:.4f} pF (Rust 9.4622); tilt {math.degrees(math.atan2(math.hypot(E[0], E[1]), -E[2])):.1f} deg")
+W = 0.35e-3 * G0; Eb = [x * 5e4 for x in E]
+print(f"  at 50 kV, 0.2 nC on the ball: Coulomb {0.2e-9*sqrt(sum(x*x for x in Eb))/W:.4f} of the weight; a 0.1 nC patch across the radius turns it with up to {0.1e-9*4.447e-3*math.hypot(Eb[0],Eb[1]):.2e} N m")
+
+print("== 10. The body and the gas")
+def depol(asp):
+    e2 = 1 - 1 / asp ** 2; e = sqrt(e2); return (1 - e2) / (e2 * e) * (math.atanh(e) - e)
+al = lambda L, eps=2.3: (eps - 1) / (1 + L * (eps - 1))
+print(f"  depolarisation of a 2:1 prolate spheroid {depol(2.0):.5f} (Osborn: 0.1736); 1% out of round: d alpha = {al(depol(1.01)) - al((1 - depol(1.01)) / 2):.6f}")
+print(f"  image force, 1 nC 5 cm from glass (eps 6): {1e-18*5/(16*pi*EPS0*0.0025*7):.4e} N")
+cc = lambda kn: 1 + kn * (1.257 + 0.4 * math.exp(-1.1 / kn))
+print(f"  Cunningham at Kn 0.132: {cc(0.132):.4f} (1 um particle in air: 1.166)")
+eta, a_, rho, v = 1.81e-5, 1e-3, 1e-8, 463.0; lam = 2 * eta / (rho * v)
+print(f"  free-molecular limit: Stokes/C_c over Epstein (diffuse) = {(6*pi*eta*a_/cc(lam/a_))/(4*pi/3*a_*a_*rho*v*(1+pi/8)):.4f}")
+print(f"  air at 20 C, 1 atm: {101325*0.0289647/(8.314462618*293.15):.4f} kg/m^3; mean speed {sqrt(8*8.314462618*293.15/(pi*0.0289647)):.1f} m/s")
+print(f"  floating potential of a 2 eV glow against N2+: {-0.5*2*log(28*1.66053906660e-27/(2*pi*9.1093837015e-31)):.3f} V")

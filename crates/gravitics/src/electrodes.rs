@@ -1,12 +1,15 @@
-//! The electric field of coaxial ring electrodes: coils, wires and gaps modelled as stacks of
-//! charged rings, with the charge on each ring solved from the potentials the rig applies.
+//! The electric field of high-voltage rigs: coil turns as charged rings about the z axis, and
+//! wires, leads and gaps as straight charged segments anywhere, with the charge on each piece
+//! solved from the potentials the rig applies.
 //!
-//! A coil's turns are close to rings, and a straight wire is a stack of rings of its own radius,
-//! so most high-voltage "gravity" rigs (two coils across a chamber, a wire with a gap) are
-//! axially symmetric enough for this. The potential and field of one ring come in closed form
-//! from the complete elliptic integrals `K(m)` and `E(m)`; the charges follow from a linear solve
-//! with each ring's self-potential taken as that of a thin torus, `Q ln(8R/a)/(4π²ε₀R)` for wire
-//! radius `a` (valid for `a ≪ R`).
+//! The potential and field of a ring come in closed form from the complete elliptic integrals
+//! `K(m)` and `E(m)`, and those of a uniformly charged segment from logarithms. The charges follow
+//! from a linear solve (collocation): each piece is held at its potential at one point (a
+//! segment's midpoint) or on average around it (a ring, against the segments). A piece's own
+//! potential is that of a thin conductor of wire radius `a`: `Q ln(8R/a)/(4π²ε₀R)` for a ring of
+//! radius `R`, and `(Q/L)·2 asinh(L/2a)/(4πε₀)` for a segment of length `L`, both valid for
+//! `a` much smaller than the piece. Ground is at infinity; dielectrics (insulation, glass) are
+//! left out.
 //!
 //! ```
 //! use gravitics::electrodes::{charges, field, stack, Ring};
@@ -27,11 +30,27 @@ use core::f64::consts::PI;
 
 use metrology::EPS_0;
 
-/// One ring of charge: its radius (m) and its height on the common axis (m).
+const K: f64 = 1.0 / (4.0 * PI * EPS_0);
+
+/// One ring of charge about the z axis: its radius (m) and its height (m).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ring {
     pub radius: f64,
     pub z: f64,
+}
+
+/// A straight piece of wire from `a` to `b` (m), its charge spread evenly along it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Segment {
+    pub a: [f64; 3],
+    pub b: [f64; 3],
+}
+
+/// A piece of an electrode.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Element {
+    Ring(Ring),
+    Segment(Segment),
 }
 
 /// `n` rings of radius `radius` (m), the first at height `z0` (m) and each next one `step` (m)
@@ -40,63 +59,138 @@ pub fn stack(radius: f64, z0: f64, step: f64, n: usize) -> Vec<Ring> {
     (0..n).map(|i| Ring { radius, z: z0 + step * i as f64 }).collect()
 }
 
-/// The charge (C) on each ring when ring `i` is held at `potentials[i]` (V) against ground at
-/// infinity, for conductors of wire radius `wire` (m).
-pub fn charges(rings: &[Ring], wire: f64, potentials: &[f64]) -> Vec<f64> {
-    let n = rings.len();
-    assert_eq!(n, potentials.len(), "one potential per ring");
-    // Potential coefficients P[i][j]: volts at ring i per coulomb on ring j. The last column
-    // holds the right-hand side during elimination.
-    let mut p: Vec<Vec<f64>> = rings
+/// A wire along the polyline `points` (m), cut into segments no longer than `step` (m).
+pub fn polyline(points: &[[f64; 3]], step: f64) -> Vec<Segment> {
+    points
+        .windows(2)
+        .flat_map(|w| {
+            let n = (dist(w[0], w[1]) / step).ceil().max(1.0) as usize;
+            let at = move |i: usize| lerp(w[0], w[1], i as f64 / n as f64);
+            (0..n).map(move |i| Segment { a: at(i), b: at(i + 1) })
+        })
+        .collect()
+}
+
+/// The charge (C) on each element when element `i` is held at `potentials[i]` (V) against ground
+/// at infinity, for conductors of wire radius `wire` (m).
+pub fn solve(elements: &[Element], wire: f64, potentials: &[f64]) -> Vec<f64> {
+    assert_eq!(elements.len(), potentials.len(), "one potential per element");
+    // Potential coefficients: volts at element i per coulomb on element j, with the applied
+    // potential appended as the right-hand side.
+    let rows = elements
         .iter()
         .zip(potentials)
-        .map(|(ri, &v)| {
-            let mut row: Vec<f64> = rings
-                .iter()
-                .map(|rj| if ri == rj { (8.0 * ri.radius / wire).ln() / (4.0 * PI * PI * EPS_0 * ri.radius) } else { ring_potential(1.0, *rj, ri.radius, ri.z) })
-                .collect();
+        .map(|(ei, &v)| {
+            let mut row: Vec<f64> = elements.iter().map(|ej| coefficient(ei, ej, wire)).collect();
             row.push(v);
             row
         })
         .collect();
-    for col in 0..n {
-        let pivot = (col..n).max_by(|&a, &b| p[a][col].abs().total_cmp(&p[b][col].abs())).unwrap();
-        p.swap(col, pivot);
-        let pivot_row = p[col].clone();
-        for row in &mut p[col + 1..] {
-            let f = row[col] / pivot_row[col];
-            for (x, y) in row[col..].iter_mut().zip(&pivot_row[col..]) {
-                *x -= f * y;
-            }
-        }
-    }
-    let mut q = vec![0.0; n];
-    for row in (0..n).rev() {
-        let s: f64 = (row + 1..n).map(|k| p[row][k] * q[k]).sum();
-        q[row] = (p[row][n] - s) / p[row][row];
-    }
-    q
+    gauss(rows)
+}
+
+/// The potential (V) at the point `p` (m) of elements carrying `charges` (C).
+pub fn potential_at(elements: &[Element], charges: &[f64], p: [f64; 3]) -> f64 {
+    elements.iter().zip(charges).map(|(e, &q)| q * unit_potential(e, p)).sum()
+}
+
+/// The field `[E_x, E_y, E_z]` (V/m) at the point `p` (m) of elements carrying `charges` (C).
+pub fn field_at(elements: &[Element], charges: &[f64], p: [f64; 3]) -> [f64; 3] {
+    elements.iter().zip(charges).fold([0.0; 3], |acc, (e, &q)| {
+        let f = unit_field(e, p);
+        [acc[0] + q * f[0], acc[1] + q * f[1], acc[2] + q * f[2]]
+    })
+}
+
+/// The charge (C) on each ring of a rig made only of rings: [`solve`] for rings.
+pub fn charges(rings: &[Ring], wire: f64, potentials: &[f64]) -> Vec<f64> {
+    solve(&as_elements(rings), wire, potentials)
 }
 
 /// The potential (V) at distance `rho` (m) from the axis and height `z` (m) of rings carrying
 /// `charges` (C).
 pub fn potential(rings: &[Ring], charges: &[f64], rho: f64, z: f64) -> f64 {
-    rings.iter().zip(charges).map(|(&r, &q)| ring_potential(q, r, rho, z)).sum()
+    potential_at(&as_elements(rings), charges, [rho, 0.0, z])
 }
 
 /// The field `[E_ρ, E_z]` (V/m) at distance `rho` (m) from the axis and height `z` (m) of rings
-/// carrying `charges` (C). The field has no azimuthal part.
+/// carrying `charges` (C). The field of rings has no azimuthal part.
 pub fn field(rings: &[Ring], charges: &[f64], rho: f64, z: f64) -> [f64; 2] {
-    rings.iter().zip(charges).fold([0.0, 0.0], |[er, ez], (&r, &q)| {
-        let [a, b] = ring_field(q, r, rho, z);
-        [er + a, ez + b]
-    })
+    let [e_rho, _, e_z] = field_at(&as_elements(rings), charges, [rho, 0.0, z]);
+    [e_rho, e_z]
+}
+
+fn as_elements(rings: &[Ring]) -> Vec<Element> {
+    rings.iter().map(|&r| Element::Ring(r)).collect()
+}
+
+// Volts at element i's collocation point per coulomb on element j.
+fn coefficient(ei: &Element, ej: &Element, wire: f64) -> f64 {
+    match (ei, ej) {
+        _ if ei == ej => match ei {
+            Element::Ring(r) => (8.0 * r.radius / wire).ln() / (4.0 * PI * PI * EPS_0 * r.radius),
+            Element::Segment(s) => {
+                let l = dist(s.a, s.b);
+                K / l * 2.0 * (l / (2.0 * wire)).asinh()
+            }
+        },
+        // A ring's potential is the same all the way round another ring, so one point does.
+        (Element::Ring(r), Element::Ring(_)) => unit_potential(ej, [r.radius, 0.0, r.z]),
+        (Element::Ring(r), Element::Segment(_)) => {
+            let n = 16;
+            (0..n)
+                .map(|k| {
+                    let t = 2.0 * PI * k as f64 / n as f64;
+                    unit_potential(ej, [r.radius * t.cos(), r.radius * t.sin(), r.z])
+                })
+                .sum::<f64>()
+                / n as f64
+        }
+        (Element::Segment(s), _) => unit_potential(ej, lerp(s.a, s.b, 0.5)),
+    }
+}
+
+fn unit_potential(e: &Element, p: [f64; 3]) -> f64 {
+    match e {
+        Element::Ring(r) => ring_potential(1.0, *r, p[0].hypot(p[1]), p[2]),
+        Element::Segment(s) => {
+            let (l, r1, r2) = (dist(s.a, s.b), dist(p, s.a), dist(p, s.b));
+            K / l * ((r1 + r2 + l) / (r1 + r2 - l)).ln()
+        }
+    }
+}
+
+fn unit_field(e: &Element, p: [f64; 3]) -> [f64; 3] {
+    match e {
+        Element::Ring(r) => {
+            let rho = p[0].hypot(p[1]);
+            let [e_rho, e_z] = ring_field(1.0, *r, rho, p[2]);
+            if rho == 0.0 { [0.0, 0.0, e_z] } else { [e_rho * p[0] / rho, e_rho * p[1] / rho, e_z] }
+        }
+        Element::Segment(s) => segment_field(*s, p),
+    }
+}
+
+// A uniform line charge of 1 C from a to b. With s measured along the segment from the foot of
+// the perpendicular from p, the field is K/L·[(1/r₂ − 1/r₁) along it + (s₂/r₂ − s₁/r₁)/d across].
+fn segment_field(s: Segment, p: [f64; 3]) -> [f64; 3] {
+    let l = dist(s.a, s.b);
+    let u = [(s.b[0] - s.a[0]) / l, (s.b[1] - s.a[1]) / l, (s.b[2] - s.a[2]) / l];
+    let w = [p[0] - s.a[0], p[1] - s.a[1], p[2] - s.a[2]];
+    let along = w[0] * u[0] + w[1] * u[1] + w[2] * u[2];
+    let perp = [w[0] - along * u[0], w[1] - along * u[1], w[2] - along * u[2]];
+    let d = (perp[0] * perp[0] + perp[1] * perp[1] + perp[2] * perp[2]).sqrt();
+    let (s1, s2) = (-along, l - along);
+    let (r1, r2) = (s1.hypot(d), s2.hypot(d));
+    let par = K / l * (1.0 / r2 - 1.0 / r1);
+    let across = if d > 0.0 { K / l * (s2 / r2 - s1 / r1) / d / d } else { 0.0 };
+    [par * u[0] + across * perp[0], par * u[1] + across * perp[1], par * u[2] + across * perp[2]]
 }
 
 fn ring_potential(q: f64, ring: Ring, rho: f64, z: f64) -> f64 {
     let s = (ring.radius + rho).powi(2) + (z - ring.z).powi(2);
     let (k, _) = elliptic(4.0 * ring.radius * rho / s);
-    q / (4.0 * PI * EPS_0) * 2.0 / PI * k / s.sqrt()
+    q * K * 2.0 / PI * k / s.sqrt()
 }
 
 // Zypman, Am. J. Phys. 74, 295 (2006), checked against direct summation in the tests.
@@ -105,7 +199,7 @@ fn ring_field(q: f64, ring: Ring, rho: f64, z: f64) -> [f64; 2] {
     let s = (r + rho).powi(2) + dz * dz;
     let d = (r - rho).powi(2) + dz * dz;
     let (k, e) = elliptic(4.0 * r * rho / s);
-    let c = q / (4.0 * PI * EPS_0);
+    let c = q * K;
     let e_z = c * 2.0 / PI * dz * e / (s.sqrt() * d);
     let e_rho = if rho == 0.0 { 0.0 } else { c / (PI * rho * s.sqrt()) * (k - (r * r - rho * rho + dz * dz) / d * e) };
     [e_rho, e_z]
@@ -126,6 +220,36 @@ fn elliptic(m: f64) -> (f64, f64) {
     }
     let k = PI / (2.0 * a);
     (k, k * (1.0 - sum))
+}
+
+// Gaussian elimination with partial pivoting on rows that carry their right-hand side last.
+fn gauss(mut p: Vec<Vec<f64>>) -> Vec<f64> {
+    let n = p.len();
+    for col in 0..n {
+        let pivot = (col..n).max_by(|&a, &b| p[a][col].abs().total_cmp(&p[b][col].abs())).unwrap();
+        p.swap(col, pivot);
+        let pivot_row = p[col].clone();
+        for row in &mut p[col + 1..] {
+            let f = row[col] / pivot_row[col];
+            for (x, y) in row[col..].iter_mut().zip(&pivot_row[col..]) {
+                *x -= f * y;
+            }
+        }
+    }
+    let mut q = vec![0.0; n];
+    for row in (0..n).rev() {
+        let s: f64 = (row + 1..n).map(|k| p[row][k] * q[k]).sum();
+        q[row] = (p[row][n] - s) / p[row][row];
+    }
+    q
+}
+
+fn dist(a: [f64; 3], b: [f64; 3]) -> f64 {
+    ((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)).sqrt()
+}
+
+fn lerp(a: [f64; 3], b: [f64; 3], t: f64) -> [f64; 3] {
+    [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
 }
 
 #[cfg(test)]
@@ -181,6 +305,50 @@ mod tests {
     }
 
     #[test]
+    fn one_segment_against_direct_summation() {
+        let seg = Segment { a: [0.01, -0.02, 0.03], b: [-0.04, 0.05, -0.01] };
+        let p = [0.02, 0.01, -0.03];
+        let (n, l) = (200_000, dist(seg.a, seg.b));
+        let (mut phi, mut e) = (0.0, [0.0; 3]);
+        for i in 0..n {
+            let x = lerp(seg.a, seg.b, (i as f64 + 0.5) / n as f64);
+            let w = [p[0] - x[0], p[1] - x[1], p[2] - x[2]];
+            let d = dist(p, x);
+            phi += K / n as f64 / d;
+            for k in 0..3 {
+                e[k] += K / n as f64 * w[k] / d.powi(3);
+            }
+        }
+        let el = Element::Segment(seg);
+        assert!(close(unit_potential(&el, p), phi, 1e-9), "{} {phi}", unit_potential(&el, p));
+        let f = unit_field(&el, p);
+        for k in 0..3 {
+            assert!(close(f[k], e[k], 1e-8), "{k}: {} {}", f[k], e[k]);
+        }
+        // Far away it is a point charge; on its own axis beyond an end, K/(r₁r₂).
+        assert!(close(unit_potential(&el, [100.0, 0.0, 0.0]), K / 100.0, 1e-3));
+        let ax = Segment { a: [0.0, 0.0, 0.0], b: [0.0, 0.0, l] };
+        assert!(close(segment_field(ax, [0.0, 0.0, 2.0 * l])[2], K / (2.0 * l * l), 1e-12));
+    }
+
+    #[test]
+    fn a_wire_holds_its_potential() {
+        // A 30 cm wire of 0.75 mm radius at 10 kV, in 1 cm segments.
+        let segs = polyline(&[[0.0, 0.0, 0.0], [0.0, 0.0, 0.3]], 0.01);
+        assert_eq!(segs.len(), 30);
+        let els: Vec<Element> = segs.iter().map(|&s| Element::Segment(s)).collect();
+        let q = solve(&els, 0.75e-3, &[10e3; 30]);
+        // On its surface between two collocation points, and at its middle, the potential is back.
+        let v = potential_at(&els, &q, [0.75e-3, 0.0, 0.150]);
+        assert!(close(v, 10e3, 0.02), "{v}");
+        // Charge crowds to the ends, as on any conductor.
+        assert!(q[0] > q[15] && q[29] > q[15]);
+        // The middle carries close to 2πε₀V/ln(L/a) per metre, the long-wire value.
+        let lambda = q[15] / 0.01;
+        assert!(close(lambda, 2.0 * PI * EPS_0 * 10e3 / (0.3f64 / 0.75e-3).ln(), 0.15), "{lambda:e}");
+    }
+
+    #[test]
     fn the_solved_charges_hold_the_potentials() {
         let (rings, q) = patent_rig(50e3, 0.0);
         // Halfway between two turns of the live coil, 0.75 mm off the wire's axis, the
@@ -206,8 +374,8 @@ mod tests {
         };
         let grad = (e2(1e-4) - e2(-1e-4)) / 2e-4;
         assert!(close(grad, 1.2753e12, 1e-3), "{grad:e}");
-        // Driving the coils at ±25 kV instead makes the rig symmetric: the field at the ball is
-        // the same size, and its gradient there vanishes.
+        // Driving the coils alone at ±25 kV makes the rig symmetric: the field at the ball is the
+        // same size, and its gradient there vanishes. (The leads break this; see physica::rig.)
         let (rings, q) = patent_rig(25e3, -25e3);
         let e2 = |z: f64| {
             let [a, b] = field(&rings, &q, 0.0, z);
