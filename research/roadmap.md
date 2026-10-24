@@ -97,17 +97,18 @@ Also still open: `magnetics::{devices, astro, frontier}`, specified in the magne
 lines 181–211 with test values and sources. Four attempts to write them were stopped by an
 automated filter, so they are left for the user to add from that specification.
 
-## Phase D: documentation and release (roadmap steps 4–5), once
+## Phase D: documentation and release — done 2026-10-24
 
-4. **Examples and documentation:** the remaining examples from the report's table, an
-   Applications section in every README, the `magnetics` and `physica` READMEs, and the root
-   README.
-5. **Release:** workspace tests and clippy, commit, push, publish `magnetics` and `physica`, and
-   new releases of `metrology`, `geopotential`, `gravimetry`, `gravitics` and `plasmoid`.
+- Five new examples (`gravitics/electrogravity_claim`, `gravimetry/buried_tunnel`,
+  `gravitational/lab_hfgw`, `plasmoid/sparc`, `magnetics/storm`), seventeen in all, each run by
+  `cargo test`.
+- READMEs for `magnetics` and `physica`, an Applications section in every crate README, and the
+  root README updated for eight crates.
+- Published 2026-10-24: `metrology` 0.2.0, `geopotential` 0.3.0, `gravimetry` 0.6.0,
+  `gravitational` 0.2.0, `gravitics` 0.4.0, `plasmoid` 0.3.0, and the new `magnetics` 0.1.0 and
+  `physica` 0.1.0, each tagged `<crate>-vX.Y.Z`.
 
-Open decisions for the user: retire `gwsens` by yanking it (or delete `gravitics` and
-republish), and whether to download IGRF-14's coefficient file and EGM96 for the IGRF and geoid
-examples.
+303 workspace tests pass; clippy and rustdoc clean.
 
 ## Later
 
