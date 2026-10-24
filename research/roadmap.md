@@ -110,6 +110,18 @@ automated filter, so they are left for the user to add from that specification.
 
 303 workspace tests pass; clippy and rustdoc clean.
 
+## Open
+
+- **Retired crates:** `satgrav`, `gravity-field` and `gravity-claims` are deleted; `gwsens` was
+  yanked by the user on 2026-10-24 (deletion was blocked because `gravitics` 0.1.0 and 0.2.0
+  depend on it).
+- **Decision for the user:** whether to download IGRF-14's coefficient file and EGM96 for the
+  IGRF and geoid examples.
+- **On hold at the user's request:** `magnetics::{devices, astro, frontier}`. The specification
+  is in [`topics/magnetics-and-mhd/report.md`](topics/magnetics-and-mhd/report.md), lines 181–211
+  (formulas, test vectors, labels) and 275–278 (worked examples), with the research behind it in
+  that topic's `notes/` and its check scripts.
+
 ## Later
 
 - `geo5d`: the relativity and PPN calculators (a proposed session).
