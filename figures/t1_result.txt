@@ -1,0 +1,12 @@
+T1 stage 2: the pre-registered test
+Model: COST-G January 2022 to degree 90, GOCO06s to 180; AOD1B RL06 GLO; GOT4.10c ocean tides to degree 120; solid tides; Sun and Moon; fitted orbits; moving-front templates.
+Residual epochs: 170156 (92491 before the eruption).
+Null: 200 fake eruptions (170 from Tonga every 10 min, 30 from random ocean points).
+  null Z: median 0.17, 1st–99th percentile -2.05 to 2.24; detection threshold Z > 2.24
+  sensitivity: median σ of the amplitude 0.79 hPa (5–95%: 0.44–1.69); crossings per window: median 15
+
+REAL: 21 crossings; best width σ = 2.5 min; amplitude 1.75 ± 1.52 hPa; Z = 1.15; p = 0.124 (24 of 200 null values ≥ Z)
+Decision: not detected
+95% upper limit on the amplitude: 4.26 hPa
+Intervals: A = 1.75 hPa, 68% [0.23, 3.28], 95% [-1.23, 4.74]; AOD1B's copy B = -4.06 ± 2.06 hPa
+Secondary, second passage (24–43.75 h): 17 crossings; width 2.5 min; amplitude -2.34 ± 1.31 hPa; Z = -1.79

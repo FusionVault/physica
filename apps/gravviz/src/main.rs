@@ -47,6 +47,7 @@
 //! with Q2's error scaling), scores the detections against a USGS earthquake catalogue (CSV from
 //! the FDSN service), and writes `m1_detector.svg`, `m1_report.txt` and the viewer's `m1_scan.json`.
 
+mod atlas3d;
 mod claims;
 mod e1;
 mod gradiometry;
@@ -150,6 +151,7 @@ fn main() -> Result<()> {
             print!("{}", kalman::run(months, baseline, tn14, tn13, out, viewer)?);
             Ok(())
         }
+        ["atlas3d", goco, l1b_dir, out] => atlas3d::export(Path::new(goco), Path::new(l1b_dir), Path::new(out)),
         ["claims", out] => {
             for (name, svg) in claims::figures() {
                 write(out, name, &svg)?;
@@ -187,7 +189,7 @@ fn main() -> Result<()> {
             e1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt USGS_FAULT_DIR Q0_NOISE.csv OUT_DIR | screen W1_LAND_STORAGE.csv INDEX_DIR OUT_DIR | \
             q0 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KP_FILE OUT_DIR | \
             kalman MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt OUT_DIR VIEWER_DATA_DIR | \
-            m1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KALMAN_DEGREES.csv CATALOGUE.csv OUT_DIR VIEWER_DATA_DIR | tonga OUT_DIR | claims OUT_DIR | \
+            m1 MONTHS_DIR BASELINE_DIR TN-14.txt TN-13.txt KALMAN_DEGREES.csv CATALOGUE.csv OUT_DIR VIEWER_DATA_DIR | tonga OUT_DIR | claims OUT_DIR | atlas3d GOCO06s.gfc L1B_DIR OUT.json | \
             t1-noise L1B_DIR AOD1B_DIR GOCO06s.gfc COSTG_2022-01.gfc OUT_DIR DATE... | \
             t1-test L1B_DIR AOD1B_DIR GOCO06s.gfc COSTG_2022-01.gfc GOT_TIDE_DIR OUT_DIR [--unblind] DATE...".into()),
     }

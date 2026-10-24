@@ -17,7 +17,8 @@ sensors of future missions.
 | [`gwsens`](crates/gwsens) · [docs](https://docs.rs/gwsens) | Gravitational-wave sensitivity: strain conventions, LIGO, Einstein Telescope and LISA noise curves, horizons, stochastic backgrounds, high-frequency limits and lab-gravity reality checks |
 | [`gravitics`](crates/gravitics) · [docs](https://docs.rs/gravitics) | Gravity control and exotic propulsion computed both ways: each proposal's own model (Li–Baker, Pais, Tajmar, Podkletnov, EmDrive, warp drives, the polarizable vacuum) next to general relativity and the measurements |
 | [`gravviz`](apps/gravviz) | The command-line tool that makes every figure here (not published) |
-| [`viewer`](viewer) | The GRACE Mass Atlas, an interactive web page for all of it |
+| [`plasmoid`](crates/plasmoid) · [docs](https://docs.rs/plasmoid) | Fusion and self-organising plasma: Coulomb barriers and Gamow peaks, Bosch–Hale and p–¹¹B reaction rates, Lawson, Z-pinches and the plasma focus, Taylor-relaxed plasmoids and reconnection, aneutronic power balance and direct energy conversion |
+| [`viewer`](viewer) | The GRACE Mass Atlas, an interactive web page for the data, and the Gravity Orrery, a 3D model of all the crates |
 
 [`geo5d`](https://crates.io/crates/geo5d) (heights, normal gravity, relativistic geodesy) uses
 `geopotential` for its gravity.
@@ -65,7 +66,11 @@ new tests of how gravity data connects to climate and earthquakes; a
 [second report](reports/Gravitational%20waves%20and%20gravity%20beams.md) covers gravitational
 waves, high-frequency waves and gravity beams; a
 [third](reports/Gravity%20beams%20fringe%20physics%20and%20DIRDs.md) checks the fringe claims
-and the DIA "DIRD" papers against general relativity. Each forecast is committed as a
+and the DIA "DIRD" papers against general relativity. Three more cover
+[the Coulomb barrier and the Schwinger limit](reports/Coulomb%20barrier%20and%20Schwinger%20limit.md),
+[where gravity physics is still open](reports/Gravity%20anomalies%20and%20manipulation%20physics.md),
+and [Z-pinches, plasmoids and aneutronic fusion](reports/Z%20pinch%20plasmoids%20and%20aneutronic%20fusion.md).
+Each forecast is committed as a
 git tag before the data that decides it exists, and results are reported whether they hit or
 miss.
 
@@ -77,7 +82,7 @@ miss.
 | [Screen](figures/screen_indices.svg) | Which climate patterns move global land water? | Only El Niño, once 27 tests are accounted for |
 | [Q2](results/Q2-2026-10-24.md) | Are the stated errors of the monthly fields right? | Too small, by about 2× above degree 10 |
 | [M1](results/M1-2026-10-24.md) | Can a blind search of every month and place find earthquakes? | Sumatra and Tohoku, with no false alarms; smaller ones need a targeted test |
-| [T1](prereg/T1-2026-10-24.md) | Does GRACE-FO's laser ranging feel the 2022 Tonga eruption's pressure wave? | Registered 2026-10-24 before any data was fetched; feasible on paper (SNR 25–55 per good crossing) |
+| [T1](results/T1-2026-10-24.md) | Does GRACE-FO's laser ranging feel the 2022 Tonga eruption's pressure wave? | Not detected: 1.75 ± 1.52 hPa on the first day (Z = 1.15, p = 0.12; 95% limit 4.3 hPa, against the expected 2.1–3.9), and nothing on the wave's second pass. Registered and frozen before the data was seen |
 
 **Findings so far:**
 - **El Niño drains the land.** Global land loses about 620 km³ of water per °C of El Niño
@@ -164,6 +169,8 @@ TN13=data/TN-13_GEOC_CSR_RL0603.txt
 | `m1 data/costg data/baseline $TN14 $TN13 figures/kalman_degrees.csv data/usgs_m8_2002_2026.csv figures viewer/data` | [Blind search for sudden mass changes](figures/m1_detector.svg) |
 | `tonga figures` | [The Tonga Lamb wave as GRACE-FO would see it](figures/tonga_lamb_wave.svg) |
 | `claims figures` | [How far off the claims are](figures/claims_gap.svg), [warp energy](figures/warp_energy.svg), [thrust per watt](figures/thrust_per_watt.svg) |
+| `t1-test data/gracefo_l1b data/gracefo_l1b/aod1b data/GOCO06s.gfc $MONTH data/tides/GOT4.10c/grids_oceantide figures --unblind 2022-01-13 2022-01-14 2022-01-15 2022-01-16` | [The T1 test](results/T1-2026-10-24.md) (GRACE-FO Level-1B and AOD1B from PO.DAAC, GOT4.10c from NASA GSFC) |
+| `atlas3d data/GOCO06s.gfc data/gracefo_l1b viewer/build/atlas3d.json` | The Gravity Orrery page, `viewer/build/orrery.html` |
 
 **3. Run the viewer.** The GRACE Mass Atlas has five views:
 - **Water:** every month on a map or globe, with animated mass flow and an average year. The
@@ -180,6 +187,12 @@ python3 -m http.server --bind 127.0.0.1 --directory viewer 8000
 ```
 
 Open <http://localhost:8000>, and stop the server with Ctrl-C when you are done.
+
+The **Gravity Orrery** ([live](https://claude.ai/artifact/PS2KMuRxfnCH2c8xmQa7TN)) puts every
+crate in one 3D scene: the geoid, with GRACE-FO's real orbits crossing the Tonga pressure wave
+and LAGEOS's frame-dragged orbit (geopotential, satgrav, gravimetry, geo5d); a gravitational
+wave squeezing a ring of test masses, with the detector landscape (gwsens); a spheromak's
+self-organised field and a Z-pinch (plasmoid); and the cost of a warp bubble (gravitics).
 
 ## How it is checked
 

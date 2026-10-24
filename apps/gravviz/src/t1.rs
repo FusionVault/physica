@@ -44,7 +44,7 @@ const DT: f64 = 2.0; // LRI1B sampling, s
 const NMAX: usize = 180;
 const BAND: (f64, f64) = (1e-3, 10e-3);
 
-type V3 = [f64; 3];
+pub(crate) type V3 = [f64; 3];
 
 fn dot(a: V3, b: V3) -> f64 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
@@ -833,6 +833,27 @@ fn all_aod1b(dir: &Path) -> Result<Vec<(f64, Coefficients)>> {
     Ok(aod)
 }
 
+/// Positions (km, Earth-fixed) of both satellites every `step` seconds from `from` to `to` (GPS
+/// seconds), from GNV1B: for the 3D atlas. Reads past the eruption only once unblinded.
+pub(crate) fn pair_orbit(l1b_dir: &Path, dates: &[&str], from: f64, to: f64, step: f64) -> Result<Vec<(f64, V3, V3)>> {
+    let mut c = States::new();
+    let mut d = States::new();
+    for date in dates {
+        let day = l1b_dir.join(date);
+        c.extend(satellite(&day, date, 'C')?.states);
+        d.extend(satellite(&day, date, 'D')?.states);
+    }
+    let mut out = Vec::new();
+    let mut t = from;
+    while t < to {
+        if let (Some(a), Some(b)) = (c.get(&(t as i64)), d.get(&(t as i64))) {
+            out.push((t, scale(a.0, 1e-3), scale(b.0, 1e-3)));
+        }
+        t += step;
+    }
+    Ok(out)
+}
+
 /// LRI epochs: time, corrected range acceleration, and whether the record is good.
 type Lri = Vec<(f64, f64, bool)>;
 
@@ -1041,17 +1062,21 @@ fn crossings(epochs: &[Epoch], source: V3, from: f64, to: f64, target: &dyn Fn(f
 }
 
 /// Crossings of the real front, and of AOD1B's 3-hourly copies of it, in the window after `t0`.
-fn all_crossings(epochs: &[Epoch], source: V3, t0: f64) -> (Vec<Crossing>, Vec<Crossing>) {
+fn all_crossings(epochs: &[Epoch], source: V3, t0: f64, span: (f64, f64)) -> (Vec<Crossing>, Vec<Crossing>) {
     // Past the antipode the front comes back toward the source, so its outward speed changes sign.
     let outward_speed = |t: f64| if (LAMB_SPEED * (t - t0) / R_MEAN).rem_euclid(2.0 * PI) > PI { -LAMB_SPEED } else { LAMB_SPEED };
-    let real = crossings(epochs, source, t0, t0 + WINDOW, &|t| front(t, t0), &|_| 1.0, &outward_speed);
+    let (w0, w1) = (t0 + span.0, t0 + span.1);
+    let real = crossings(epochs, source, w0, w1, &|t| front(t, t0), &|_| 1.0, &outward_speed);
     let mut ghosts = Vec::new();
-    let first = ((t0 - AOD_ORIGIN) / AOD_STEP).ceil() as i64;
-    let last = ((t0 + WINDOW - AOD_ORIGIN) / AOD_STEP).ceil() as i64;
+    let first = ((w0 - AOD_ORIGIN) / AOD_STEP).ceil() as i64;
+    let last = ((w1 - AOD_ORIGIN) / AOD_STEP).ceil() as i64;
     for k in first..=last {
         let tj = AOD_ORIGIN + k as f64 * AOD_STEP;
+        if tj < t0 {
+            continue; // AOD1B can only hold the pulse after it exists
+        }
         let theta_j = front(tj, t0);
-        let (from, to) = ((tj - AOD_STEP).max(t0), (tj + AOD_STEP).min(t0 + WINDOW));
+        let (from, to) = ((tj - AOD_STEP).max(w0), (tj + AOD_STEP).min(w1));
         ghosts.extend(crossings(epochs, source, from, to, &|_| theta_j, &|t| 1.0 - (t - tj).abs() / AOD_STEP, &|_| 0.0));
     }
     (real, ghosts)
@@ -1172,8 +1197,10 @@ fn inner(times: &[f64], from: f64, to: f64, series: &[&[f64]], s: &[(f64, f64)])
 }
 
 /// The test statistic for one origin: for each width, the generalised least-squares amplitude of
-/// the real-front template (with AOD1B's copy as a second template), its σ, and Z = Â/σ.
-/// Returns the width with the largest Z, as (width, Â, σ, Z, crossings).
+/// the real-front template (with AOD1B's copy as a second template), its σ, and Z = Â/σ, over the
+/// crossings between `span.0` and `span.1` seconds after `t0`. Returns the width with the largest
+/// Z: width, Â, σ_A, Z, crossings, and AOD1B's amplitude B̂ with its σ (0, 0 when it has no
+/// crossings).
 struct Context<'a> {
     times: &'a [f64],
     residual: &'a [f64],
@@ -1182,12 +1209,14 @@ struct Context<'a> {
     psd: &'a [(f64, f64)],
 }
 
-fn statistic(ctx: &Context, source: V3, t0: f64, cache: &mut std::collections::HashMap<(u32, u32, u32), Vec<f64>>) -> Option<(f64, f64, f64, f64, usize)> {
-    let (real, ghosts) = all_crossings(ctx.epochs, source, t0);
+type Stat = (f64, f64, f64, f64, usize, f64, f64);
+
+fn statistic(ctx: &Context, source: V3, t0: f64, span: (f64, f64), cache: &mut std::collections::HashMap<(u32, u32, u32), Vec<f64>>) -> Option<Stat> {
+    let (real, ghosts) = all_crossings(ctx.epochs, source, t0, span);
     if real.is_empty() {
         return None;
     }
-    let mut best: Option<(f64, f64, f64, f64, usize)> = None;
+    let mut best: Option<Stat> = None;
     for width in WIDTHS_MIN {
         let mut tr = template_series(ctx.times, &real, width, cache);
         let mut ta = template_series(ctx.times, &ghosts, width, cache);
@@ -1195,17 +1224,18 @@ fn statistic(ctx: &Context, source: V3, t0: f64, cache: &mut std::collections::H
         detrend(ctx.times, &mut ta, ctx.revs);
         let (tr, ta) = (band_pass(ctx.times, &tr), band_pass(ctx.times, &ta));
         let neg: Vec<f64> = ta.iter().map(|v| -v).collect();
-        let g = inner(ctx.times, t0, t0 + WINDOW, &[&tr, &neg, ctx.residual], ctx.psd);
-        let (a, sigma) = if g[1][1] > 1e-6 * g[0][0] {
+        let g = inner(ctx.times, t0 + span.0, t0 + span.1, &[&tr, &neg, ctx.residual], ctx.psd);
+        let (a, sigma, b, sigma_b) = if g[1][1] > 1e-6 * g[0][0] {
             let det = g[0][0] * g[1][1] - g[0][1] * g[0][1];
             let a = (g[1][1] * g[0][2] - g[0][1] * g[1][2]) / det;
-            (a, (g[1][1] / det).sqrt())
+            let b = (g[0][0] * g[1][2] - g[0][1] * g[0][2]) / det;
+            (a, (g[1][1] / det).sqrt(), b, (g[0][0] / det).sqrt())
         } else {
-            (g[0][2] / g[0][0], (1.0 / g[0][0]).sqrt())
+            (g[0][2] / g[0][0], (1.0 / g[0][0]).sqrt(), 0.0, 0.0)
         };
         let z = a / sigma;
-        if best.is_none_or(|b| z > b.3) {
-            best = Some((width, a, sigma, z, real.len()));
+        if best.is_none_or(|s| z > s.3) {
+            best = Some((width, a, sigma, z, real.len(), b, sigma_b));
         }
     }
     best
@@ -1244,7 +1274,7 @@ pub fn test(l1b_dir: &Path, aod_dir: &Path, goco: &Path, costg: &Path, tides: &P
     let mut null = Vec::new();
     let mut t0 = AOD_ORIGIN;
     while t0 + WINDOW <= ERUPTION {
-        if let Some(r) = statistic(&ctx, tonga, t0, &mut cache) {
+        if let Some(r) = statistic(&ctx, tonga, t0, (0.0, WINDOW), &mut cache) {
             null.push(r);
         }
         t0 += 600.0;
@@ -1260,7 +1290,7 @@ pub fn test(l1b_dir: &Path, aod_dir: &Path, goco: &Path, costg: &Path, tides: &P
             continue;
         }
         let t0 = AOD_ORIGIN + uniform() * (ERUPTION - WINDOW - AOD_ORIGIN);
-        if let Some(r) = statistic(&ctx, unit_vector(lat, lon), t0, &mut cache) {
+        if let Some(r) = statistic(&ctx, unit_vector(lat, lon), t0, (0.0, WINDOW), &mut cache) {
             null.push(r);
         }
         sources += 1;
@@ -1275,12 +1305,18 @@ pub fn test(l1b_dir: &Path, aod_dir: &Path, goco: &Path, costg: &Path, tides: &P
         crate::lab::quantile(&sigmas, 0.5), crate::lab::quantile(&sigmas, 0.05), crate::lab::quantile(&sigmas, 0.95),
         crate::lab::quantile(&null.iter().map(|r| r.4 as f64).collect::<Vec<_>>(), 0.5))?;
     if UNBLIND.load(std::sync::atomic::Ordering::Relaxed) {
-        let (width, a, sigma, z, n) = statistic(&ctx, tonga, ERUPTION, &mut cache).ok_or("no crossings after the eruption")?;
+        let (width, a, sigma, z, n, b, sigma_b) = statistic(&ctx, tonga, ERUPTION, (0.0, WINDOW), &mut cache).ok_or("no crossings after the eruption")?;
         let rank = zs.iter().filter(|&&v| v >= z).count();
         writeln!(report, "\nREAL: {n} crossings; best width σ = {width} min; amplitude {a:.2} ± {sigma:.2} hPa; Z = {z:.2}; p = {:.3} ({rank} of {} null values ≥ Z)",
             (rank + 1) as f64 / (zs.len() + 1) as f64, zs.len())?;
         writeln!(report, "Decision: {}", if z > threshold && a > 0.0 { "DETECTED" } else { "not detected" })?;
         writeln!(report, "95% upper limit on the amplitude: {:.2} hPa", a.max(0.0) + 1.645 * sigma)?;
+        writeln!(report, "Intervals: A = {a:.2} hPa, 68% [{:.2}, {:.2}], 95% [{:.2}, {:.2}]; AOD1B's copy B = {b:.2} ± {sigma_b:.2} hPa",
+            a - sigma, a + sigma, a - 1.96 * sigma, a + 1.96 * sigma)?;
+        // Secondary (not part of the decision): the second passage, 24 h to the end of the LRI data.
+        if let Some((w2, a2, s2, z2, n2, _, _)) = statistic(&ctx, tonga, ERUPTION, (WINDOW, 43.75 * 3600.0), &mut cache) {
+            writeln!(report, "Secondary, second passage (24–43.75 h): {n2} crossings; width {w2} min; amplitude {a2:.2} ± {s2:.2} hPa; Z = {z2:.2}")?;
+        }
     } else {
         writeln!(report, "\n(blind: the real window is not evaluated)")?;
     }

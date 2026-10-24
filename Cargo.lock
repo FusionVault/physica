@@ -50,6 +50,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "geo3d"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77d8a19934813212f51bd020ba0761db93d4cbc6d98d1e70815ab971c10f9ca0"
+
+[[package]]
+name = "geo4d"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc4f7be4249641e1023dd034d1cfa227b133875afd0454de4215bce8f73b1373"
+dependencies = [
+ "geo3d",
+]
+
+[[package]]
+name = "geo5d"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c50e6e2c0b471932cf6beba52100b0e783b5211824d6af49a2315ef56005841"
+dependencies = [
+ "geo4d",
+ "geopotential 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "geopotential"
 version = "0.1.2"
 dependencies = [
@@ -57,15 +82,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "geopotential"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4cd79672262584134825877ed12b48a4295ac07e737524fa18d553a4c6d7a398"
+
+[[package]]
 name = "gravimetry"
 version = "0.4.0"
 dependencies = [
- "geopotential",
+ "geopotential 0.1.2",
 ]
 
 [[package]]
 name = "gravitics"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gwsens",
 ]
@@ -74,7 +105,7 @@ dependencies = [
 name = "gravity-field"
 version = "0.1.1"
 dependencies = [
- "geopotential",
+ "geopotential 0.1.2",
 ]
 
 [[package]]
@@ -82,11 +113,13 @@ name = "gravviz"
 version = "0.0.0"
 dependencies = [
  "flate2",
- "geopotential",
+ "geo5d",
+ "geopotential 0.1.2",
  "gravimetry",
  "gravitics",
  "gravity-field",
  "gwsens",
+ "plasmoid",
  "png",
  "satgrav",
 ]
@@ -154,7 +187,7 @@ dependencies = [
 name = "satgrav"
 version = "0.3.0"
 dependencies = [
- "geopotential",
+ "geopotential 0.1.2",
 ]
 
 [[package]]
