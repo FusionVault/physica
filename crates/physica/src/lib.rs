@@ -1,8 +1,4 @@
-//! The quantum-gravimeter crate family in one dependency, and the equations its domains share.
-//!
-//! Each crate is re-exported under its own name, so `physica::magnetics::main_field::wmm2025()`
-//! and `magnetics::main_field::wmm2025()` are the same function. [`analogies`] collects the
-//! identities that join the domains, each one a test.
+#![doc = include_str!("../README.md")]
 
 pub use geopotential;
 pub use gravimetry;

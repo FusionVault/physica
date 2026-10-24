@@ -66,6 +66,18 @@ The research behind it, with every claim's status, is in the reports on the
 [Coulomb barrier and the Schwinger limit](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/coulomb-and-schwinger/report.md)
 and on [Z-pinches, plasmoids and aneutronic fusion](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/plasmoids-and-fusion/report.md).
 
+## Applications
+
+- **Judging a design point.** `tokamak` checks a machine against the safety-factor, density,
+  beta and confinement limits it must respect; `examples/sparc.rs` runs ITER and SPARC.
+- **Reading a shot.** `examples/triple_products.rs` places published results against the Lawson
+  requirement at their own temperature, and `examples/fusion_yields.rs` turns a yield into the
+  reactions and fuel behind it.
+- **Choosing a fuel.** `aneutronic` and `conversion` weigh p–¹¹B and D–³He against bremsstrahlung
+  and set out what direct conversion returns without a steam cycle.
+- **Pinches and self-organisation.** `pinch` and `relaxation` give the equilibria, scalings and
+  reconnection rates, with the gravitational twin of the Bennett relation alongside.
+
 ## How it is checked
 
 - **Bosch–Hale:** all of UWFDM-1268's Table 6 (D–T, both D–D branches, D–³He at 1, 10 and
@@ -79,10 +91,12 @@ and on [Z-pinches, plasmoids and aneutronic fusion](https://github.com/FusionVau
 - **Aneutronic power:** NRL's bremsstrahlung limit and Putvinski's synchrotron ratios.
 - **Laser shots:** Margarone's and the PALS shots' energy returns.
 
-One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
 [`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
 [`gravitational`](https://crates.io/crates/gravitational) (waves) ·
 [`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`magnetics`](https://crates.io/crates/magnetics) (magnetism and MHD) ·
 [`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).

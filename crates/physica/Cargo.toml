@@ -11,13 +11,13 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-geopotential = { path = "../geopotential", version = "0.2.0" }
-gravimetry = { path = "../gravimetry", version = "0.5.0" }
-gravitational = { path = "../gravitational", version = "0.1.0" }
-gravitics = { path = "../gravitics", version = "0.3.0" }
+geopotential = { path = "../geopotential", version = "0.3.0" }
+gravimetry = { path = "../gravimetry", version = "0.6.0" }
+gravitational = { path = "../gravitational", version = "0.2.0" }
+gravitics = { path = "../gravitics", version = "0.4.0" }
 magnetics = { path = "../magnetics", version = "0.1.0" }
-metrology = { path = "../metrology", version = "0.1.0" }
-plasmoid = { path = "../plasmoid", version = "0.2.0" }
+metrology = { path = "../metrology", version = "0.2.0" }
+plasmoid = { path = "../plasmoid", version = "0.3.0" }
 
 [[example]]
 name = "three_fields_one_engine"

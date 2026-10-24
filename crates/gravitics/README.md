@@ -114,6 +114,19 @@ reports on [fringe physics and the DIRDs](https://github.com/FusionVault/quantum
 [the Coulomb barrier and the Schwinger limit](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/coulomb-and-schwinger/report.md)
 and [where gravity physics is still open](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/gravity-anomalies/report.md).
 
+## Applications
+
+- **Evaluating a proposal.** Compute a claim in its authors' own terms, the standard prediction
+  for the same apparatus, and the measurement, as agency reviews have done; the gap is the
+  answer. `examples/electrogravity_claim.rs` does this for the pulsed-field gravity claims and
+  names the experiment that would settle them.
+- **Designing an experiment.** `anomalies::tension` and `magnets`-style systematics show what a
+  precision gravity measurement must control; `modified` carries the current short-range bounds.
+- **Planning a strong-field campaign.** `strong_field` gives the Schwinger field, the quantum
+  parameter a beam reaches, and how far the best lasers remain from vacuum breakdown.
+- **Teaching the analogy honestly.** `gem` gives gravitoelectromagnetism in three conventions
+  that agree, with the spin-2 factor where it belongs.
+
 ## How it is checked
 
 Every test reproduces a published number from the paper's own inputs, mostly to better than 1%:
@@ -135,10 +148,12 @@ Every test reproduces a published number from the paper's own inputs, mostly to 
 The formulas were independently re-derived from their sources and every test value recomputed;
 the Casimir formulas are also checked against each other.
 
-One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
 [`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
 [`gravitational`](https://crates.io/crates/gravitational) (waves) ·
 [`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`magnetics`](https://crates.io/crates/magnetics) (magnetism and MHD) ·
 [`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).

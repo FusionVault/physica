@@ -95,6 +95,19 @@ assert!(gradiometer_strain(1e-11, 0.1) > 1e10 * aion.peak_strain());
 | `detectors` | Gravity sensors as wave detectors: atom-interferometer strain response ([Graham et al. 2016](https://arxiv.org/abs/1606.01860), Eq. 9), and the strain noise of gradiometers, optical clocks ([Kolkowitz et al. 2016](https://arxiv.org/abs/1606.01859)) and satellite pairs |
 | `laboratory` | A beam's gravitational near field ([Rätzel et al. 2016](https://arxiv.org/abs/1511.01023)), waves from spinning bodies, wave energy flux, and the Newtonian calibrators of LIGO ([Ross et al. 2021](https://arxiv.org/abs/2107.00141)) and Virgo ([Estevez et al. 2018](https://arxiv.org/abs/1806.06572)) |
 
+## Applications
+
+- **Detector design.** Horizon and range decide a detector's event rate, which is how
+  next-generation designs are argued; `examples/detector_range.rs` works it through.
+- **Testing general relativity.** `examples/binary_pulsar.rs` reproduces the Hulse–Taylor orbital
+  decay from published orbital elements.
+- **Bounding a background.** `sgwb` and `hf` convert between the strain, spectral density and
+  energy-density conventions papers quote, and `hf::REGISTRY` carries the published limits with
+  their status.
+- **Sizing a laboratory source.** `laboratory::quadrupole_strain` says what a lab source radiates,
+  and `examples/lab_hfgw.rs` sets it against the best detectors.
+- **Multi-messenger timing.** `propagation` gives the speed bounds, dispersion and lensing delays.
+
 ## How it is checked
 
 Every formula is tested against numbers published in, or recomputed from, the papers above:
@@ -117,10 +130,12 @@ All formulas are written from the papers, not translated from other codes, so th
 MIT-licensed. The research behind the newer modules is in the report on
 [where gravity physics is still open](https://github.com/FusionVault/quantum-gravimeter/blob/main/research/topics/gravity-anomalies/report.md).
 
-One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
 [`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
 [`gravitational`](https://crates.io/crates/gravitational) (waves) ·
 [`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`magnetics`](https://crates.io/crates/magnetics) (magnetism and MHD) ·
 [`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).

@@ -1,4 +1,4 @@
-//! Magnetism and magnetohydrodynamics.
+#![doc = include_str!("../README.md")]
 
 pub mod dynamo;
 pub mod flow;

@@ -1,6 +1,6 @@
 [package]
 name = "gravitational"
-version = "0.1.0"
+version = "0.2.0"
 description = "Gravitational waves from nanohertz to terahertz: strain conventions, detector noise curves (LIGO, Einstein Telescope, LISA), inspirals and binary pulsars, radiated energy, memory, propagation and the graviton mass, graviton counts, stochastic backgrounds and inflation, high-frequency limits, gravity sensors as detectors, and laboratory sources."
 keywords = ["gravitational-waves", "physics", "astronomy", "ligo", "lisa"]
 categories = ["science", "simulation"]
@@ -11,7 +11,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-metrology = { path = "../metrology", version = "0.1.0" }
+metrology = { path = "../metrology", version = "0.2.0" }
 
 [lints]
 workspace = true
@@ -22,4 +22,8 @@ test = true
 
 [[example]]
 name = "detector_range"
+test = true
+
+[[example]]
+name = "lab_hfgw"
 test = true

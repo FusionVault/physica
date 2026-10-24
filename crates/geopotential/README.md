@@ -81,6 +81,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 Models are free from [ICGEM](https://icgem.gfz.de); each COST-G monthly series also comes as one
 zip.
 
+## Applications
+
+- **Height systems.** Turning a GNSS ellipsoidal height into a usable one needs the geoid; this
+  is the synthesis behind national models such as GEOID2022 and AUSGeoid2020.
+- **Orbit design and determination.** `J2` from a real model sets the nodal precession that makes
+  an orbit sun-synchronous; `examples/sun_synchronous_orbit.rs` reproduces Landsat's 98.2°.
+- **Inertial navigation.** The deflection of the vertical is what an accelerometer mistakes for
+  horizontal acceleration, and compensating it from a model is standard practice.
+- **Gradiometry.** `SecondPartials::tensor_neu` gives the tidal tensor a gradiometer measures, in
+  which a vehicle's own acceleration cancels.
+- **Reading published models.** `read_gfc` takes any ICGEM `.gfc` file, static or time-variable.
+
 ## How it is checked
 
 - **Legendre functions:** against closed forms, the addition theorem to degree 2700 close to the
@@ -94,10 +106,12 @@ zip.
   malformed record fails with its line number. The fixtures' sources are listed in
   `tests/data/README.md`.
 
-One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
 [`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
 [`gravitational`](https://crates.io/crates/gravitational) (waves) ·
 [`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`magnetics`](https://crates.io/crates/magnetics) (magnetism and MHD) ·
 [`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).

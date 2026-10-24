@@ -33,15 +33,23 @@ assert!(((HBAR * G / C.powi(3)).sqrt() / metrology::PLANCK_LENGTH - 1.0).abs() <
 | Derived couplings | `EINSTEIN_KAPPA` (8πG/c⁴) | [Einstein field equations](https://en.wikipedia.org/wiki/Einstein_field_equations) |
 | Earth and astronomy | `G0`, `GM_EARTH`, `WGS84_A`, `WGS84_F`, `GM_SUN`, `SOLAR_MASS`, `AU`, `PARSEC`, `MPC`, `YEAR` | [IERS Conventions 2010](https://www.iers.org/TN36); [IAU 2015 B3](https://www.iau.org/static/resolutions/IAU2015_English.pdf) |
 
+## Applications
+
+Anywhere a calculation must agree with another: the crates in this family all take their
+constants from here, so a result computed through two of them matches to the last digit. Pin the
+version to pin the constants, which is what reproducing a published number needs.
+
 ## How it is checked
 
 A test checks that the derived constants agree with each other: `ħ = h/2π`, `R = N_A k_B`,
 `μ₀ε₀c² = 1`, `α = e²/4πε₀ħc`, the Planck length, and the solar mass.
 
-One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
 [`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
 [`gravitational`](https://crates.io/crates/gravitational) (waves) ·
 [`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`magnetics`](https://crates.io/crates/magnetics) (magnetism and MHD) ·
 [`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).

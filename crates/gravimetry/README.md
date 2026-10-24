@@ -150,6 +150,19 @@ maximum likelihood over many series at once.
 *The simulated error of four mission classes, from today's to a quantum pair, against the
 errors of a real month.*
 
+## Applications
+
+- **Drought and groundwater.** GRACE and GRACE-FO mass change feeds weekly drought indicators and
+  statutory groundwater reporting; the processing chain here is the one those products use.
+- **Ice sheets and sea level.** `examples/ice_and_sea_level.rs` turns Greenland's published mass
+  trend into its sea-level contribution.
+- **Earthquakes.** `coseismic` models the gravity change of a fault and reads USGS finite-fault
+  files; `prompt_lead` gives how far ahead of the P-wave a light-speed gravity signal arrives.
+- **Site surveys and monitoring.** `local` gives the gravity and gradient of a buried void or
+  dense body, and the averaging time a quantum gravimeter needs to resolve it.
+- **Mission design.** `missions`, `atom` and `sim` size the sensors and simulate what field a
+  satellite pair recovers, including cold-atom instruments.
+
 ## How it is checked
 
 - **Noise models:** they reproduce Figure 1 of Zingerle et al. (2024).
@@ -175,10 +188,12 @@ errors of a real month.*
 **Not included yet:** glacial isostatic adjustment, DDK filters, basin averages and leakage
 corrections; time-variable gravity in the simulator, so no temporal aliasing.
 
-One of six crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+One of eight crates in [quantum-gravimeter](https://github.com/FusionVault/quantum-gravimeter):
+[`physica`](https://crates.io/crates/physica) (all of them, plus cross-domain analogies) ·
 [`metrology`](https://crates.io/crates/metrology) (constants) ·
 [`geopotential`](https://crates.io/crates/geopotential) (the gravity field) ·
 [`gravimetry`](https://crates.io/crates/gravimetry) (missions and GRACE) ·
 [`gravitational`](https://crates.io/crates/gravitational) (waves) ·
 [`gravitics`](https://crates.io/crates/gravitics) (frontier gravity) ·
+[`magnetics`](https://crates.io/crates/magnetics) (magnetism and MHD) ·
 [`plasmoid`](https://crates.io/crates/plasmoid) (fusion plasma).

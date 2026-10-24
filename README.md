@@ -3,9 +3,10 @@
 Rust crates for gravity, from the satellites that weigh Earth's water to the edges of physics.
 Read the gravity fields measured by GRACE, GRACE-FO and GOCE and turn them into maps of water,
 ice and earthquakes; simulate the quantum (cold-atom) sensors of future missions; chart
-gravitational waves from nanohertz to terahertz; compute the frontier proposals for controlling
-gravity next to general relativity and the measurements; and model the plasmas and fusion
-reactions that come up along the way. Every formula is tested against published numbers, and
+gravitational waves from nanohertz to terahertz; evaluate Earth's magnetic field and the
+magnetohydrodynamics behind magnets, plasmas and space weather; compute the frontier proposals
+for controlling gravity next to general relativity and the measurements; and model the plasmas
+and fusion reactions that come up along the way. Every formula is tested against published numbers, and
 the data tests are registered before the data decides them.
 
 ![Water storage anomaly in July 2026, from GRACE-FO](figures/water_2026-07.svg)
@@ -14,12 +15,14 @@ the data tests are registered before the data decides them.
 
 | Crate | What it does |
 |---|---|
+| [`physica`](crates/physica) · [docs](https://docs.rs/physica) | All of them in one dependency, plus the cross-domain analogies: one spherical-harmonic engine for gravity and magnetism, the spin-2 factor, Schwinger and Unruh, the pinch and the filament |
 | [`metrology`](crates/metrology) · [docs](https://docs.rs/metrology) | The physical constants every crate shares, defined once: SI, CODATA 2018, IERS and IAU values |
 | [`geopotential`](crates/geopotential) · [docs](https://docs.rs/geopotential) | Earth's gravity field from spherical harmonics: read ICGEM `.gfc` models, then gravity, geoid and water height at a point or on a map |
-| [`gravimetry`](crates/gravimetry) · [docs](https://docs.rs/gravimetry) | Gravity missions and quantum sensors (noise models, error predictions, a satellite-pair simulator), GRACE processing (technical notes, smoothing, stripe removal, water height, a Kalman smoother), earthquake gravity and the atmosphere's pressure waves |
+| [`gravimetry`](crates/gravimetry) · [docs](https://docs.rs/gravimetry) | Gravity missions and quantum sensors (noise models, error predictions, a satellite-pair simulator), GRACE processing (technical notes, smoothing, stripe removal, water height, a Kalman smoother), earthquake gravity, buried-body forward models and the atmosphere's pressure waves |
 | [`gravitational`](crates/gravitational) · [docs](https://docs.rs/gravitational) | Gravitational waves: strain conventions, noise curves, inspirals and binary pulsars, energy, memory, propagation and the graviton, stochastic backgrounds, high-frequency limits, gravity sensors as detectors, and lab gravity |
-| [`gravitics`](crates/gravitics) · [docs](https://docs.rs/gravitics) | Frontier gravity computed three ways (each proposal's own model, general relativity, and the measurements): superconductors, high-frequency generators, propellantless thrust, warp drives, the Schwinger limit, gravity's anomalies, MOND and short-range forces, and tabletop quantum gravity |
-| [`plasmoid`](crates/plasmoid) · [docs](https://docs.rs/plasmoid) | Fusion and self-organising plasma: Coulomb barriers and Gamow peaks, Bosch–Hale and p–¹¹B reaction rates, Lawson, Z-pinches and the plasma focus, Taylor-relaxed plasmoids and reconnection, aneutronic power balance and direct energy conversion |
+| [`gravitics`](crates/gravitics) · [docs](https://docs.rs/gravitics) | Frontier gravity computed three ways (each proposal's own model, general relativity, and the measurements): superconductors, high-frequency generators, propellantless thrust, pulsed-field "electrogravity", warp drives, the Schwinger limit, gravitoelectromagnetism, gravity's anomalies, MOND and short-range forces, and tabletop quantum gravity |
+| [`magnetics`](crates/magnetics) · [docs](https://docs.rs/magnetics) | Earth's magnetic field from WMM2025 on the same engine as its gravity, magnetohydrodynamics (waves, shocks, stability, Hartmann flow, dynamos), magnet design and its stress limits, and space weather from the solar wind to the power grid |
+| [`plasmoid`](crates/plasmoid) · [docs](https://docs.rs/plasmoid) | Fusion and self-organising plasma: Coulomb barriers and Gamow peaks, Bosch–Hale and p–¹¹B reaction rates, Lawson, tokamak limits, Z-pinches and the plasma focus, Taylor-relaxed plasmoids and reconnection, aneutronic power balance and direct energy conversion |
 | [`lab`](lab) | The research workbench: regenerates every figure and reruns every analysis here (not published) |
 
 [`geo5d`](https://crates.io/crates/geo5d) (heights, normal gravity, relativistic geodesy) uses
@@ -28,7 +31,8 @@ the data tests are registered before the data decides them.
 ## Quick start
 
 ```bash
-cargo add geopotential
+cargo add geopotential          # one domain
+cargo add physica               # or all of them at once
 ```
 
 Download a gravity model, for example `GOCO06s.gfc` from the
@@ -49,7 +53,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-Each crate's README has more examples.
+Each crate's README has more examples, and every crate has runnable programs in its
+`examples/` directory that reproduce a published number:
+
+```bash
+cargo run -p magnetics  --example compass_declination   # declination from WMM2025
+cargo run -p gravitational --example binary_pulsar      # the Hulse–Taylor orbital decay
+cargo run -p plasmoid   --example triple_products       # fusion shots against the Lawson limit
+cargo run -p gravitics  --example electrogravity_claim  # a gravity claim against the classical force
+cargo run -p physica    --example three_fields_one_engine
+```
+
+They are compiled and run by `cargo test`, so the numbers in them stay true.
 
 ## Gallery
 
@@ -63,8 +78,10 @@ Each crate's README has more examples.
 
 ## Research
 
-Seven research reports, their notes and check scripts, the registered tests and their results,
-and the formula audits are in [`research/`](research/README.md). Each forecast is committed as a
+Eight research reports, their notes and check scripts, the registered tests and their results,
+the formula audits and the external research that has been reviewed into the crates are in
+[`research/`](research/README.md), with the order of work in
+[`research/roadmap.md`](research/roadmap.md). Each forecast is committed as a
 git tag before the data that decides it exists, and results are reported whether they hit or
 miss.
 
@@ -198,7 +215,8 @@ The tests compare against:
 - an independent implementation (geo5d, to about 1e-15);
 - the published figures of Zingerle et al. (2024), CARIOQA and GRICE;
 - simulations that recover a known field;
-- the numbers in the research notes' check scripts, for every physics formula.
+- the numbers in the research notes' check scripts, for every physics formula;
+- NOAA's official World Magnetic Model test values, all 100 rows.
 
 Every example in the crate READMEs is compiled and run as a test.
 
