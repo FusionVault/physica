@@ -29,7 +29,7 @@
 use core::f64::consts::PI;
 
 use geopotential::linalg::gauss;
-use geopotential::special::{cel, complete_elliptic};
+use geopotential::special;
 use metrology::EPS_0;
 
 const K: f64 = 1.0 / (4.0 * PI * EPS_0);
@@ -189,37 +189,13 @@ fn segment_field(s: Segment, p: [f64; 3]) -> [f64; 3] {
     [par * u[0] + across * perp[0], par * u[1] + across * perp[1], par * u[2] + across * perp[2]]
 }
 
+// Both from the shared ring kernel, the average of 1/r over the ring.
 fn ring_potential(q: f64, ring: Ring, rho: f64, z: f64) -> f64 {
-    let s = (ring.radius + rho).powi(2) + (z - ring.z).powi(2);
-    let (k, _) = complete_elliptic(4.0 * ring.radius * rho / s);
-    q * K * 2.0 / PI * k / s.sqrt()
+    q * K * special::ring(ring.radius, rho, z - ring.z).0
 }
 
-// E_z in closed form (Zypman, Am. J. Phys. 74, 295, 2006). E_ρ = (2kQ/(π s^{3/2}))·
-// ∫₀^{π/2} ((ρ+R)cos²φ + (ρ−R)sin²φ)(1 − m sin²φ)^{−3/2} dφ, which is Bulirsch's
-// cel(k_c, k_c², ρ+R, ρ−R): Zypman's K − (…)E form of it loses digits as ρ²/m near the axis
-// (5% at ρ = 10⁻⁷R) and far along it. Closer to the axis than 3×10⁻⁴ of the distance to the ring,
-// where even cel's integrand cancels, the near-axis series E_ρ = −(ρ/2)E_z′ + (ρ³/16)E_z‴ of the
-// on-axis field kQz/(R² + z²)^{3/2} is exact to 10⁻¹⁵. Both are checked against direct
-// summation in the tests.
 fn ring_field(q: f64, ring: Ring, rho: f64, z: f64) -> [f64; 2] {
-    let (r, dz) = (ring.radius, z - ring.z);
-    let s = (r + rho).powi(2) + dz * dz;
-    let d = (r - rho).powi(2) + dz * dz;
-    let (_, e) = complete_elliptic(4.0 * r * rho / s);
-    let c = q * K;
-    let e_z = c * 2.0 / PI * dz * e / (s.sqrt() * d);
-    let u = r * r + dz * dz;
-    let e_rho = if rho == 0.0 {
-        0.0
-    } else if rho * rho < 9e-8 * u {
-        let (dz2, r2) = (dz * dz, r * r);
-        c * (-0.5 * rho * (r2 - 2.0 * dz2) / u.powf(2.5) + rho.powi(3) / 16.0 * (-24.0 * dz2 * dz2 + 72.0 * dz2 * r2 - 9.0 * r2 * r2) / u.powf(4.5))
-    } else {
-        let kc = (d / s).sqrt(); // √(1 − m), without the subtraction near the wire
-        c * 2.0 / (PI * s.powf(1.5)) * cel(kc, kc * kc, rho + r, rho - r)
-    };
-    [e_rho, e_z]
+    special::ring(ring.radius, rho, z - ring.z).1.map(|g| -q * K * g)
 }
 
 fn dist(a: [f64; 3], b: [f64; 3]) -> f64 {
@@ -244,44 +220,6 @@ mod tests {
         let volts: Vec<f64> = (0..24).map(|i| if i < 12 { top } else { bottom }).collect();
         let q = charges(&rings, 0.75e-3, &volts);
         (rings, q)
-    }
-
-    // The ring's radial field by direct summation over `n` charges, compensated (Neumaier) so the
-    // near cancellation of the two sides costs only ε·R/ρ.
-    fn summed_e_rho(ring: Ring, rho: f64, z: f64, n: usize) -> f64 {
-        let (mut sum, mut carry) = (0.0f64, 0.0f64);
-        for i in 0..n {
-            let t = 2.0 * PI * i as f64 / n as f64;
-            let d2 = rho * rho + ring.radius * ring.radius - 2.0 * rho * ring.radius * t.cos() + (z - ring.z).powi(2);
-            let x = K / n as f64 * (rho - ring.radius * t.cos()) / d2.powf(1.5);
-            let next = sum + x;
-            carry += if sum.abs() >= x.abs() { (sum - next) + x } else { (x - next) + sum };
-            sum = next;
-        }
-        sum + carry
-    }
-
-    #[test]
-    fn the_radial_field_near_and_far_along_the_axis() {
-        // The report's case: R = 4 cm, 1 cm above the ring. Zypman's form was 1.4×10⁻⁶ off at
-        // ρ = 10⁻⁵R and 5% off at 10⁻⁷R; against −(ρ/2)∂E_z/∂z the field is now exact.
-        let ring = Ring { radius: 0.04, z: 0.0 };
-        let near_axis = |rho: f64, z: f64| {
-            let u = ring.radius.powi(2) + z * z;
-            -0.5 * rho * K * (ring.radius.powi(2) - 2.0 * z * z) / u.powf(2.5)
-        };
-        for f in [1e-7, 1e-10] {
-            let rho = f * ring.radius;
-            let [e_rho, _] = ring_field(1.0, ring, rho, 0.01);
-            assert!(close(e_rho, near_axis(rho, 0.01), 1e-12), "ρ = {f}R: {e_rho:e} vs {:e}", near_axis(rho, 0.01));
-        }
-        // Either side of the switch to the series, and far along the axis (100 R), against
-        // direct summation.
-        for (rho, z) in [(0.04 * 3.5e-4, 0.01), (0.04 * 2.5e-4, 0.01), (0.04 * 1e-3, 0.01), (1e-3, 4.0), (0.3, 4.0), (0.02, 0.0)] {
-            let [e_rho, _] = ring_field(1.0, ring, rho, z);
-            let reference = summed_e_rho(ring, rho, z, 20_000);
-            assert!(close(e_rho, reference, 1e-10), "ρ = {rho}, z = {z}: {e_rho:e} vs {reference:e}");
-        }
     }
 
     #[test]

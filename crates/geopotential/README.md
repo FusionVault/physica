@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `julian_epoch`, `parse_date` | The decimal-year dates these files use |
 | `bodies` | Potential, attraction and gradient tensor of a uniform body in closed form: a rectangular prism ([Nagy, Papp & Benedek 2000](https://doi.org/10.1007/s001900000116)), finite on its faces and edges, with a Gauss–Legendre cubature far away; and a triangulated polyhedron ([Werner & Scheeres 1997](https://doi.org/10.1007/BF00053511)), whose trace is an inside test |
 | `planar` | Level grids in the wavenumber domain: upward continuation, reduction to the pole and Baranov pseudo-gravity (Blakely 1995, ch. 12), or any kernel through `Grid::filter`; and Euler deconvolution of a profile for a source's position and the background ([Reid & Thurston 2014](https://doi.org/10.1190/geo2013-0235.1)) |
-| `special` | Complete elliptic integrals `K` and `E` by the arithmetic–geometric mean, and Bulirsch's general complete integral `cel` (Bulirsch 1969), which the fields of rings of mass, charge and current share |
+| `special` | Complete elliptic integrals `K` and `E` by the arithmetic–geometric mean; Bulirsch's general complete integral `cel` (Bulirsch 1969); Carlson's symmetric `R_F`, `R_D`, `R_J`, `R_C` for the incomplete integrals and the third kind ([Carlson 1995](https://arxiv.org/abs/math/9409227)); and `ring`, the average of `1/r` over a ring and its gradient, which rings of mass, charge and current share |
 | `linalg` | Pivoted Gaussian elimination for general systems and Cholesky for the normal equations of least squares |
 | `fft` | The radix-2 fast Fourier transform, for time series and gridded fields |
 
