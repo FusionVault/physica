@@ -20,7 +20,7 @@
 //! ```
 
 use crate::fft::fft;
-use crate::linalg::{cholesky, cholesky_solve};
+use crate::linalg::symmetric_eigen;
 use metrology::{G, MU_0};
 
 /// A level grid of `nx × ny` values at spacings `dx` and `dy` (m). Value `i·ny + j` is at
@@ -179,27 +179,168 @@ impl Grid {
 /// `filter(values, |kx, ky| (kx.hypot(ky), 0.0))`.
 ///
 /// # Panics
-/// If the slices differ in length, or the points cannot fix three unknowns.
+/// If the slices differ in length.
 pub fn euler(x: &[f64], z: &[f64], f: &[f64], fx: &[f64], fz: &[f64], n: f64) -> [f64; 3] {
     let len = x.len();
     assert!([z.len(), f.len(), fx.len(), fz.len()].iter().all(|&l| l == len), "one value per point");
-    // Rows [f_x, f_z, N]·[x₀, z₀, B] = x f_x + z f_z + N f, solved by normal equations whose
-    // columns are scaled to unit norm first (f_x and N differ by orders of magnitude).
-    let row = |i: usize| [fx[i], fz[i], n];
-    let scale: [f64; 3] = core::array::from_fn(|c| 1.0 / (0..len).map(|i| row(i)[c].powi(2)).sum::<f64>().sqrt());
-    let (mut normal, mut rhs) = ([0.0; 9], [0.0; 3]);
+    least_squares(len, |i| [fx[i], fz[i], n], |i| x[i] * fx[i] + z[i] * fz[i] + n * f[i]).0
+}
+
+/// Euler deconvolution of gridded data (Reid et al. 1990): the source `[x₀, y₀, z₀]` and
+/// background `B` that best satisfy `(x − x₀)∂f/∂x + (y − y₀)∂f/∂y + (z − z₀)∂f/∂z = −N(f − B)`
+/// at `points` `(x, y, z)`, `z` down, by least squares, with their covariance
+/// `σ̂₀²(AᵀA)⁻¹`, `σ̂₀² = ‖residual‖²/(N_points − 4)`, which only holds if the derivatives are
+/// exact and is what ranks windows. A two-dimensional source (a long cylinder or contact)
+/// leaves the position along its strike undetermined: the solution is then the one nearest
+/// the origin along that direction, with an infinite variance there.
+///
+/// # Panics
+/// If the slices differ in length.
+pub fn euler3(points: &[[f64; 3]], f: &[f64], fx: &[f64], fy: &[f64], fz: &[f64], n: f64) -> ([f64; 4], [[f64; 4]; 4]) {
+    let len = points.len();
+    assert!([f.len(), fx.len(), fy.len(), fz.len()].iter().all(|&l| l == len), "one value per point");
+    least_squares(len, |i| [fx[i], fy[i], fz[i], n], |i| points[i][0] * fx[i] + points[i][1] * fy[i] + points[i][2] * fz[i] + n * f[i])
+}
+
+/// Euler deconvolution in moving windows of `size × size` grid points, every `step` points,
+/// over `values` observed on `grid` at `z = 0` with the derivatives `fx`, `fy`, `fz`: the
+/// solutions of [`euler3`] whose depth variance is among the smallest `keep` fraction, best
+/// first, each as `[x₀, y₀, z₀, B]`. Reid et al.'s (1990) way of mapping many sources; windows
+/// without a source give deep, scattered, high-variance solutions that the ranking drops.
+pub fn euler_windows(grid: &Grid, values: &[f64], fx: &[f64], fy: &[f64], fz: &[f64], n: f64, size: usize, step: usize, keep: f64) -> Vec<[f64; 4]> {
+    let mut solutions = Vec::new();
+    for i0 in (0..=grid.nx - size).step_by(step.max(1)) {
+        for j0 in (0..=grid.ny - size).step_by(step.max(1)) {
+            let index: Vec<usize> = (i0..i0 + size).flat_map(|i| (j0..j0 + size).map(move |j| i * grid.ny + j)).collect();
+            let points: Vec<[f64; 3]> = index.iter().map(|&k| [(k / grid.ny) as f64 * grid.dx, (k % grid.ny) as f64 * grid.dy, 0.0]).collect();
+            let pick = |v: &[f64]| index.iter().map(|&k| v[k]).collect::<Vec<_>>();
+            let (p, cov) = euler3(&points, &pick(values), &pick(fx), &pick(fy), &pick(fz), n);
+            solutions.push((cov[2][2], p));
+        }
+    }
+    solutions.sort_by(|a, b| a.0.total_cmp(&b.0));
+    solutions.truncate(((solutions.len() as f64 * keep).round() as usize).max(1));
+    solutions.into_iter().map(|(_, p)| p).collect()
+}
+
+/// Euler inversion ([Uieda et al. 2025](https://doi.org/10.1093/gji/ggaf114), Algorithm 1): the
+/// source `[x₀, y₀, z₀]` and background `B` fitted together with predicted data that satisfy
+/// Euler's equation exactly, by Gauss–Newton on the merit `‖W^½(d_obs − d)‖ + ν‖Euler(d, p)‖`
+/// from the deconvolution's solution, with the paper's weights (1, 0.1, 0.1, 0.025) on `f` and
+/// its three derivatives, `ν = 0.1`, at most 20 iterations, stopping at a 10% change of the
+/// merit or when a step would raise it. It returns the solution and the weighted rms misfit
+/// `√(Σ W(d_obs − d)²/4N)`, which is smallest at the right structural index: run it for `N` of
+/// 1, 2 and 3 and keep the best (their Algorithm 2). Noisy derivatives bias the deconvolution's
+/// depth badly (−1553 m for a source at −3000 in the paper's test); the inversion gave −2663.
+///
+/// # Panics
+/// If the slices differ in length.
+pub fn euler_inversion(points: &[[f64; 3]], f: &[f64], fx: &[f64], fy: &[f64], fz: &[f64], n: f64) -> ([f64; 4], f64) {
+    let len = points.len();
+    assert!([f.len(), fx.len(), fy.len(), fz.len()].iter().all(|&l| l == len), "one value per point");
+    const WEIGHTS: [f64; 4] = [1.0, 0.1, 0.1, 0.025];
+    const NU: f64 = 0.1;
+    let observed: Vec<[f64; 4]> = (0..len).map(|i| [f[i], fx[i], fy[i], fz[i]]).collect();
+    let mut predicted: Vec<[f64; 4]> = observed.iter().map(|d| d.map(|x| 0.9 * x)).collect();
+    let mut p = euler3(points, f, fx, fy, fz, n).0;
+    let euler = |d: &[f64; 4], q: &[f64; 4], r: &[f64; 3]| (r[0] - q[0]) * d[1] + (r[1] - q[1]) * d[2] + (r[2] - q[2]) * d[3] + n * (d[0] - q[3]);
+    let merit = |pred: &[[f64; 4]], q: &[f64; 4]| {
+        let misfit: f64 = observed.iter().zip(pred).map(|(o, d)| (0..4).map(|k| (WEIGHTS[k] * (o[k] - d[k])).powi(2)).sum::<f64>()).sum::<f64>().sqrt();
+        let residual: f64 = pred.iter().zip(points).map(|(d, r)| euler(d, q, r).powi(2)).sum::<f64>().sqrt();
+        misfit + NU * residual
+    };
+    let mut m0 = merit(&predicted, &p);
+    for _ in 0..20 {
+        // Each point's Euler equation is linear in its data with gradient B_k = [N, x − x₀, y − y₀,
+        // z − z₀] and in the parameters with gradient A = −[fx, fy, fz, N]; eliminating the data
+        // update gives a 4×4 system for the parameter step, then the data step (Uieda et al.'s
+        // Eqs. 17–19).
+        let (mut normal, mut rhs) = ([[0.0; 4]; 4], [0.0; 4]);
+        let rows: Vec<([f64; 4], [f64; 4], f64, f64)> = predicted
+            .iter()
+            .zip(&observed)
+            .zip(points)
+            .map(|((d, o), r)| {
+                let a = [-d[1], -d[2], -d[3], -n];
+                let b = [n, r[0] - p[0], r[1] - p[1], r[2] - p[2]];
+                let q_inv = 1.0 / (0..4).map(|k| b[k] * b[k] / WEIGHTS[k]).sum::<f64>();
+                let br: f64 = (0..4).map(|k| b[k] * (o[k] - d[k])).sum();
+                (a, b, q_inv, euler(d, &p, r) + br)
+            })
+            .collect();
+        for (a, _, q_inv, e) in &rows {
+            for i in 0..4 {
+                rhs[i] -= a[i] * q_inv * e;
+                for j in 0..4 {
+                    normal[i][j] += a[i] * q_inv * a[j];
+                }
+            }
+        }
+        let dp = pseudo_solve(&normal, &rhs);
+        let next: Vec<[f64; 4]> = rows
+            .iter()
+            .zip(&predicted)
+            .zip(&observed)
+            .map(|(((a, b, q_inv, e), d), o)| {
+                let lambda = q_inv * (e + (0..4).map(|i| a[i] * dp[i]).sum::<f64>());
+                core::array::from_fn(|k| o[k] - b[k] * lambda / WEIGHTS[k] + (d[k] - d[k]))
+            })
+            .collect();
+        let q: [f64; 4] = core::array::from_fn(|i| p[i] + dp[i]);
+        let m1 = merit(&next, &q);
+        if m1 > m0 {
+            break;
+        }
+        (p, predicted) = (q, next);
+        if (m0 - m1).abs() / m0 < 0.1 {
+            break;
+        }
+        m0 = m1;
+    }
+    let wrmse = (observed.iter().zip(&predicted).map(|(o, d)| (0..4).map(|k| WEIGHTS[k] * (o[k] - d[k]).powi(2)).sum::<f64>()).sum::<f64>() / (4 * len) as f64).sqrt();
+    (p, wrmse)
+}
+
+/// The least-squares solution of `row(i)·y = rhs(i)` over `len` rows, and its covariance
+/// `σ̂₀²(AᵀA)⁻¹`. The columns are scaled to unit norm first (a derivative and a structural index
+/// differ by orders of magnitude), and the normal matrix is inverted through its eigenvalues,
+/// dropping those below `10⁻¹²` of the largest, so a rank-deficient fit returns the minimum-norm
+/// solution with infinite variance along the missing directions.
+fn least_squares<const K: usize>(len: usize, row: impl Fn(usize) -> [f64; K], rhs: impl Fn(usize) -> f64) -> ([f64; K], [[f64; K]; K]) {
+    let scale: [f64; K] = core::array::from_fn(|c| 1.0 / (0..len).map(|i| row(i)[c].powi(2)).sum::<f64>().sqrt());
+    let (mut normal, mut b) = ([[0.0; K]; K], [0.0; K]);
     for i in 0..len {
-        let (a, b) = (row(i), x[i] * fx[i] + z[i] * fz[i] + n * f[i]);
-        for r in 0..3 {
-            rhs[r] += a[r] * scale[r] * b;
-            for c in 0..=r {
-                normal[r * 3 + c] += a[r] * scale[r] * a[c] * scale[c];
+        let (a, r) = (row(i), rhs(i));
+        for p in 0..K {
+            b[p] += a[p] * scale[p] * r;
+            for q in 0..K {
+                normal[p][q] += a[p] * scale[p] * a[q] * scale[q];
             }
         }
     }
-    cholesky(&mut normal, 3);
-    let y = cholesky_solve(&normal, 3, &rhs);
-    core::array::from_fn(|c| y[c] * scale[c])
+    let (inverse, undetermined, rank) = pseudo_inverse(&normal);
+    let y: [f64; K] = core::array::from_fn(|p| (0..K).map(|q| inverse[p][q] * b[q]).sum::<f64>() * scale[p]);
+    let residual: f64 = (0..len).map(|i| (rhs(i) - (0..K).map(|c| row(i)[c] * y[c]).sum::<f64>()).powi(2)).sum();
+    let sigma2 = if len > rank { residual / (len - rank) as f64 } else { 0.0 };
+    (y, core::array::from_fn(|p| core::array::from_fn(|q| if undetermined[p][q] { f64::INFINITY } else { sigma2 * inverse[p][q] * scale[p] * scale[q] })))
+}
+
+/// The pseudo-inverse of a symmetric matrix through its eigenvalues, which entries the null
+/// space (eigenvalues below `10⁻¹²` of the largest) reaches, and the rank.
+fn pseudo_inverse<const K: usize>(a: &[[f64; K]; K]) -> ([[f64; K]; K], [[bool; K]; K], usize) {
+    let flat: Vec<f64> = a.iter().flatten().copied().collect();
+    let (values, vectors) = symmetric_eigen(&flat, K);
+    let cut = 1e-12 * values.iter().fold(0f64, |m, v| m.max(v.abs()));
+    let rank = values.iter().filter(|&&v| v > cut).count();
+    let inv = core::array::from_fn(|p| core::array::from_fn(|q| (0..K).filter(|&k| values[k] > cut).map(|k| vectors[p * K + k] * vectors[q * K + k] / values[k]).sum::<f64>()));
+    let null = core::array::from_fn(|p| core::array::from_fn(|q| (0..K).any(|k| values[k] <= cut && (vectors[p * K + k] * vectors[q * K + k]).abs() > 1e-12)));
+    (inv, null, rank)
+}
+
+/// `A⁺b` for a symmetric `A`, the minimum-norm solution when `A` is singular.
+fn pseudo_solve<const K: usize>(a: &[[f64; K]; K], b: &[f64; K]) -> [f64; K] {
+    let (inverse, _, _) = pseudo_inverse(a);
+    core::array::from_fn(|p| (0..K).map(|q| inverse[p][q] * b[q]).sum())
 }
 
 /// The FFT's wavenumber (rad/m) at index `i` of `n` samples `d` apart, negative above `n/2`.
@@ -420,6 +561,64 @@ mod tests {
         // The wrong index biases the depth: a dipole read as a point mass looks shallower.
         let (f, fx, fz) = sampled(dipole, &xs);
         assert!(euler(&xs, &zs, &f, &fx, &fz, 2.0)[1] < 0.9 * z0);
+    }
+
+    #[test]
+    fn euler_in_three_dimensions() {
+        // The notes' noise-free test: a grid of 20 × 16 km at 250 m, 500 m above the ground
+        // (z = −500, z down), sources 2 km deep at (10, 8) km, derivatives by central differences
+        // of 1 m. Deconvolution at the true index is exact to the stencil (10⁻³ m); the inversion's
+        // weighted misfit picks the index. A line mass (SI 1) along azimuth 30° leaves its
+        // position along strike undetermined: the error across strike is what is checked.
+        let (x0, y0, z0) = (10e3, 8e3, 2e3);
+        let tilted = unit(60.0, 0.0);
+        let dipole = move |r: [f64; 3]| {
+            let d = [r[0] - x0, r[1] - y0, r[2] - z0];
+            let r2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+            let dm: f64 = (0..3).map(|i| d[i] * tilted[i]).sum();
+            1e11 * (3.0 * dm * dm - r2) / (r2 * r2 * r2.sqrt())
+        };
+        let point_mass = move |r: [f64; 3]| 1e13 * (z0 - r[2]) / ((r[0] - x0).powi(2) + (r[1] - y0).powi(2) + (z0 - r[2]).powi(2)).powf(1.5);
+        let (ca, sa) = (30f64.to_radians().cos(), 30f64.to_radians().sin());
+        let line_mass = move |r: [f64; 3]| 1e9 * (z0 - r[2]) / (((r[0] - x0) * ca - (r[1] - y0) * sa).powi(2) + (z0 - r[2]).powi(2));
+        let points: Vec<[f64; 3]> = (0..81).flat_map(|i| (0..65).map(move |j| [i as f64 * 250.0, j as f64 * 250.0, -500.0])).collect();
+        type Source<'a> = &'a dyn Fn([f64; 3]) -> f64;
+        let cases: [(Source, f64, bool); 3] = [(&dipole, 3.0, false), (&point_mass, 2.0, false), (&line_mass, 1.0, true)];
+        for (field, n, two_d) in cases {
+            let sample = |shift: [f64; 3]| -> Vec<f64> { points.iter().map(|r| field([r[0] + shift[0], r[1] + shift[1], r[2] + shift[2]]) + 50.0).collect() };
+            let f = sample([0.0; 3]);
+            let d = |axis: usize| -> Vec<f64> {
+                let (mut up, mut down) = ([0.0; 3], [0.0; 3]);
+                (up[axis], down[axis]) = (1.0, -1.0);
+                sample(up).iter().zip(sample(down)).map(|(a, b)| (a - b) / 2.0).collect()
+            };
+            let (fx, fy, fz) = (d(0), d(1), d(2));
+            let (p, cov) = euler3(&points, &f, &fx, &fy, &fz, n);
+            let across = if two_d { ((p[0] - x0) * ca - (p[1] - y0) * sa).abs() } else { (p[0] - x0).hypot(p[1] - y0) };
+            assert!(across < 2e-3 && (p[2] - z0).abs() < 2e-3 && (p[3] - 50.0).abs() < 1e-2, "N = {n}: {p:?}");
+            assert!(cov[2][2].is_finite() && cov[2][2] >= 0.0);
+            if two_d {
+                // Along strike the solution is the minimum-norm one and the variance infinite.
+                let along = (p[0] - x0) * sa + (p[1] - y0) * ca;
+                assert!(along.abs() > 100.0 && (cov[0][0].is_infinite() || cov[1][1].is_infinite()), "{p:?} {cov:?}");
+            }
+            let fits = [1.0, 2.0, 3.0].map(|si| euler_inversion(&points, &f, &fx, &fy, &fz, si).1);
+            let best = (0..3).min_by(|&a, &b| fits[a].total_cmp(&fits[b])).unwrap();
+            assert!((best + 1) as f64 == n, "N = {n}: misfits {fits:?}");
+            let (q, _) = euler_inversion(&points, &f, &fx, &fy, &fz, n);
+            assert!((q[2] - z0).abs() < 1.0, "inversion at N = {n}: {q:?}");
+        }
+        // Windows over the dipole on the grid itself, with derivatives from the spectrum: the
+        // best-ranked window puts the source within 2% of its depth and 100 m of its position.
+        let grid = Grid { nx: 128, ny: 64, dx: 250.0, dy: 250.0 };
+        let field: Vec<f64> = grid.points().map(|(x, y)| dipole([x, y, 0.0])).collect();
+        let (big, padded) = grid.padded(&field, true);
+        let spectral = |kernel: &dyn Fn(f64, f64) -> (f64, f64)| grid.unpadded(&big.filter(&padded, kernel));
+        let (fx, fy, fz) = (spectral(&|kx, _| (0.0, kx)), spectral(&|_, ky| (0.0, ky)), spectral(&|kx, ky| (kx.hypot(ky), 0.0)));
+        let kept = euler_windows(&grid, &field, &fx, &fy, &fz, 3.0, 12, 4, 0.1);
+        let best = kept[0];
+        assert!((best[2] / z0 - 1.0).abs() < 0.02 && (best[0] - x0).hypot(best[1] - y0) < 100.0, "{best:?}");
+        assert!(kept.len() >= 10 && kept.iter().all(|p| p[2] > 0.0));
     }
 
     #[test]
