@@ -10,6 +10,7 @@
 //! Not modelled: orbit perturbations and dynamic orbit determination, non-gravitational forces,
 //! time-variable gravity and therefore temporal aliasing, attitude errors, regularization.
 
+use geopotential::linalg::{cholesky, cholesky_inverse_diagonal, cholesky_solve};
 use geopotential::{Coefficients, Legendre};
 
 use crate::noise::{colored_noise, whiten};
@@ -181,64 +182,6 @@ pub fn simulate(setup: &Setup, asd: impl Fn(f64) -> f64 + Copy, truth: Option<&C
         }
     }
     Solution { errors, formal, chi2_per_dof: chi2 / k as f64 }
-}
-
-/// In-place Cholesky of a symmetric positive-definite matrix stored in the lower triangle.
-fn cholesky(a: &mut [f64], n: usize) {
-    for j in 0..n {
-        let mut d = a[j * n + j];
-        for p in 0..j {
-            d -= a[j * n + p] * a[j * n + p];
-        }
-        assert!(d > 0.0, "normal matrix not positive definite at {j}");
-        let d = d.sqrt();
-        a[j * n + j] = d;
-        for i in j + 1..n {
-            let mut s = a[i * n + j];
-            for p in 0..j {
-                s -= a[i * n + p] * a[j * n + p];
-            }
-            a[i * n + j] = s / d;
-        }
-    }
-}
-
-fn cholesky_solve(l: &[f64], n: usize, b: &[f64]) -> Vec<f64> {
-    let mut z = b.to_vec();
-    for i in 0..n {
-        for p in 0..i {
-            z[i] -= l[i * n + p] * z[p];
-        }
-        z[i] /= l[i * n + i];
-    }
-    for i in (0..n).rev() {
-        for p in i + 1..n {
-            z[i] -= l[p * n + i] * z[p];
-        }
-        z[i] /= l[i * n + i];
-    }
-    z
-}
-
-/// Diagonal of N⁻¹ = L⁻ᵀL⁻¹: the squared norms of the columns of L⁻¹.
-fn cholesky_inverse_diagonal(l: &[f64], n: usize) -> Vec<f64> {
-    let mut diag = vec![0.0; n];
-    let mut col = vec![0.0; n];
-    for j in 0..n {
-        // Solve L·c = e_j.
-        col.iter_mut().for_each(|v| *v = 0.0);
-        col[j] = 1.0 / l[j * n + j];
-        for i in j + 1..n {
-            let mut s = 0.0;
-            for p in j..i {
-                s -= l[i * n + p] * col[p];
-            }
-            col[i] = s / l[i * n + i];
-        }
-        // Column j of L⁻¹; (N⁻¹)_jj is its squared norm.
-        diag[j] = col[j..].iter().map(|c| c * c).sum();
-    }
-    diag
 }
 
 #[cfg(test)]

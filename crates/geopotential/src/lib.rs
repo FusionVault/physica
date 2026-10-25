@@ -1,10 +1,12 @@
 #![doc = include_str!("../README.md")]
 
 mod coefficients;
+pub mod fft;
 mod field;
 mod functional;
 mod gfc;
 mod legendre;
+pub mod linalg;
 pub mod special;
 mod synthesis;
 

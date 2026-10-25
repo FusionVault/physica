@@ -28,6 +28,7 @@
 
 use core::f64::consts::PI;
 
+use geopotential::linalg::gauss;
 use geopotential::special::{cel, complete_elliptic};
 use metrology::EPS_0;
 
@@ -219,28 +220,6 @@ fn ring_field(q: f64, ring: Ring, rho: f64, z: f64) -> [f64; 2] {
         c * 2.0 / (PI * s.powf(1.5)) * cel(kc, kc * kc, rho + r, rho - r)
     };
     [e_rho, e_z]
-}
-
-// Gaussian elimination with partial pivoting on rows that carry their right-hand side last.
-fn gauss(mut p: Vec<Vec<f64>>) -> Vec<f64> {
-    let n = p.len();
-    for col in 0..n {
-        let pivot = (col..n).max_by(|&a, &b| p[a][col].abs().total_cmp(&p[b][col].abs())).unwrap();
-        p.swap(col, pivot);
-        let pivot_row = p[col].clone();
-        for row in &mut p[col + 1..] {
-            let f = row[col] / pivot_row[col];
-            for (x, y) in row[col..].iter_mut().zip(&pivot_row[col..]) {
-                *x -= f * y;
-            }
-        }
-    }
-    let mut q = vec![0.0; n];
-    for row in (0..n).rev() {
-        let s: f64 = (row + 1..n).map(|k| p[row][k] * q[k]).sum();
-        q[row] = (p[row][n] - s) / p[row][row];
-    }
-    q
 }
 
 fn dist(a: [f64; 3], b: [f64; 3]) -> f64 {
