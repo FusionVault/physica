@@ -123,7 +123,7 @@ pub fn birge_ratio(chi2: f64, dof: usize) -> f64 {
 /// declinations (radians). It reproduces the six fitted flybys and failed out of sample: Juno was
 /// predicted at +6 mm/s and observed at 0 ± 0.8 mm/s. A labelled reproduction, not physics.
 pub fn flyby_anderson(v_inf: f64, dec_in: f64, dec_out: f64) -> f64 {
-    const K: f64 = 2.0 * 7.292_115e-5 * 6_371e3 / metrology::C;
+    const K: f64 = 2.0 * metrology::EARTH_ROTATION * 6_371e3 / metrology::C;
     K * v_inf * (dec_in.cos() - dec_out.cos())
 }
 

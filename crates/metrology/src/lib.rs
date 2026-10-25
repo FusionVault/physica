@@ -59,6 +59,15 @@ pub const KEV: f64 = 1e3 * E_CHARGE;
 pub const G0: f64 = 9.806_65;
 /// Earth's gravitational parameter GM (IERS 2010, including the atmosphere), m³/s².
 pub const GM_EARTH: f64 = 3.986_004_418e14;
+/// Earth's nominal mean angular velocity, rad/s (IERS Conventions 2010, Table 1.1; also the GRS80
+/// and WGS84 defining value). GPS uses 7.292 115 146 7×10⁻⁵ (IS-GPS-200).
+pub const EARTH_ROTATION: f64 = 7.292_115e-5;
+/// The Moon-to-Earth mass ratio (IERS Conventions 2010, Table 1.1).
+pub const MOON_EARTH_MASS_RATIO: f64 = 0.012_300_037_1;
+/// The Moon's gravitational parameter, m³/s²: [`GM_EARTH`] × [`MOON_EARTH_MASS_RATIO`],
+/// 4.902 800 2×10¹² and, like `GM_EARTH`, TT-compatible. The JPL DE430 ephemeris gives
+/// 4 902.800 066 km³/s² on its own time scale, 3×10⁻⁸ lower.
+pub const GM_MOON: f64 = GM_EARTH * MOON_EARTH_MASS_RATIO;
 /// WGS84 ellipsoid semi-major axis, m.
 pub const WGS84_A: f64 = 6_378_137.0;
 /// WGS84 ellipsoid flattening.
@@ -82,6 +91,11 @@ mod tests {
 
     #[test]
     fn derived_constants_agree() {
+        assert!((GM_MOON / 4.902_800_222e12 - 1.0).abs() < 1e-9);
+        assert!((GM_MOON / 4.902_800_066e12 - 1.0).abs() < 5e-8); // JPL DE430, its own time scale
+        assert!((1.0 / MOON_EARTH_MASS_RATIO - 81.300_57).abs() < 1e-4);
+        // A sidereal day is 2π/ω: 86 164.1 s.
+        assert!((2.0 * core::f64::consts::PI / EARTH_ROTATION - 86_164.1).abs() < 0.1);
         assert!((HBAR / (H / (2.0 * core::f64::consts::PI)) - 1.0).abs() < 1e-9);
         assert!((R_GAS / (N_A * K_B) - 1.0).abs() < 1e-9);
         assert!((MU_0 * EPS_0 * C * C - 1.0).abs() < 1e-9);

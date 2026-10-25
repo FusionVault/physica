@@ -26,8 +26,7 @@ pub struct Pair {
     pub separation: f64,
 }
 
-/// Earth rotation rate, rad/s (IERS).
-pub const EARTH_ROTATION: f64 = 7.292_115e-5;
+pub use metrology::EARTH_ROTATION;
 
 impl Pair {
     /// Earth-fixed positions of the leading (A) and trailing (B) satellite `t` seconds after
