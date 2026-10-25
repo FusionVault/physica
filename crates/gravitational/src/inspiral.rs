@@ -29,6 +29,27 @@ pub fn f_isco(m: f64) -> f64 {
     C.powi(3) / (6f64.powf(1.5) * PI * G * m)
 }
 
+/// The innermost stable circular orbit of a Kerr black hole whose spin `a` (`cJ/GM²`, from −1
+/// to 1) is signed along the orbit's angular momentum, negative for a retrograde orbit:
+/// `(r, E, L)` in units of `GM/c²`, `mc²` and `Gm M/c` (Bardeen, Press & Teukolsky 1972, as
+/// printed in [Hofmann, Barausse & Rezzolla 2016](https://arxiv.org/abs/1605.01938)):
+/// `r = 3 + Z₂ − sign(a)√((3 − Z₁)(3 + Z₁ + 2Z₂))`, `E = √(1 − 2/(3r))`,
+/// `L = (2/(3√3))(1 + 2√(3r − 2))`. At `a = 0` it is [`f_isco`]'s 6M; it reaches 1M prograde
+/// and 9M retrograde at `a = 1`.
+pub fn kerr_isco(a: f64) -> (f64, f64, f64) {
+    let z1 = 1.0 + (1.0 - a * a).cbrt() * ((1.0 + a).cbrt() + (1.0 - a).cbrt());
+    let z2 = (3.0 * a * a + z1 * z1).sqrt();
+    let r = 3.0 + z2 - a.signum() * ((3.0 - z1) * (3.0 + z1 + 2.0 * z2)).sqrt();
+    (r, (1.0 - 2.0 / (3.0 * r)).sqrt(), 2.0 / (3.0 * 3f64.sqrt()) * (1.0 + 2.0 * (3.0 * r - 2.0).sqrt()))
+}
+
+/// The radius (units of `GM/c²`) of the circular photon orbit in the equatorial plane of a Kerr
+/// black hole of signed spin `a`, as in [`kerr_isco`]: `2(1 + cos((2/3)arccos(−a)))`
+/// (Bardeen, Press & Teukolsky 1972). 3M without spin; 1M prograde and 4M retrograde at `a = 1`.
+pub fn kerr_photon_orbit(a: f64) -> f64 {
+    2.0 * (1.0 + (2.0 / 3.0 * (-a).acos()).cos())
+}
+
 /// Time from gravitational-wave frequency `f` to merger, leading order:
 /// `τ₀ = (5/256)(πf)^(−8/3)(G M_c/c³)^(−5/3)`, s.
 pub fn time_to_merger(f: f64, chirp: f64) -> f64 {
@@ -91,6 +112,33 @@ mod tests {
         assert!((frequency_drift(100.0, mc) / 17.36 - 1.0).abs() < 1e-3);
         assert!((f_isco(2.0 * m) / 1570.4 - 1.0).abs() < 1e-4);
         assert!((f_isco(SOLAR_MASS) / 4397.0 - 1.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn kerr_orbits() {
+        // The closed forms: 6M, √(8/9), 2√3 without spin; 1M, 1/√3, 2/√3 prograde and 9M,
+        // √(25/27), 22/(3√3) retrograde at a = 1.
+        let close = |a: f64, b: f64| (a - b).abs() < 1e-14 * b.abs().max(1.0);
+        let cases = [(0.0, 6.0, (8.0f64 / 9.0).sqrt(), 2.0 * 3f64.sqrt()), (1.0, 1.0, 1.0 / 3f64.sqrt(), 2.0 / 3f64.sqrt()), (-1.0, 9.0, (25.0f64 / 27.0).sqrt(), 22.0 / (3.0 * 3f64.sqrt()))];
+        for (a, r, e, l) in cases {
+            let (ri, ei, li) = kerr_isco(a);
+            assert!(close(ri, r) && close(ei, e) && close(li, l), "a = {a}: {ri} {ei} {li}");
+        }
+        for a in [-0.9, -0.5, 0.3, 0.7, 0.99] {
+            // Marginal stability, r² − 6r + 8a√r − 3a² = 0, and the energy and angular momentum of
+            // a circular orbit at that radius (Bardeen, Press & Teukolsky 1972, Eqs. 2.12–2.13).
+            let (r, e, l) = kerr_isco(a);
+            assert!((r * r - 6.0 * r + 8.0 * a * r.sqrt() - 3.0 * a * a).abs() < 1e-13 * r * r, "a = {a}");
+            let d = r.powf(0.75) * (r.powf(1.5) - 3.0 * r.sqrt() + 2.0 * a).sqrt();
+            assert!(close(e, (r.powf(1.5) - 2.0 * r.sqrt() + a) / d) && close(l, (r * r - 2.0 * a * r.sqrt() + a * a) / d), "a = {a}");
+            // The photon orbit is where that denominator vanishes: r^(3/2) − 3r^(1/2) + 2a = 0.
+            let p = kerr_photon_orbit(a);
+            assert!((p.powf(1.5) - 3.0 * p.sqrt() + 2.0 * a).abs() < 1e-14, "photon orbit at a = {a}");
+        }
+        assert!(close(kerr_photon_orbit(0.0), 3.0) && close(kerr_photon_orbit(1.0), 1.0) && close(kerr_photon_orbit(-1.0), 4.0));
+        // f_isco is twice the orbital frequency c³/(2πGM(r^(3/2) + a)) at a = 0.
+        let (r, _, _) = kerr_isco(0.0);
+        assert!(close(f_isco(SOLAR_MASS), C.powi(3) / (PI * G * SOLAR_MASS * r.powf(1.5))));
     }
 
     #[test]

@@ -85,7 +85,7 @@ assert!(gradiometer_strain(1e-11, 0.1) > 1e10 * aion.peak_strain());
 |---|---|
 | `strain` | Ω_GW ↔ S_h ↔ h_c, with the one-sided and two-sided conventions made explicit ([Moore, Cole & Berry 2015](https://arxiv.org/abs/1408.0740)) |
 | `curves` | Advanced LIGO and Einstein Telescope fits ([Sathyaprakash & Schutz 2009](https://arxiv.org/abs/0903.0338)); LISA with galactic confusion ([Robson, Cornish & Liu 2019](https://arxiv.org/abs/1803.01944)); tabulated curves |
-| `inspiral` | Chirp mass, time to merger, ISCO, the energy spectrum, matched-filter SNR, horizon and range ([Chen et al. 2021](https://arxiv.org/abs/1709.08079)) |
+| `inspiral` | Chirp mass, time to merger, ISCO, the energy spectrum, matched-filter SNR, horizon and range ([Chen et al. 2021](https://arxiv.org/abs/1709.08079)); the Kerr ISCO with its energy and angular momentum, and the equatorial photon orbit (Bardeen, Press & Teukolsky 1972) |
 | `energy` | The Planck luminosity, strain from luminosity, the circular-binary flux and the multipole flux coefficients ([Blanchet](https://arxiv.org/abs/1310.1528)), Peters' eccentricity enhancement and binary-pulsar decay |
 | `memory` | The leading-order memory of a binary ([Favata 2010](https://arxiv.org/abs/1003.3486)) and its ramp in pulsar timing |
 | `propagation` | Speed bounds from GW170817, graviton Compton wavelength, dispersion and delay with the current mass bounds, point-lens lensing in geometrical and wave optics ([Takahashi & Nakamura 2003](https://arxiv.org/abs/astro-ph/0305055)), viscous absorption with its validity check ([Baym et al. 2017](https://arxiv.org/abs/1707.05192)) |
