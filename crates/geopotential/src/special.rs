@@ -165,6 +165,76 @@ pub fn carlson_rc(x: f64, y: f64) -> f64 {
     (1.0 + s * s * (3.0 / 10.0 + s * (1.0 / 7.0 + s * (3.0 / 8.0 + s * (9.0 / 22.0 + s * (159.0 / 208.0 + s * 9.0 / 8.0)))))) / a.sqrt()
 }
 
+/// `φ` reduced by the period `π` (DLMF 19.2.10): the integer `j` and `sin r`, `cos r` of
+/// `r = φ − jπ`, `|r| ≤ π/2`, with `φ = ±π/2` itself left whole so that the complete integrals
+/// come out directly.
+fn reduce(phi: f64) -> (f64, f64, f64) {
+    let q = phi / PI;
+    let j = if (q - q.round()).abs() == 0.5 { q.trunc() } else { q.round() };
+    let (s, c) = (phi - j * PI).sin_cos();
+    (j, s, c)
+}
+
+/// `1 − m sin²φ` without cancellation for `0 < m ≤ 1`, as `cos²φ + (1 − m)sin²φ` (Boost's form,
+/// DLMF 19.36(i)); near `m = 1`, `φ = π/2` the plain form loses 4×10⁻⁹ in `E`.
+fn delta2(s: f64, c: f64, m: f64) -> f64 {
+    if m > 0.0 && m <= 1.0 { c * c + (1.0 - m) * s * s } else { 1.0 - m * s * s }
+}
+
+/// Legendre's incomplete integral of the first kind, `F(φ|m) = ∫₀^φ dθ/√(1 − m sin²θ)`, as
+/// `sin φ R_F(cos²φ, 1 − m sin²φ, 1)` (DLMF 19.25.5) with the period `π` added back as `2jK(m)`
+/// (19.2.10). `F(φ|0) = φ`, `F(φ|1) = artanh(sin φ)`. For `m > 1` it is real only while
+/// `m sin²φ ≤ 1` (DLMF 19.7.4), and NaN beyond that or beyond `|φ| = π/2`.
+pub fn elliptic_f(phi: f64, m: f64) -> f64 {
+    let (j, s, c) = reduce(phi);
+    let d2 = delta2(s, c, m);
+    if d2 < 0.0 || (j != 0.0 && m >= 1.0) {
+        return f64::NAN;
+    }
+    s * carlson_rf(c * c, d2, 1.0) + if j == 0.0 { 0.0 } else { 2.0 * j * carlson_rf(0.0, 1.0 - m, 1.0) }
+}
+
+/// Legendre's incomplete integral of the second kind, `E(φ|m) = ∫₀^φ √(1 − m sin²θ) dθ`, by
+/// whichever of DLMF 19.25.9–11 has no cancelling terms for the `m` at hand (their stated
+/// ranges `m ≤ 0`, `0 ≤ m ≤ 1` and `1 ≤ m`), with `2jE(m)` for the periods. `E(φ|0) = φ`,
+/// `E(φ|1) = sin φ`; the same NaN cases as [`elliptic_f`].
+pub fn elliptic_e(phi: f64, m: f64) -> f64 {
+    let (j, s, c) = reduce(phi);
+    let (x, y) = (c * c, delta2(s, c, m));
+    if y < 0.0 || (j != 0.0 && m > 1.0) {
+        return f64::NAN;
+    }
+    let s3 = s * s * s;
+    let value = if s == 0.0 {
+        0.0
+    } else if m <= 0.0 {
+        s * carlson_rf(x, y, 1.0) - m / 3.0 * s3 * carlson_rd(x, y, 1.0)
+    } else if m == 1.0 {
+        s
+    } else if m < 1.0 {
+        (1.0 - m) * s * carlson_rf(x, y, 1.0) + m * (1.0 - m) / 3.0 * s3 * carlson_rd(x, 1.0, y) + m * s * c / y.sqrt()
+    } else {
+        -(1.0 - m) / 3.0 * s3 * carlson_rd(y, 1.0, x) + s * y.sqrt() / c
+    };
+    value + if j == 0.0 { 0.0 } else { 2.0 * j * (carlson_rf(0.0, 1.0 - m, 1.0) - m / 3.0 * carlson_rd(0.0, 1.0 - m, 1.0)) }
+}
+
+/// Legendre's incomplete integral of the third kind,
+/// `Π(n; φ|m) = ∫₀^φ dθ/((1 − n sin²θ)√(1 − m sin²θ))` (DLMF 19.2.7; A&S 17.7.1, the same sign of
+/// `n`, where Carlson and GSL use `1 + n sin²θ`), as `sin φ R_F + (n/3)sin³φ R_J(cos²φ, 1 − m sin²φ,
+/// 1, 1 − n sin²φ)` (DLMF 19.25.14) with `2jΠ(n|m)` for the periods. Beyond its pole, `n sin²φ > 1`,
+/// it is the Cauchy principal value, through `R_J`'s; at the pole it is infinite. `Π(0; φ|m) =
+/// F(φ|m)`, `Π(1; φ|0) = tan φ`, and `Π(n; π/2|m)` is the complete integral.
+pub fn elliptic_pi(n: f64, phi: f64, m: f64) -> f64 {
+    let (j, s, c) = reduce(phi);
+    let y = delta2(s, c, m);
+    if y < 0.0 || (j != 0.0 && m >= 1.0) {
+        return f64::NAN;
+    }
+    let value = if s == 0.0 { 0.0 } else { s * carlson_rf(c * c, y, 1.0) + n / 3.0 * s * s * s * carlson_rj(c * c, y, 1.0, 1.0 - n * s * s) };
+    value + if j == 0.0 { 0.0 } else { 2.0 * j * (carlson_rf(0.0, 1.0 - m, 1.0) + n / 3.0 * carlson_rj(0.0, 1.0 - m, 1.0, 1.0 - n)) }
+}
+
 /// The degree-5 series that ends `R_D` and `R_J`.
 fn series(e2: f64, e3: f64, e4: f64, e5: f64) -> f64 {
     1.0 - 3.0 * e2 / 14.0 + e3 / 6.0 + 9.0 * e2 * e2 / 88.0 - 3.0 * e4 / 22.0 - 9.0 * e2 * e3 / 52.0 + 3.0 * e5 / 26.0
@@ -294,6 +364,80 @@ mod tests {
         // R_C in its two closed forms.
         assert!(close(carlson_rc(1.0, 4.0), (3f64.sqrt()).atan() / 3f64.sqrt(), 1e-15));
         assert!(close(carlson_rc(4.0, 1.0), (2.0 + 3f64.sqrt()).ln() / 3f64.sqrt(), 1e-15));
+    }
+
+    #[test]
+    fn legendres_incomplete_integrals_against_abramowitz_and_stegun() {
+        // A&S Tables 17.5 and 17.6 (F and E to eight decimals, modular angle α, m = sin²α) and 17.9
+        // (Π to five), each within its rounding.
+        let d = f64::to_radians;
+        for (phi, alpha, want) in [(30.0, 45.0, 0.535_622_73), (30.0, 60.0, 0.542_229_11), (30.0, 90.0, 0.549_306_14), (20.0, 40.0, 0.351_988_69)] {
+            assert!((elliptic_f(d(phi), d(alpha).sin().powi(2)) - want).abs() < 5e-9, "F({phi}\\{alpha})");
+        }
+        for (phi, alpha, want) in [(30.0, 45.0, 0.512_049_32), (30.0, 60.0, 0.506_092_07), (90.0, 45.0, 1.350_643_88), (70.0, 60.0, 1.026_636_89), (75.0, 85.0, 0.969_922_12), (80.0, 88.0, 0.985_689_15), (85.0, 88.0, 0.997_483_92)] {
+            assert!((elliptic_e(d(phi), d(alpha).sin().powi(2)) - want).abs() < 5e-9, "E({phi}\\{alpha})");
+        }
+        for (n, phi, alpha, want) in [(0.5, 60.0, 45.0, 1.38218), (0.3, 75.0, 60.0, 1.93879), (0.6, 45.0, 30.0, 0.91527), (0.5, 90.0, 45.0, 2.70129), (0.1, 90.0, 0.0, 1.65576), (0.0, 75.0, 90.0, 2.02759)] {
+            assert!((elliptic_pi(n, d(phi), d(alpha).sin().powi(2)) - want).abs() < 5e-6, "Π({n};{phi}\\{alpha})");
+        }
+    }
+
+    #[test]
+    fn legendres_integrals_special_values_and_periods() {
+        // DLMF 19.6: F(φ|1) = gd⁻¹φ, E(φ|1) = sin φ, F(φ|0) = E(φ|0) = φ, Π(1;φ|0) = tan φ, and
+        // Π(n;φ|0) = R_C(csc²φ − 1, csc²φ − n), a principal value for n = 3.
+        assert!(close(elliptic_f(0.7, 1.0), 0.7f64.sin().atanh(), 1e-15) && close(elliptic_e(0.7, 1.0), 0.7f64.sin(), 1e-15));
+        assert!(close(elliptic_f(1.3, 0.0), 1.3, 1e-15) && close(elliptic_e(1.3, 0.0), 1.3, 1e-15));
+        assert!(close(elliptic_pi(1.0, 1.1, 0.0), 1.1f64.tan(), 1e-14));
+        let csc2 = 1.0 / 1.1f64.sin().powi(2);
+        assert!(close(elliptic_pi(3.0, 1.1, 0.0), carlson_rc(csc2 - 1.0, csc2 - 3.0), 1e-14));
+        // The complete integrals at φ = π/2, and DLMF 19.2.10 with the complete ones beyond it;
+        // F and E are odd.
+        let m = 0.7;
+        let (k, e) = complete_elliptic(m);
+        assert!(close(elliptic_f(FRAC_PI_2, m), k, 1e-15) && close(elliptic_e(FRAC_PI_2, m), e, 1e-15));
+        for (j, r) in [(1.0, 0.4), (2.0, -0.3), (-1.0, 1.0)] {
+            assert!(close(elliptic_f(j * PI + r, m), 2.0 * j * k + elliptic_f(r, m), 1e-14), "F, j = {j}");
+            assert!(close(elliptic_e(j * PI + r, m), 2.0 * j * e + elliptic_e(r, m), 1e-14), "E, j = {j}");
+        }
+        assert!((elliptic_f(-0.8, 0.6) + elliptic_f(0.8, 0.6)).abs() < 1e-16 && (elliptic_e(-0.8, 0.6) + elliptic_e(0.8, 0.6)).abs() < 1e-16);
+        assert!(close(elliptic_pi(2.0, PI + 0.3, 0.5), 2.0 * elliptic_pi(2.0, FRAC_PI_2, 0.5) + elliptic_pi(2.0, 0.3, 0.5), 1e-14));
+        // m > 1 by the reciprocal modulus (DLMF 19.7.4): F(φ|m) = F(β|1/m)/√m with sin β = √m sin φ,
+        // E(φ|m) = √m[E(β|1/m) − (1 − 1/m)F(β|1/m)]; real only while m sin²φ ≤ 1.
+        let (phi, m): (f64, f64) = (0.5, 2.5);
+        let beta = (m.sqrt() * phi.sin()).asin();
+        assert!(close(elliptic_f(phi, m), elliptic_f(beta, 1.0 / m) / m.sqrt(), 1e-14) && close(elliptic_f(phi, m), 0.570_176_528_700_536, 1e-14));
+        assert!(close(elliptic_e(phi, m), m.sqrt() * (elliptic_e(beta, 1.0 / m) - (1.0 - 1.0 / m) * elliptic_f(beta, 1.0 / m)), 1e-14));
+        assert!(close(elliptic_e(phi, m), 0.444_842_124_053_142, 1e-14) && elliptic_f(1.0, m).is_nan() && elliptic_e(1.0, m).is_nan());
+        // E near m = 1 at φ = 1.5707: 19.25.10 with the plain Δ² = 1 − m sin²φ loses 4×10⁻⁹ there;
+        // with cos²φ + (1 − m)sin²φ it agrees with 19.25.9 (which has no cancellation at this m) to
+        // 10⁻¹⁴, the notes' quadrature check.
+        let (phi, m): (f64, f64) = (1.5707, 1.0 - 1e-10);
+        let (s, c) = phi.sin_cos();
+        let (x, plain) = (c * c, 1.0 - m * s * s);
+        let lossy = (1.0 - m) * s * carlson_rf(x, plain, 1.0) + m * (1.0 - m) / 3.0 * s * s * s * carlson_rd(x, 1.0, plain) + m * s * c / plain.sqrt();
+        let other = s * carlson_rf(x, plain, 1.0) - m / 3.0 * s * s * s * carlson_rd(x, plain, 1.0);
+        assert!(close(elliptic_e(phi, m), other, 1e-14) && (lossy / other - 1.0).abs() > 1e-10, "{} {lossy} {other}", elliptic_e(phi, m));
+    }
+
+    #[test]
+    fn pi_beyond_its_pole_is_the_principal_value() {
+        // n sin²φ > 1: DLMF 19.25.16 computes the same principal value with no negative R_J
+        // argument, through ω² = m/n; the four cases of the notes agree to 10⁻¹⁴.
+        for (n, phi, m, want) in [(2.0, 1.2, 0.5, 0.253_604_270_701_507), (4.0, 0.9, 0.3, 0.259_293_626_045_840), (1.5, 1.4, 0.9, -0.973_823_998_688_881), (10.0, 0.5, 0.2, 0.233_655_250_908_165)] {
+            let c = 1.0 / f64::sin(phi).powi(2);
+            let w2: f64 = m / n;
+            let dlmf = -w2 / 3.0 * carlson_rj(c - 1.0, c - m, c, c - w2) + ((c - 1.0) * (c - m) / ((n - 1.0) * (1.0 - w2))).sqrt() * carlson_rc(c * (n - 1.0) * (1.0 - w2), (n - c) * (c - w2));
+            let ours = elliptic_pi(n, phi, m);
+            assert!(close(ours, dlmf, 1e-14) && close(ours, want, 1e-14), "Π({n};{phi}|{m}) = {ours}");
+        }
+        // The complete principal value, DLMF 19.6.5: Π(n|m) = K − Π(m/n|m) for n > 1.
+        for (n, m) in [(2.0, 0.5), (5.0, 0.9)] {
+            assert!(close(elliptic_pi(n, FRAC_PI_2, m), complete_elliptic(m).0 - elliptic_pi(m / n, FRAC_PI_2, m), 1e-13));
+        }
+        assert!(close(elliptic_pi(2.0, FRAC_PI_2, 0.5), -0.313_544_683_465_184, 1e-13));
+        // At the pole itself it diverges, and Π(0; φ|m) = F(φ|m).
+        assert!(elliptic_pi(1.0, FRAC_PI_2, 0.3).is_infinite() && close(elliptic_pi(0.0, 0.9, 0.4), elliptic_f(0.9, 0.4), 1e-15));
     }
 
     /// The ring average of 1/r and its gradient by direct summation over `n` points, compensated
