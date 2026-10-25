@@ -176,6 +176,41 @@ pub fn exact_deflection(mass: f64, b: f64, metric: Metric) -> Option<f64> {
     Some(2.0 * sum - PI)
 }
 
+/// The deflection (rad) of light by a body's whole gravity field `field`, in the weak-field Born
+/// approximation: the transverse attraction integrated along the undeflected straight ray,
+/// `α = ((1 + γ)/c²)∫∇⊥U dl`, with `γ` the PPN parameter (1 in general relativity). The ray
+/// passes through `point` with direction `dir`, both in the body-fixed frame of the field
+/// (metres, z along the spin axis). The result is the deflection vector, perpendicular to the
+/// ray and pointing toward the mass. For a ray in the equator of an oblate body it is
+/// `(4GM/c²b)(1 + J₂R²/b²)`.
+pub fn multipole_deflection(field: &geopotential::Coefficients, point: [f64; 3], dir: [f64; 3], gamma: f64) -> [f64; 3] {
+    let dot = |a: [f64; 3], b: [f64; 3]| a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    let n = dir.map(|x| x / dot(dir, dir).sqrt());
+    let along = dot(point, n);
+    let closest: [f64; 3] = core::array::from_fn(|i| point[i] - along * n[i]);
+    let b = dot(closest, closest).sqrt();
+    // s = b tan θ maps the line onto (−π/2, π/2), where the integrand is smooth: b sec²θ ∇⊥U.
+    // An even number of nodes keeps them off θ = 0, which may lie on the spin axis.
+    let (x, w) = geopotential::gauss_legendre(128);
+    let mut sum = [0.0; 3];
+    for (x, w) in x.iter().zip(&w) {
+        let theta = core::f64::consts::FRAC_PI_2 * x;
+        let s = b * theta.tan();
+        let p: [f64; 3] = core::array::from_fn(|i| closest[i] + s * n[i]);
+        let r = dot(p, p).sqrt();
+        let (lat, lon) = ((p[2] / r).asin(), p[1].atan2(p[0]));
+        let [north, east, up] = field.partials(r, lat, lon).acceleration_neu(r, lat);
+        let ((sf, cf), (sl, cl)) = (lat.sin_cos(), lon.sin_cos());
+        let g = [-sf * cl * north - sl * east + cf * cl * up, -sf * sl * north + cl * east + cf * sl * up, cf * north + sf * up];
+        let gn = dot(g, n);
+        let weight = core::f64::consts::FRAC_PI_2 * w * b / (theta.cos() * theta.cos());
+        for i in 0..3 {
+            sum[i] += weight * (g[i] - gn * n[i]);
+        }
+    }
+    sum.map(|x| (1.0 + gamma) * x / (C * C))
+}
+
 /// The angular diameter (rad) of the shadow of a non-spinning black hole of mass `mass` (kg) at
 /// distance `distance` (m): `6√3 GM/(c²D)`, the critical impact parameter `3√3 GM/c²` seen from
 /// `D`. Spin and inclination make a Kerr shadow smaller, by up to about 7.5%
@@ -386,5 +421,43 @@ mod tests {
         assert!(exact_deflection(m, critical * rg * (1.0 + 1e-6), Metric::PolarizableVacuum).unwrap() > 10.0);
         let gr = exact_deflection(m, 10.0 * rg, Metric::GeneralRelativity).unwrap();
         assert!(exact_deflection(m, 10.0 * rg, Metric::PolarizableVacuum).unwrap() > gr);
+    }
+
+    #[test]
+    fn jupiters_oblateness_in_the_deflection() {
+        // Jupiter: the IAU 2015 nominal GM and equatorial radius, and Juno's J₂ = 14696.572×10⁻⁶
+        // (Iess et al. 2018, as tabulated in arXiv:2310.02834).
+        let (gm, radius, j2) = (1.266_865_3e17, 7.1492e7, 14_696.572e-6);
+        let mut jupiter = geopotential::Coefficients::zeros(gm, radius, 2);
+        jupiter.set(0, 0, 1.0, 0.0);
+        jupiter.set(2, 0, -j2 / 5f64.sqrt(), 0.0);
+        let mas = PI / 180.0 / 3600.0 * 1e-3;
+        for (b, lon) in [(radius, 0.0), (2.0 * radius, 0.7), (radius * 1.1, -2.0)] {
+            // An equatorial ray, at any longitude: (4GM/c²b)(1 + J₂R²/b²).
+            let point = [b * f64::cos(lon), b * f64::sin(lon), 0.0];
+            let dir = [-f64::sin(lon), f64::cos(lon), 0.0];
+            let alpha = multipole_deflection(&jupiter, point, dir, 1.0);
+            let want = 4.0 * gm / (C * C * b) * (1.0 + j2 * radius * radius / (b * b));
+            let size = (alpha[0] * alpha[0] + alpha[1] * alpha[1] + alpha[2] * alpha[2]).sqrt();
+            assert!(close(size, want, 1e-13) && alpha[2].abs() < 1e-15 * size, "b = {b}");
+            // It points at the planet.
+            assert!(close(-(alpha[0] * point[0] + alpha[1] * point[1]) / (b * size), 1.0, 1e-13));
+        }
+        // At the limb: 16.27 mas, of which J₂ adds 239 µas.
+        let limb = 4.0 * gm / (C * C * radius);
+        assert!((limb / mas - 16.27).abs() < 0.005 && (limb * j2 / mas * 1e3 - 239.0).abs() < 0.5);
+        // A point mass, off the axis in any direction, gives the first order of light_bending.
+        let mut point = geopotential::Coefficients::zeros(gm, radius, 0);
+        point.set(0, 0, 1.0, 0.0);
+        let alpha = multipole_deflection(&point, [1e8, 2e8, -0.5e8], [0.3, -0.2, 0.9], 1.0);
+        let n = [0.3, -0.2, 0.9].map(|x: f64| x / 0.94f64.sqrt());
+        let p = [1e8, 2e8, -0.5e8];
+        let along = p[0] * n[0] + p[1] * n[1] + p[2] * n[2];
+        let b = (0..3).map(|i| (p[i] - along * n[i]).powi(2)).sum::<f64>().sqrt();
+        let size = (alpha[0] * alpha[0] + alpha[1] * alpha[1] + alpha[2] * alpha[2]).sqrt();
+        assert!(close(size, 4.0 * gm / (C * C * b), 1e-13));
+        // γ scales it as (1 + γ)/2.
+        let half = multipole_deflection(&point, [1e8, 2e8, -0.5e8], [0.3, -0.2, 0.9], 0.0);
+        assert!(close(half[0], alpha[0] / 2.0, 1e-14));
     }
 }
