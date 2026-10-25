@@ -57,6 +57,42 @@ impl Grid {
         re
     }
 
+    /// `values` on a grid twice the size, the data in its middle and each edge value repeated
+    /// outward over the margin, with a cosine roll-off to zero across the margin if `taper`. The
+    /// FFT treats a grid as periodic, so an anomaly that reaches an edge wraps round; padding this
+    /// way cut the error of continuing a dipole 300 m deep by 30 m on a 128 × 128 grid from
+    /// 1.8×10⁻² to 1.1×10⁻³ rms, where padding with zeros helps little (a step at the edge).
+    /// Filter the padded grid, then take [`unpadded`](Self::unpadded).
+    pub fn padded(&self, values: &[f64], taper: bool) -> (Grid, Vec<f64>) {
+        assert_eq!(values.len(), self.nx * self.ny, "one value per grid point");
+        let big = Grid { nx: 2 * self.nx, ny: 2 * self.ny, ..*self };
+        let (px, py) = (self.nx / 2, self.ny / 2);
+        let window = |i: usize, n: usize, pad: usize| -> f64 {
+            if !taper || (pad..pad + n).contains(&i) {
+                1.0
+            } else {
+                let out = if i < pad { (pad - i) as f64 } else { (i + 1 - pad - n) as f64 };
+                0.5 + 0.5 * (core::f64::consts::PI * out / pad as f64).cos()
+            }
+        };
+        let out = (0..big.nx)
+            .flat_map(|i| {
+                (0..big.ny).map(move |j| {
+                    let (si, sj) = (i.saturating_sub(px).min(self.nx - 1), j.saturating_sub(py).min(self.ny - 1));
+                    values[si * self.ny + sj] * window(i, self.nx, px) * window(j, self.ny, py)
+                })
+            })
+            .collect();
+        (big, out)
+    }
+
+    /// The middle of `values` on the grid [`padded`](Self::padded) made, back on this grid.
+    pub fn unpadded(&self, values: &[f64]) -> Vec<f64> {
+        assert_eq!(values.len(), 4 * self.nx * self.ny, "values on the padded grid");
+        let (px, py) = (self.nx / 2, self.ny / 2);
+        (0..self.nx).flat_map(|i| (0..self.ny).map(move |j| values[(i + px) * 2 * self.ny + j + py])).collect()
+    }
+
     /// The field `h` metres higher: its spectrum times `e^(−|k|h)`. A negative `h` continues it
     /// downward, which amplifies short wavelengths and soon noise.
     pub fn upward_continue(&self, values: &[f64], h: f64) -> Vec<f64> {
@@ -66,9 +102,41 @@ impl Grid {
     /// A total-field anomaly reduced to the pole: as if the magnetisation `m` and the ambient
     /// field `f` (unit vectors, `z` down) were both vertical. The spectrum is divided by
     /// `Θ_m Θ_f` and the mean set to zero. The filter's gain grows as `1/sin²I` toward the
-    /// magnetic equator, so it amplifies noise at low inclination.
+    /// magnetic equator, so it amplifies noise at low inclination; see
+    /// [`reduce_to_pole_damped`](Self::reduce_to_pole_damped) and
+    /// [`reduce_to_equator`](Self::reduce_to_equator).
     pub fn reduce_to_pole(&self, values: &[f64], m: [f64; 3], f: [f64; 3]) -> Vec<f64> {
-        self.filter(values, |kx, ky| pole_kernel(kx, ky, m, f, 1.0))
+        self.redirect(values, (m, f), POLE, 0.0)
+    }
+
+    /// Reduction to the pole with Wiener damping `epsilon`: 0.02–0.03 was best for 1% noise at
+    /// 10° inclination in the tests, where it brought the error from 0.84 to 0.38 rms; choosing it
+    /// by cross-validation is usual. See [`redirect`](Self::redirect).
+    pub fn reduce_to_pole_damped(&self, values: &[f64], m: [f64; 3], f: [f64; 3], epsilon: f64) -> Vec<f64> {
+        self.redirect(values, (m, f), POLE, epsilon)
+    }
+
+    /// A total-field anomaly reduced to the equator: as if the magnetisation and the ambient
+    /// field were horizontal, at their own declinations. The kernel `Θ_m′ Θ_f′/(Θ_m Θ_f)` then has
+    /// a gain of at most 1 at every inclination, where reduction to the pole's reaches `1/sin²I`,
+    /// so it is stable at low latitudes; the anomaly keeps the equator's shape, a low over the
+    /// body between two highs.
+    pub fn reduce_to_equator(&self, values: &[f64], m: [f64; 3], f: [f64; 3]) -> Vec<f64> {
+        let flat = |u: [f64; 3]| {
+            let h = u[0].hypot(u[1]);
+            [u[0] / h, u[1] / h, 0.0]
+        };
+        self.redirect(values, (m, f), (flat(m), flat(f)), 0.0)
+    }
+
+    /// A total-field anomaly as it would be with the magnetisation and ambient field along
+    /// `to = (m′, f′)` instead of `from = (m, f)` (unit vectors, `z` down): the spectrum times
+    /// `Θ_m′ Θ_f′ · conj(t)/(|t|² + ε)`, `t = Θ_m Θ_f`, with the mean set to zero. With `epsilon`
+    /// 0 that is the exact `Θ_m′Θ_f′/t`; a positive `epsilon` is Wiener damping, which leaves the
+    /// kernel where `|t|² ≫ ε` and sends it to zero where the exact gain would exceed `1/√ε`.
+    /// `|t| ≤ 1`, so `epsilon` is a fraction of the gain's floor.
+    pub fn redirect(&self, values: &[f64], from: ([f64; 3], [f64; 3]), to: ([f64; 3], [f64; 3]), epsilon: f64) -> Vec<f64> {
+        self.filter(values, |kx, ky| direction_kernel(kx, ky, from, to, 1.0, epsilon))
     }
 
     /// Baranov's pseudo-gravity: the vertical attraction (m/s², positive down) that the body
@@ -78,7 +146,7 @@ impl Grid {
     /// and divided by `|k|`. The mean is set to zero.
     pub fn pseudo_gravity(&self, values: &[f64], m: [f64; 3], f: [f64; 3], density_per_magnetisation: f64) -> Vec<f64> {
         let scale = G * density_per_magnetisation * 4.0 * core::f64::consts::PI / MU_0;
-        self.filter(values, |kx, ky| pole_kernel(kx, ky, m, f, scale / kx.hypot(ky)))
+        self.filter(values, |kx, ky| direction_kernel(kx, ky, (m, f), POLE, scale / kx.hypot(ky), 0.0))
     }
 
     /// The 2-D FFT, rows then columns.
@@ -140,17 +208,23 @@ fn wavenumber(i: usize, n: usize, d: f64) -> f64 {
     core::f64::consts::TAU * i / (n as f64 * d)
 }
 
-/// `scale/(Θ_m Θ_f)`, and zero at `k = 0`.
-fn pole_kernel(kx: f64, ky: f64, m: [f64; 3], f: [f64; 3], scale: f64) -> (f64, f64) {
+/// Both directions vertical: the pole.
+const POLE: ([f64; 3], [f64; 3]) = ([0.0, 0.0, 1.0], [0.0, 0.0, 1.0]);
+
+/// `scale · Θ_m′Θ_f′ · conj(t)/(|t|² + ε)` with `t = Θ_m Θ_f`: the spectrum of an anomaly seen
+/// with magnetisation and field along `from = (m, f)` turned into the one along `to`, damped by
+/// `epsilon` (0 for the exact `1/t`), and zero at `k = 0`.
+fn direction_kernel(kx: f64, ky: f64, from: ([f64; 3], [f64; 3]), to: ([f64; 3], [f64; 3]), scale: f64, epsilon: f64) -> (f64, f64) {
     let k = kx.hypot(ky);
     if k == 0.0 {
         return (0.0, 0.0);
     }
     let theta = |u: [f64; 3]| (u[2], (u[0] * kx + u[1] * ky) / k);
-    let ((a, b), (c, d)) = (theta(m), theta(f));
-    let (re, im) = (a * c - b * d, a * d + b * c);
-    let norm = scale / (re * re + im * im);
-    (re * norm, -im * norm)
+    let product = |(a, b): (f64, f64), (c, d): (f64, f64)| (a * c - b * d, a * d + b * c);
+    let (re, im) = product(theta(from.0), theta(from.1));
+    let (nr, ni) = product(theta(to.0), theta(to.1));
+    let norm = scale / (re * re + im * im + epsilon);
+    product((nr, ni), (re * norm, -im * norm))
 }
 
 #[cfg(test)]
@@ -197,6 +271,90 @@ mod tests {
             let err = rms_relative(&GRID.upward_continue(&GRID.upward_continue(&field, h), -h), &field);
             assert!(err < tol, "{h} m: {err:e}");
         }
+    }
+
+    #[test]
+    fn padding() {
+        // A dipole 300 m deep reaches the grid's edges: continued 30 m, the periodic wrap costs
+        // 1.8×10⁻² rms; the edge-extended, tapered pad to 256 × 256 leaves 1.1×10⁻³ (the notes'
+        // values). For the 50 m dipole, which decays inside the grid, 6.9×10⁻⁴ becomes 2.5×10⁻⁴.
+        let pole = [0.0, 0.0, 1.0];
+        let continued = |depth: f64, pad: bool| {
+            let field = dipole(depth, pole, pole);
+            let up = if pad {
+                let (big, values) = GRID.padded(&field, true);
+                GRID.unpadded(&big.upward_continue(&values, 30.0))
+            } else {
+                GRID.upward_continue(&field, 30.0)
+            };
+            rms_relative(&up, &dipole(depth + 30.0, pole, pole))
+        };
+        assert!((continued(300.0, false) / 1.8e-2 - 1.0).abs() < 0.1 && (continued(300.0, true) / 1.1e-3 - 1.0).abs() < 0.1, "{} {}", continued(300.0, false), continued(300.0, true));
+        assert!((continued(50.0, true) / 2.5e-4 - 1.0).abs() < 0.1);
+        // The pad repeats the edge values and the taper ends at zero; unpadded is the inverse.
+        let field = dipole(300.0, pole, pole);
+        let (big, values) = GRID.padded(&field, false);
+        assert_eq!((big.nx, big.ny, values.len()), (256, 256, 65536));
+        assert_eq!(values[0], field[0]);
+        assert_eq!(values[64 * 256 + 300 - 64], field[0 * 128 + 127]);
+        assert!(GRID.unpadded(&values) == field && GRID.unpadded(&GRID.padded(&field, true).1) == field);
+        let tapered = GRID.padded(&field, true).1;
+        assert!(tapered[0].abs() < 1e-12 * field[64 * 128 + 64] && tapered[64 * 256 + 64] == field[0]);
+    }
+
+    #[test]
+    fn low_inclination() {
+        // A dipole 100 m deep on a 64 × 64 grid at 25 m, induced at I = 10°, padded. Reduced to
+        // the equator the clean data give the true equatorial anomaly to 1%; reduced to the pole
+        // they amplify 1% noise to an error of order 1, which Wiener damping at ε = 0.025 cuts by
+        // more than half; the damped kernel is the plain one as ε → 0.
+        let grid = Grid { nx: 64, ny: 64, dx: 25.0, dy: 25.0 };
+        let field = |m: [f64; 3], f: [f64; 3]| -> Vec<f64> {
+            grid.points()
+                .map(|(x, y)| {
+                    let d = [x - 800.0, y - 800.0, -100.0];
+                    let r2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+                    let (dm, df, mf) = ((0..3).map(|i| d[i] * m[i]).sum::<f64>(), (0..3).map(|i| d[i] * f[i]).sum::<f64>(), (0..3).map(|i| m[i] * f[i]).sum::<f64>());
+                    (3.0 * dm * df - r2 * mf) / (r2 * r2 * r2.sqrt())
+                })
+                .collect()
+        };
+        let apply = |values: &[f64], f: &dyn Fn(&Grid, &[f64]) -> Vec<f64>| {
+            let (big, padded) = grid.padded(values, true);
+            grid.unpadded(&f(&big, &padded))
+        };
+        let (low, equator, pole) = (unit(10.0, 0.0), unit(0.0, 0.0), [0.0, 0.0, 1.0]);
+        let (data, at_equator, at_pole) = (field(low, low), field(equator, equator), field(pole, pole));
+        let rte = apply(&data, &|g, v| g.reduce_to_equator(v, low, low));
+        assert!(rms_relative(&rte, &at_equator) < 0.01, "{}", rms_relative(&rte, &at_equator));
+        // Round trip: the pole anomaly turned back to I = 10° is the data less its mean, to the
+        // 10⁻⁵ the Nyquist rows carry (a complex kernel there has no real inverse transform). The
+        // equator cannot be turned back from: Θ_m′Θ_f′ vanishes across the declination.
+        let back = grid.redirect(&grid.reduce_to_pole(&data, low, low), POLE, (low, low), 0.0);
+        let mean = data.iter().sum::<f64>() / data.len() as f64;
+        let round_trip = rms_relative(&back.iter().map(|v| v + mean).collect::<Vec<_>>(), &data);
+        assert!(round_trip < 1e-4, "{round_trip:e}");
+        // Noise of 1% of the peak, from a fixed generator (sums of twelve uniforms, so Gaussian).
+        let mut state = 7u64;
+        let peak = data.iter().fold(0f64, |m, v| m.max(v.abs()));
+        let noisy: Vec<f64> = data
+            .iter()
+            .map(|v| {
+                let g: f64 = (0..12)
+                    .map(|_| {
+                        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                        (state >> 11) as f64 / (1u64 << 53) as f64
+                    })
+                    .sum::<f64>()
+                    - 6.0;
+                v + 0.01 * peak * g
+            })
+            .collect();
+        let plain = rms_relative(&apply(&noisy, &|g, v| g.reduce_to_pole(v, low, low)), &at_pole);
+        let damped = rms_relative(&apply(&noisy, &|g, v| g.reduce_to_pole_damped(v, low, low, 0.025)), &at_pole);
+        assert!(plain > 0.5 && damped < 0.6 && damped < 0.6 * plain, "plain {plain} damped {damped}");
+        let (tiny, exact) = (grid.reduce_to_pole_damped(&data, low, low, 1e-18), grid.reduce_to_pole(&data, low, low));
+        assert!(rms_relative(&tiny, &exact) < 1e-12);
     }
 
     #[test]
