@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+pub mod bodies;
 mod coefficients;
 pub mod fft;
 mod field;
