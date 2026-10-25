@@ -72,6 +72,27 @@ pub const GM_MOON: f64 = GM_EARTH * MOON_EARTH_MASS_RATIO;
 pub const WGS84_A: f64 = 6_378_137.0;
 /// WGS84 ellipsoid flattening.
 pub const WGS84_F: f64 = 1.0 / 298.257_223_563;
+/// GRS80 flattening (Moritz 2000), derived there from its defining `J₂`; it differs from WGS84's
+/// in the ninth digit. GRS80's semi-major axis and rotation rate are [`WGS84_A`] and
+/// [`EARTH_ROTATION`].
+pub const GRS80_F: f64 = 1.0 / 298.257_222_101;
+/// GRS80's geocentric gravitational constant (Moritz 2000), m³/s²: the 1980 value, 1.5×10⁻⁷ above
+/// [`GM_EARTH`], and the `μ` of the GPS interface specification.
+pub const GRS80_GM: f64 = 3.986_005e14;
+/// Earth's spin angular momentum `Iω`, kg m²/s: 5.86×10³³, the value the LAGEOS and LARES
+/// frame-dragging analyses use (Ciufolini & Pavlis 2004).
+pub const EARTH_ANGULAR_MOMENTUM: f64 = 5.86e33;
+/// The geoid potential `W₀` that Terrestrial Time's rate was defined from (IAU 2000 Resolution
+/// B1.9; IERS Conventions 2010, Table 1.1), m²/s². For time scales and clock rates.
+pub const W0_IAU: f64 = 62_636_856.0;
+/// The reference potential of the International Height Reference System (IAG 2015 Resolution 1),
+/// m²/s²: 2.6 m²/s², about 26 cm, below [`W0_IAU`]. For heights.
+pub const W0_IHRS: f64 = 62_636_853.4;
+/// `L_G = 1 − dTT/dTCG`, the defining constant of Terrestrial Time (IAU 2000 Resolution B1.9):
+/// [`W0_IAU`]`/c²` to its ten digits.
+pub const L_G: f64 = 6.969_290_134e-10;
+/// `L_B = 1 − dTDB/dTCB` (IAU 2006 Resolution B3).
+pub const L_B: f64 = 1.550_519_768e-8;
 /// Nominal solar mass parameter GM☉ (IAU 2015 Resolution B3), m³/s².
 pub const GM_SUN: f64 = 1.327_124_4e20;
 /// Solar mass `GM☉/G`, kg.
@@ -105,5 +126,7 @@ mod tests {
         assert!((MU_B / (E_CHARGE * HBAR / (2.0 * M_E)) - 1.0).abs() < 1e-9);
         assert!((EINSTEIN_KAPPA / 2.076_647e-43 - 1.0).abs() < 1e-6);
         assert!((PARSEC / (AU * 648_000.0 / core::f64::consts::PI) - 1.0).abs() < 1e-12);
+        assert!((L_G - W0_IAU / (C * C)).abs() < 1e-19 && (W0_IAU - W0_IHRS - 2.6).abs() < 1e-8);
+        assert!((GRS80_GM / GM_EARTH - 1.0 - 1.46e-7).abs() < 1e-9 && GRS80_F > WGS84_F);
     }
 }

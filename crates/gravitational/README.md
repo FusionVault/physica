@@ -88,7 +88,7 @@ assert!(gradiometer_strain(1e-11, 0.1) > 1e10 * aion.peak_strain());
 | `cosmology` | Flat ΛCDM comoving, angular-diameter and time-delay distances; the six H0LiCOW lenses give back H₀ = 73.3 ([Wong et al. 2020](https://arxiv.org/abs/1907.04869)) |
 | `curves` | Advanced LIGO and Einstein Telescope fits ([Sathyaprakash & Schutz 2009](https://arxiv.org/abs/0903.0338)); LISA with galactic confusion ([Robson, Cornish & Liu 2019](https://arxiv.org/abs/1803.01944)); tabulated curves |
 | `inspiral` | Chirp mass, time to merger, ISCO, the energy spectrum, matched-filter SNR, horizon and range ([Chen et al. 2021](https://arxiv.org/abs/1709.08079)); the Kerr ISCO with its energy and angular momentum, and the equatorial photon orbit (Bardeen, Press & Teukolsky 1972) |
-| `energy` | The Planck luminosity, strain from luminosity, the circular-binary flux and the multipole flux coefficients ([Blanchet](https://arxiv.org/abs/1310.1528)), Peters' eccentricity enhancement and binary-pulsar decay, and the Shapiro range, shape and delay ([Kramer et al. 2021](https://arxiv.org/abs/2112.06795)) |
+| `energy` | The Planck luminosity, strain from luminosity, the circular-binary flux and the multipole flux coefficients ([Blanchet](https://arxiv.org/abs/1310.1528)), Peters' eccentricity enhancement and binary-pulsar decay, the Shapiro range, shape and delay ([Kramer et al. 2021](https://arxiv.org/abs/2112.06795)), the advance of periastron and the geodetic precession ([Will 2014](https://arxiv.org/abs/1403.7377)) |
 | `ringdown` | Kerr quasinormal modes for `l = 2, 3, 4`, every `m`, three overtones, from the fits of [Berti, Cardoso & Will 2006](https://arxiv.org/abs/gr-qc/0512160), checked against their exact tables; ringing frequency and damping time |
 | `remnant` | The final spin ([Hofmann, Barausse & Rezzolla 2016](https://arxiv.org/abs/1605.01938)), the radiated energy ([Barausse, Morozova & Rezzolla 2012](https://arxiv.org/abs/1206.3803)) and the horizon area of a merger's black hole, for aligned spins |
 | `tides` | Neutron-star tidal deformability `Λ` and the binary `Λ̃` the waveform measures, with GW170817's bounds ([LVC 2019](https://doi.org/10.1103/PhysRevX.9.011001)) |
@@ -121,7 +121,9 @@ Every formula is tested against numbers published in, or recomputed from, the pa
 - **Detectors:** the LISA curve at five frequencies; the published peak strains of AION-10,
   AION-100, AION-km and AICE; Kolkowitz et al.'s clock strain.
 - **Binaries:** the binary-neutron-star chirp mass, time to merger and ISCO; the decay of
-  B1913+16 (to its quoted mass precision) and of the double pulsar; GW170817's spectral fluence.
+  B1913+16 (to its quoted mass precision) and of the double pulsar; GW170817's spectral fluence;
+  the double pulsar's periastron advance (to its 2PN term), Mercury's 42.98″ per century, S2's
+  12.1′ per orbit, the lunar de Sitter precession and Gravity Probe B's geodetic drift.
 - **Energy and quanta:** the Planck luminosity; Blanchet's flux coefficients exactly; Tobar et
   al.'s rates and bar masses; Carney et al.'s occupation number; Aguiar's LSU bar cross-section.
 - **Propagation:** GW170817's speed bounds; the graviton Compton wavelength against Bernus et al.;

@@ -32,6 +32,7 @@ assert!(((HBAR * G / C.powi(3)).sqrt() / metrology::PLANCK_LENGTH - 1.0).abs() <
 | Energy | `EV`, `KEV` | |
 | Derived couplings | `EINSTEIN_KAPPA` (8πG/c⁴) | [Einstein field equations](https://en.wikipedia.org/wiki/Einstein_field_equations) |
 | Earth and astronomy | `G0`, `GM_EARTH`, `EARTH_ROTATION`, `MOON_EARTH_MASS_RATIO`, `GM_MOON`, `WGS84_A`, `WGS84_F`, `GM_SUN`, `SOLAR_MASS`, `AU`, `PARSEC`, `MPC`, `YEAR` | [IERS Conventions 2010](https://www.iers.org/TN36); [IAU 2015 B3](https://www.iau.org/static/resolutions/IAU2015_English.pdf) |
+| Reference ellipsoids and potentials | `GRS80_F`, `GRS80_GM`, `W0_IAU`, `W0_IHRS`, `L_G`, `L_B`, `EARTH_ANGULAR_MOMENTUM` | [Moritz 2000](https://doi.org/10.1007/s001900050278); IAU 2000 B1.9 and 2006 B3; [IAG 2015 Resolution 1](https://iag.dgfi.tum.de/fileadmin/IAG-docs/IAG_Resolutions_2015.pdf) |
 
 ## Applications
 

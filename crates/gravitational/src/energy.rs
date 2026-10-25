@@ -89,6 +89,21 @@ pub fn shapiro_shape(mp: f64, mc: f64, pb: f64, x: f64) -> f64 {
 /// `Λ_u = 1 − e cos u − s[sin ω(cos u − e) + √(1 − e²) cos ω sin u]`
 /// ([Kramer et al. 2021](https://arxiv.org/abs/2112.06795), after Damour & Deruelle 1986).
 /// On a circular orbit it peaks at superior conjunction at `2r z_s`, with `z_s = −ln(1 − s)`.
+/// The advance of periastron per orbit, `6πGM/(c²a(1 − e²))` (rad), for semi-major axis `a` (m)
+/// and eccentricity `e` about total mass parameter `gm`: the first term of Will's (2014) Eq. 64
+/// with `γ = β = 1`, and the post-Keplerian `ω̇` once divided by the period. 42.98″ per century for
+/// Mercury; 16.90° per year for the double pulsar.
+pub fn periastron_advance(gm: f64, a: f64, e: f64) -> f64 {
+    6.0 * PI * gm / (C * C * a * (1.0 - e * e))
+}
+
+/// The geodetic (de Sitter) precession, `(3/2)(GM)^(3/2)/(c²a^(5/2))` (rad/s), of a gyroscope, a
+/// pulsar's spin or the Earth–Moon system's orbit on a circular orbit of radius `a` (m) about `gm`:
+/// 6.6″ per year for Gravity Probe B, 1.9″ per century for the Moon's orbit round the Sun.
+pub fn geodetic_precession(gm: f64, a: f64) -> f64 {
+    1.5 * gm.powf(1.5) / (C * C * a.powf(2.5))
+}
+
 pub fn shapiro_delay(r: f64, s: f64, e: f64, omega: f64, u: f64) -> f64 {
     let (sw, cw) = omega.sin_cos();
     let (su, cu) = u.sin_cos();
@@ -130,6 +145,37 @@ mod tests {
         assert!(close(b1913, -2.40210e-12, 1e-5) && close(b1913, -2.40263e-12, 1e-3));
         let j0737 = peters_pbdot(1.338185 * SOLAR_MASS, 1.248868 * SOLAR_MASS, 0.1022515592973 * day, 0.087777023);
         assert!(close(j0737, -1.24781e-12, 1e-5));
+    }
+
+    #[test]
+    fn periastron_advances_and_geodetic_precession() {
+        use metrology::{AU, GM_SUN, YEAR};
+        let arcsec = PI / 648_000.0;
+        // Mercury, with JPL's mean elements at J2000 (a = 0.38709927 AU, e = 0.20563593): 42.98″
+        // per century, Will's (2014) Eq. 65.
+        let (a, e) = (0.387_099_27 * AU, 0.205_635_93);
+        let period = 2.0 * PI * (a * a * a / GM_SUN).sqrt();
+        assert!(close(periastron_advance(GM_SUN, a, e) * 100.0 * YEAR / period / arcsec, 42.98, 5e-4));
+        // The double pulsar (Kramer et al. 2021, Table IV): P_b = 0.1022515592973 d, e = 0.087777023,
+        // total mass 2.587052 M☉. The 1PN advance is 16.899367°/yr; they measure 16.899323(13),
+        // and the difference is their 2PN term (4.39×10⁻⁴) less the Lense–Thirring one (4.83×10⁻⁴).
+        let (pb, e, m) = (0.1022515592973 * 86_400.0, 0.087777023, 2.587052 * GM_SUN);
+        let a = (m * (pb / (2.0 * PI)).powi(2)).cbrt();
+        let omega_dot = periastron_advance(m, a, e) / pb * YEAR * 180.0 / PI;
+        assert!(close(omega_dot, 16.899_367, 1e-6) && close(omega_dot - 16.899_323, 4.4e-5, 0.05), "{omega_dot}");
+        // S2 round Sgr A* (GRAVITY 2020, Table E.1: 4.261×10⁶ M☉, 8246.7 pc, a = 125.058 mas,
+        // e = 0.884649): 12.16′ per orbit against their 12.1′ (Eq. 1), measured 1.10 ± 0.19 of it.
+        let s2 = periastron_advance(4.261e6 * GM_SUN, 125.058e-3 * 8246.7 * AU, 0.884_649) / arcsec / 60.0;
+        assert!(close(s2, 12.156, 1e-3) && close(s2, 12.1, 0.06));
+        // The Earth–Moon system as a gyroscope round the Sun: "about 2 arcseconds per century"
+        // (Will 2014); Gravity Probe B at 642 km (Everitt et al. 2011): 6606.1 mas/yr predicted, with
+        // the Earth's oblateness and the solar term, to 0.5% from the bare formula.
+        assert!(close(geodetic_precession(GM_SUN, AU) * 100.0 * YEAR / arcsec, 1.919, 1e-3));
+        let mas_per_year = YEAR * 180.0 / PI * 3.6e6;
+        assert!(close(geodetic_precession(metrology::GM_EARTH, 6371e3 + 642e3) * mas_per_year / 6606.1, 1.0, 6e-3));
+        // A circular orbit advances 6πGM/(c²a), and the advance diverges as e → 1 at fixed a.
+        assert!(close(periastron_advance(GM_SUN, AU, 0.0), 6.0 * PI * GM_SUN / (C * C * AU), 1e-15));
+        assert!(periastron_advance(GM_SUN, AU, 0.99) > 50.0 * periastron_advance(GM_SUN, AU, 0.0));
     }
 
     #[test]

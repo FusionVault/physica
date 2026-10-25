@@ -18,7 +18,7 @@ fn main() {
     let ocean = sea * air; // kg/m² of seawater (1 cm of water = 10 kg/m²)
     println!("1 hPa of air is {air:.1} kg/m²; the ocean answers with {ocean:+.1} kg/m² (response {sea:+.3})");
     println!("total mass anomaly per hPa: {:.1} kg/m², {:.0}% more than the air alone", air + ocean, 100.0 * ocean / air);
-    assert!((lamb - 318.2).abs() < 0.1 && (sea - 0.6328).abs() < 1e-3);
+    assert!((lamb - 318.2).abs() < 0.1 && (sea - 0.6324).abs() < 1e-3);
 }
 
 #[test]

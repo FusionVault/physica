@@ -71,7 +71,8 @@ pub(crate) fn template(width: f64, angle: f64) -> Vec<f64> {
 /// speed across the front relative to the front's own motion). The pair's separation still
 /// projects onto the front normal as `d·sin φ`.
 pub(crate) fn template_moving(width: f64, angle: f64, normal_speed: f64) -> Vec<f64> {
-    let (sigma0, s) = (pressure_to_mass(100.0), LAMB_SPEED * width);
+    // 1 hPa as mass, frozen at T1's preregistered value (g = 9.81); `atmosphere` now uses g₀.
+    let (sigma0, s) = (100.0 / 9.81, LAMB_SPEED * width);
     let (sin, d) = (angle.sin(), ground_separation());
     (0..N).map(|i| {
         let x = (i as f64 - (N / 2) as f64) * DT * normal_speed;

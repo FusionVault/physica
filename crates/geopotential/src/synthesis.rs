@@ -21,6 +21,29 @@ impl Partials {
     pub fn acceleration_neu(&self, r: f64, lat: f64) -> [f64; 3] {
         [self.dlat / r, self.dlon / (r * lat.cos()), self.dr]
     }
+
+    /// The geopotential `W = V + ½ω²r²cos²φ` (m²/s²) of a body rotating at `omega` (rad/s): the
+    /// potential a clock on it senses and a level surface is a surface of.
+    pub fn geopotential(&self, r: f64, lat: f64, omega: f64) -> f64 {
+        self.v + 0.5 * (omega * r * lat.cos()).powi(2)
+    }
+
+    /// Gravity `∇W`, the acceleration plus the centrifugal term `ω²r cos φ` directed away from the
+    /// axis, in local (north, east, up) components, m/s².
+    pub fn gravity_neu(&self, r: f64, lat: f64, omega: f64) -> [f64; 3] {
+        let [n, e, u] = self.acceleration_neu(r, lat);
+        let (s, c) = lat.sin_cos();
+        let w2r = omega * omega * r;
+        [n - w2r * c * s, e, u + w2r * c * c]
+    }
+
+    /// The deflections of the vertical `(ξ, η)` (north and east, rad) from the partials of a
+    /// disturbing potential `T` and normal gravity `gamma` there, in the spherical approximation
+    /// (Heiskanen & Moritz, Eq. 2-204): `ξ = −(∂T/∂φ)/(γr)`, `η = −(∂T/∂λ)/(γr cos φ)`. Multiply by
+    /// 206 265 for arcseconds.
+    pub fn deflections(&self, r: f64, lat: f64, gamma: f64) -> (f64, f64) {
+        (-self.dlat / (gamma * r), -self.dlon / (gamma * r * lat.cos()))
+    }
 }
 
 /// The potential with its first and second partial derivatives in `(r, φ, λ)` at one point: what
