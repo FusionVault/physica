@@ -120,11 +120,14 @@ fn cubature(p: [f64; 3], min: [f64; 3], max: [f64; 3]) -> Newtonian {
 /// subtends at `p`.
 ///
 /// The trace is `−Σω_f`, so it doubles as an inside test: `−4π` inside, 0 outside. Each face's
-/// own dyad `n̂_f n̂_eᵀ` annihilates the edge, so edges are summed face by face, with no pairing.
+/// own dyad `n̂_f n̂_eᵀ` annihilates the edge, so edges are summed face by face, with no pairing,
+/// except where `p` lies on an edge, where the two faces' dyads are summed first so that a flat
+/// face's inner diagonal cancels. Check a mesh once with [`check_mesh`].
 ///
 /// `V` and `∇V` are exact on the surface too. The Hessian jumps by `4π` across a face, where it
-/// takes the limit from outside when `p` lies exactly in the face's plane; on an edge, including
-/// the inner edges of a triangulated face, it is not defined and some entries are not finite.
+/// takes the limit from outside when `p` lies exactly in the face's plane, including on the inner
+/// edges of a triangulated face; on a real edge some entries are infinite, as they are
+/// physically.
 // shortcut: far away the sums cancel like the prism's, losing 2×10⁻⁹ at 100 sizes and 7×10⁻⁷ at
 // 1000 for a cube mesh, with no hand-over; add a cubature over tetrahedra when a caller needs it.
 pub fn polyhedron(p: [f64; 3], verts: &[[f64; 3]], faces: &[[usize; 3]]) -> Newtonian {
@@ -135,17 +138,31 @@ pub fn polyhedron(p: [f64; 3], verts: &[[f64; 3]], faces: &[[usize; 3]]) -> Newt
         let n = dot(a, a).sqrt();
         [a[0] / n, a[1] / n, a[2] / n]
     };
+    debug_assert!(check_mesh(verts, faces).is_ok(), "{:?}", check_mesh(verts, faces));
     let (mut v, mut g, mut t) = (0.0, [0.0; 3], [[0.0; 3]; 3]);
+    // Edges through p, keyed by their vertices, with their faces' summed dyads.
+    type Dyads = ((usize, usize), [[f64; 3]; 3]);
+    let mut on_edge: Vec<Dyads> = Vec::new();
     for face in faces {
         let corners = face.map(|i| verts[i]);
         let n = unit(cross(sub(corners[1], corners[0]), sub(corners[2], corners[0])));
         let r = corners.map(|c| sub(c, p));
         let l = r.map(|r| dot(r, r).sqrt());
-        // Van Oosterom & Strackee's solid angle of a triangle; −0 in its plane makes a point on
-        // the face see it from outside (−2π), the prism's convention.
+        // Van Oosterom & Strackee's solid angle of a triangle. In its plane, the limit from outside
+        // (the prism's convention) is minus the in-plane winding angle: −2π inside, −π on an edge,
+        // minus the corner's angle at a vertex, 0 outside. Edges through p count for nothing.
         let triple = dot(r[0], cross(r[1], r[2]));
-        let triple = if triple == 0.0 { -0.0 } else { triple };
-        let omega = 2.0 * triple.atan2(l[0] * l[1] * l[2] + l[0] * dot(r[1], r[2]) + l[1] * dot(r[2], r[0]) + l[2] * dot(r[0], r[1]));
+        let omega = if triple == 0.0 {
+            -(0..3)
+                .map(|k| {
+                    let (a, b) = (r[k], r[(k + 1) % 3]);
+                    let (sin, cos) = (dot(cross(a, b), n), dot(a, b));
+                    if l[k] == 0.0 || l[(k + 1) % 3] == 0.0 || (sin == 0.0 && cos < 0.0) { 0.0 } else { sin.atan2(cos) }
+                })
+                .sum::<f64>()
+        } else {
+            2.0 * triple.atan2(l[0] * l[1] * l[2] + l[0] * dot(r[1], r[2]) + l[1] * dot(r[2], r[0]) + l[2] * dot(r[0], r[1]))
+        };
         let rf = dot(n, r[0]);
         v -= 0.5 * rf * rf * omega;
         for a in 0..3 {
@@ -169,11 +186,18 @@ pub fn polyhedron(p: [f64; 3], verts: &[[f64; 3]], faces: &[[usize; 3]]) -> Newt
                 sum - e
             };
             let le = ((sum + e) / gap).ln();
-            for a in 0..3 {
-                for b in 0..3 {
-                    if n[a] * ne[b] != 0.0 {
+            if le.is_finite() {
+                for a in 0..3 {
+                    for b in 0..3 {
                         t[a][b] += n[a] * ne[b] * le;
                     }
+                }
+            } else {
+                let key = (face[i].min(face[j]), face[i].max(face[j]));
+                let dyad: [[f64; 3]; 3] = core::array::from_fn(|a| core::array::from_fn(|b| n[a] * ne[b]));
+                match on_edge.iter_mut().find(|(k, _)| *k == key) {
+                    Some((_, sum)) => (0..9).for_each(|q| sum[q / 3][q % 3] += dyad[q / 3][q % 3]),
+                    None => on_edge.push((key, dyad)),
                 }
             }
             // On the edge itself n̂_e·r = 0 exactly and only the Hessian is infinite.
@@ -186,11 +210,61 @@ pub fn polyhedron(p: [f64; 3], verts: &[[f64; 3]], faces: &[[usize; 3]]) -> Newt
             }
         }
     }
+    // On a real edge E_e L_e is infinite; between coplanar faces E_e vanishes and so does the term.
+    for (_, e) in on_edge {
+        for (a, row) in e.iter().enumerate() {
+            for (b, &x) in row.iter().enumerate() {
+                if x.abs() > 1e-12 {
+                    t[a][b] += x * f64::INFINITY;
+                }
+            }
+        }
+    }
     for (a, b) in [(0, 1), (0, 2), (1, 2)] {
         let mean = 0.5 * (t[a][b] + t[b][a]);
         (t[a][b], t[b][a]) = (mean, mean);
     }
     (v, g, t)
+}
+
+/// What [`check_mesh`] found wrong with a polyhedron's faces.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MeshError {
+    /// A face with zero area, whose normal is undefined.
+    Degenerate(usize),
+    /// A directed edge used by two faces: one of them is wound the wrong way (or more than two
+    /// faces meet at the edge).
+    Flipped(usize, usize),
+    /// An edge with no face on its other side: the mesh is not closed.
+    Open(usize, usize),
+    /// A closed mesh with no positive volume: it is wound clockwise, inside out.
+    Inverted,
+}
+
+/// Checks that `faces` form a closed, consistently wound, outward-facing surface, as
+/// [`polyhedron`] needs, and returns its volume. Every directed edge must appear exactly once and
+/// its reverse once, and the signed volume `Σ v₀·(v₁ × v₂)/6` must be positive. Without the check
+/// one flipped face goes unnoticed: on a cube it makes V 13.7% wrong inside.
+pub fn check_mesh(verts: &[[f64; 3]], faces: &[[usize; 3]]) -> Result<f64, MeshError> {
+    let mut edges: Vec<(usize, usize)> = faces.iter().flat_map(|f| [(f[0], f[1]), (f[1], f[2]), (f[2], f[0])]).collect();
+    edges.sort_unstable();
+    if let Some(w) = edges.windows(2).find(|w| w[0] == w[1]) {
+        return Err(MeshError::Flipped(w[0].0, w[0].1));
+    }
+    if let Some(&(a, b)) = edges.iter().find(|&&(a, b)| edges.binary_search(&(b, a)).is_err()) {
+        return Err(MeshError::Open(a, b));
+    }
+    let mut volume = 0.0;
+    for (k, f) in faces.iter().enumerate() {
+        let [a, b, c] = f.map(|i| verts[i]);
+        let (u, w) = ([b[0] - a[0], b[1] - a[1], b[2] - a[2]], [c[0] - a[0], c[1] - a[1], c[2] - a[2]]);
+        let n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]];
+        if n == [0.0; 3] {
+            return Err(MeshError::Degenerate(k));
+        }
+        volume += (a[0] * n[0] + a[1] * n[1] + a[2] * n[2]) / 6.0;
+    }
+    if volume > 0.0 { Ok(volume) } else { Err(MeshError::Inverted) }
 }
 
 #[cfg(test)]
@@ -247,6 +321,36 @@ mod tests {
             let (vp, gp, _) = prism(p, MIN, MAX);
             assert!((v - vp).abs() < 1e-14 && (0..3).all(|a| (g[a] - gp[a]).abs() < 1e-14), "{p:?}");
         }
+    }
+
+    #[test]
+    fn checking_a_mesh() {
+        let (verts, faces) = cube_mesh();
+        assert!((check_mesh(&verts, &faces).unwrap() - 1.0).abs() < 1e-15);
+        let inverted: Vec<[usize; 3]> = faces.iter().map(|&[a, b, c]| [a, c, b]).collect();
+        assert_eq!(check_mesh(&verts, &inverted), Err(MeshError::Inverted));
+        let mut flipped = faces.clone();
+        flipped[5] = [flipped[5][0], flipped[5][2], flipped[5][1]];
+        assert!(matches!(check_mesh(&verts, &flipped), Err(MeshError::Flipped(..))));
+        assert!(matches!(check_mesh(&verts, &faces[1..]), Err(MeshError::Open(..))));
+        let mut flat = faces.clone();
+        flat[0] = [0, 0, 1];
+        assert!(matches!(check_mesh(&verts, &flat), Err(MeshError::Degenerate(0)) | Err(MeshError::Flipped(..))));
+        assert_eq!(check_mesh(&[[0.0; 3], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]], &[[0, 1, 2]]), Err(MeshError::Open(0, 1)));
+    }
+
+    #[test]
+    fn a_face_diagonal_has_a_finite_hessian() {
+        // On the triangulated +x face's inner diagonal y = z the two triangles' edge dyads cancel:
+        // the Hessian is the face's outside limit, as the prism gives, not NaN.
+        let (verts, faces) = cube_mesh();
+        for p in [[0.5, 0.2, 0.2], [0.5, -0.3, -0.3]] {
+            let (t, tp) = (polyhedron(p, &verts, &faces).2, prism(p, MIN, MAX).2);
+            assert!((0..9).all(|k| (t[k / 3][k % 3] - tp[k / 3][k % 3]).abs() < 1e-14), "{p:?}: {t:?}");
+        }
+        // On a real edge only the edge's own off-diagonal entries are infinite.
+        let t = polyhedron([0.5, 0.5, 0.1], &verts, &faces).2;
+        assert!(t[0][1].is_infinite() && t.iter().flatten().all(|x| !x.is_nan()));
     }
 
     #[test]

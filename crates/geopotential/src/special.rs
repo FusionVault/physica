@@ -42,8 +42,11 @@ pub fn complete_elliptic(m: f64) -> (f64, f64) {
 /// `cel(k_c, 1, 1, k_c²) = E` and `cel(k_c, k_c², 1, 1) = E/k_c²`, with `k_c² = 1 − m`. It is
 /// computed directly rather than from `K` and `E`, so it keeps its accuracy where the
 /// numerator nearly cancels.
+///
+/// # Panics
+/// If `p ≤ 0`.
 pub fn cel(kc: f64, p: f64, a: f64, b: f64) -> f64 {
-    debug_assert!(p > 0.0, "cel is implemented for p > 0");
+    assert!(p > 0.0, "cel is implemented for p > 0");
     let (mut kc, mut e, mut m) = (kc.abs(), kc.abs(), 1.0);
     let mut p = p.sqrt();
     let (mut a, mut b) = (a, b / p);
@@ -106,10 +109,21 @@ pub fn carlson_rd(x: f64, y: f64, z: f64) -> f64 {
 }
 
 /// Carlson's `R_J(x, y, z, p) = (3/2)∫₀^∞ dt/((t+p)√((t+x)(t+y)(t+z)))`, for `x, y, z ≥ 0` with at
-/// most one of them 0 and `p > 0`. The complete integral of the third kind is
-/// `Π(n, m) = R_F(0, 1−m, 1) + (n/3)R_J(0, 1−m, 1, 1−n)`.
+/// most one of them 0. For `p < 0` it is the Cauchy principal value, through Carlson's Eq. 2.23a
+/// with `y` the middle argument; at `p = 0` it diverges. The complete integral of the third kind
+/// is `Π(n, m) = R_F(0, 1−m, 1) + (n/3)R_J(0, 1−m, 1, 1−n)`, for `n > 1` too.
 pub fn carlson_rj(x: f64, y: f64, z: f64, p: f64) -> f64 {
-    debug_assert!(p > 0.0, "carlson_rj is implemented for p > 0");
+    if p == 0.0 {
+        return f64::INFINITY;
+    }
+    if p < 0.0 {
+        let mut v = [x, y, z];
+        v.sort_by(f64::total_cmp);
+        let ([x, y, z], q) = (v, -p);
+        let pp = y + (z - y) * (y - x) / (y + q); // ≥ y > 0
+        let tail = 3.0 * (x * y * z / (x * z + pp * q)).sqrt() * carlson_rc(x * z + pp * q, pp * q);
+        return ((pp - y) * carlson_rj(x, y, z, pp) - 3.0 * carlson_rf(x, y, z) + tail) / (y + q);
+    }
     let a0 = (x + y + z + 2.0 * p) / 5.0;
     let delta = (p - x) * (p - y) * (p - z);
     let q = (CARLSON_R / 4.0).powf(-1.0 / 6.0) * [x, y, z, p].iter().fold(0f64, |m, w| m.max((a0 - w).abs()));
@@ -130,9 +144,16 @@ pub fn carlson_rj(x: f64, y: f64, z: f64, p: f64) -> f64 {
     f / (a * a.sqrt()) * series(e2, e3, e4, e5) + 6.0 * sum
 }
 
-/// Carlson's `R_C(x, y) = R_F(x, y, y)`, for `x ≥ 0` and `y > 0`: `ln` and `atan` in one function,
-/// `R_C(0, 1/4) = π` and `R_C(9/4, 2) = ln 2`.
+/// Carlson's `R_C(x, y) = R_F(x, y, y)`, for `x ≥ 0`: `ln` and `atan` in one function,
+/// `R_C(0, 1/4) = π` and `R_C(9/4, 2) = ln 2`. For `y < 0` it is the Cauchy principal value
+/// `√(x/(x − y))R_C(x − y, −y)` (Carlson's Eq. 2.13a); at `y = 0` it diverges.
 pub fn carlson_rc(x: f64, y: f64) -> f64 {
+    if y == 0.0 {
+        return f64::INFINITY;
+    }
+    if y < 0.0 {
+        return (x / (x - y)).sqrt() * carlson_rc(x - y, -y);
+    }
     let a0 = (x + 2.0 * y) / 3.0;
     let q = (3.0 * CARLSON_R).powf(-1.0 / 8.0) * (a0 - x).abs();
     let (mut v, mut a, mut f) = ([x, y], a0, 1.0);
@@ -239,6 +260,21 @@ mod tests {
         assert!(close(carlson_rf(4.0, 4.0, 4.0), 0.5, 1e-15) && close(carlson_rd(4.0, 4.0, 4.0), 0.125, 1e-15));
         assert!(close(carlson_rj(4.0, 4.0, 4.0, 4.0), 0.125, 1e-15) && close(carlson_rj(2.0, 3.0, 4.0, 4.0), carlson_rd(2.0, 3.0, 4.0), 1e-14));
         assert!(close(carlson_rf(8.0, 12.0, 16.0), carlson_rf(2.0, 3.0, 4.0) / 2.0, 1e-15));
+    }
+
+    #[test]
+    fn carlson_principal_values() {
+        // Carlson (1995), section 3: R_C(1/4, −2) = ln2/3, R_J(2, 3, 4, −0.5) and R_J(2, 3, 4, −5).
+        assert!(close(carlson_rc(0.25, -2.0), 2f64.ln() / 3.0, 1e-14));
+        assert_eq!(carlson_rc(0.0, -2.0), 0.0);
+        assert!(close(carlson_rj(2.0, 3.0, 4.0, -0.5), 0.247_238_197_030_52, 1e-13));
+        assert!(close(carlson_rj(2.0, 3.0, 4.0, -5.0), -0.127_112_300_429_64, 1e-13));
+        // The argument order does not matter, and the principal value changes sign at
+        // p = −1.2521959347 (Carlson prints "approximately −1.2552"; scipy and QUADPACK agree).
+        assert!(close(carlson_rj(4.0, 2.0, 3.0, -0.5), carlson_rj(2.0, 3.0, 4.0, -0.5), 1e-14));
+        assert!(carlson_rj(2.0, 3.0, 4.0, -1.252_195_934_7).abs() < 1e-10);
+        assert!(carlson_rj(2.0, 3.0, 4.0, -1.24) > 0.0 && carlson_rj(2.0, 3.0, 4.0, -1.26) < 0.0);
+        assert!(carlson_rj(2.0, 3.0, 4.0, 0.0).is_infinite() && carlson_rc(1.0, 0.0).is_infinite());
     }
 
     #[test]
