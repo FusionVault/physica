@@ -93,6 +93,7 @@ assert!(gradiometer_strain(1e-11, 0.1) > 1e10 * aion.peak_strain());
 | `sgwb` | Power-law-integrated sensitivity curves ([Thrane & Romano 2013](https://arxiv.org/abs/1310.5300)), Hellings–Downs, pulsar-timing backgrounds ([NANOGrav 2023](https://arxiv.org/abs/2306.16213)), and the energy scale and background of inflation |
 | `hf` | The cosmological ceiling, magnetic conversion of waves to photons ([Ejlli et al. 2019](https://arxiv.org/abs/1908.00232)), the plasma cut-off, cavity noise, source lines, and a registry of limits with their status ([Aggarwal et al. 2025](https://arxiv.org/abs/2501.11723)) |
 | `detectors` | Gravity sensors as wave detectors: atom-interferometer strain response ([Graham et al. 2016](https://arxiv.org/abs/1606.01860), Eq. 9), and the strain noise of gradiometers, optical clocks ([Kolkowitz et al. 2016](https://arxiv.org/abs/1606.01859)) and satellite pairs |
+| `ultralight` | Ultralight dark matter as an oscillating signal: the Compton frequency `mc²/h`, the mass window of the mid-band between LISA and the ground detectors (MAGIS-100, AION), and the coherence length |
 | `laboratory` | A beam's gravitational near field ([Rätzel et al. 2016](https://arxiv.org/abs/1511.01023)), waves from spinning bodies, wave energy flux, and the Newtonian calibrators of LIGO ([Ross et al. 2021](https://arxiv.org/abs/2107.00141)) and Virgo ([Estevez et al. 2018](https://arxiv.org/abs/1806.06572)) |
 
 ## Applications
