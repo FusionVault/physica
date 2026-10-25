@@ -1,6 +1,6 @@
 [package]
 name = "gravitational"
-version = "0.2.2"
+version = "0.2.3"
 description = "Gravitational waves from nanohertz to terahertz: strain conventions, detector noise curves (LIGO, Einstein Telescope, LISA), inspirals and binary pulsars, Kerr orbits, ringdown and merger remnants, neutron-star tides, radiated energy, memory, propagation and the graviton mass, graviton counts, stochastic backgrounds and inflation, high-frequency limits, gravity sensors as detectors, laboratory sources, gravitational lensing and ΛCDM distances."
 keywords = ["gravitational-waves", "physics", "astronomy", "ligo", "lisa"]
 categories = ["science", "simulation"]
