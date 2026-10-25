@@ -148,3 +148,25 @@
 //!     assert!((total_field([0.0, 0.0, 6e-5], b) - poisson).abs() < 1e-12);
 //! }
 //! ```
+//!
+//! In the wavenumber domain the same relation is Baranov's pseudo-gravity: a magnetic survey,
+//! reduced to the pole and integrated once downward, is the gravity survey of the same body.
+//!
+//! ```
+//! use geopotential::planar::Grid;
+//! use gravimetry::local::sphere as gravity;
+//! use magnetics::anomaly::{sphere as magnetic, total_field};
+//!
+//! let grid = Grid { nx: 128, ny: 128, dx: 10.0, dy: 10.0 };
+//! let (a, depth, rho) = (10.0, 50.0, 2700.0);
+//! let tilted = [45f64.to_radians().cos(), 0.0, 45f64.to_radians().sin()]; // I = 45°, z down
+//! let earth = tilted.map(|u| 5e-5 * u);
+//! let survey: Vec<f64> = grid
+//!     .points()
+//!     .map(|(x, y)| total_field(earth, magnetic([x, y, 0.0], [640.0, 640.0, depth], a, tilted)))
+//!     .collect();
+//! let pseudo = grid.pseudo_gravity(&survey, tilted, tilted, rho);
+//! let (centre, corner) = (64 * 128 + 64, 0);
+//! let peak = gravity(a, depth, rho, 0.0).0 - gravity(a, depth, rho, 640f64.hypot(640.0)).0;
+//! assert!(((pseudo[centre] - pseudo[corner]) / peak - 1.0).abs() < 3e-3); // −0.17%, from the periodic grid
+//! ```

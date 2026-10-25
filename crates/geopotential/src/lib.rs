@@ -7,6 +7,7 @@ mod field;
 mod functional;
 mod gfc;
 mod legendre;
+pub mod planar;
 pub mod linalg;
 pub mod special;
 mod synthesis;
