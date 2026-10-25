@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "geopotential"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "metrology",
  "serde",
@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "gravimetry"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "geopotential",
  "metrology",
@@ -74,7 +74,7 @@ dependencies = [
 
 [[package]]
 name = "gravitics"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "geopotential",
  "gravitational",
@@ -128,7 +128,7 @@ dependencies = [
 
 [[package]]
 name = "physica"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "geopotential",
  "gravimetry",
