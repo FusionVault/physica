@@ -40,7 +40,7 @@ const TOL: f64 = 1e-13;
 /// distance `d` from the box; each axis gets the order that puts it at round-off, up to 16 and
 /// 512 points in all. Nearer a long side, where no rule that size suffices, an elongated prism is
 /// bisected along its longest side until its pieces are either affordable or short enough for
-/// the corner sums to hold [`TOL`]. Splitting only happens with `p` outside the box, so no split
+/// the corner sums to hold 10⁻¹³. Splitting only happens with `p` outside the box, so no split
 /// plane passes through `p`. On a 1×1×100 needle this holds 10⁻¹⁴ from 0.01 off its side to 100
 /// Brillouin radii, where the corner sums alone lose 5×10⁻⁸.
 pub fn prism(p: [f64; 3], min: [f64; 3], max: [f64; 3]) -> Newtonian {
@@ -623,7 +623,7 @@ mod tests {
         let p = [30.0, 40.0, 50.0];
         let (v, g, t) = prism(p, min, max);
         assert!((v / 4.385_413_035_403_429 - 1.0).abs() < 1e-14, "{v}");
-        for (got, want) in g.iter().zip([-2.638_376_163_531_892e-2, -3.515_460_560_153_808e-2, -4.380_838_400_289_370e-2]) {
+        for (got, want) in g.iter().zip([-2.638_376_163_531_892e-2, -3.515_460_560_153_808e-2, -4.380_838_400_289_37e-2]) {
             assert!((got / want - 1.0).abs() < 1e-14, "{got}");
         }
         assert!((t[0][0] / -4.019_417_444_564_296e-4 - 1.0).abs() < 1e-13, "{}", t[0][0]);
@@ -645,9 +645,9 @@ mod tests {
         let plate = ([-50.0, -50.0, -0.5], [50.0, 50.0, 0.5]);
         type Case = (([f64; 3], [f64; 3]), [f64; 3], f64, [f64; 3], f64, f64);
         let cases: [Case; 3] = [
-            (needle, [300.0, 400.0, 1200.0], 7.695_259_993_072_591e-2, [-1.368_795_824_936_556_3e-5, -1.825_061_099_915_412_4e-5, -5.467_086_502_352_132_2e-5], 7.092_939_317_103_202_8e-8, 9.755_357_675_874_792_9e-9),
-            (needle, [30.0, 40.0, 120.0], 7.998_939_225_898_391_6e-1, [-1.747_532_288_963_430_4e-3, -2.330_043_052_150_337e-3, -5.981_386_012_197_591e-3], 7.941_055_859_745_534_7e-5, 1.780_396_513_786_331_1e-5),
-            (plate, [120.0, -90.0, 300.0], 2.966_034_694_225_653_5e1, [-3.076_382_506_458_516_5e-2, 2.307_149_084_728_148_1e-2, -7.861_952_504_954_748_7e-2], 3.667_048_272_270_565_8e-4, -7.013_391_218_529_682_1e-5),
+            (needle, [300.0, 400.0, 1200.0], 7.695_259_993_072_591e-2, [-1.368_795_824_936_556_3e-5, -1.825_061_099_915_412_4e-5, -5.467_086_502_352_132e-5], 7.092_939_317_103_203e-8, 9.755_357_675_874_793e-9),
+            (needle, [30.0, 40.0, 120.0], 7.998_939_225_898_392e-1, [-1.747_532_288_963_430_4e-3, -2.330_043_052_150_337e-3, -5.981_386_012_197_591e-3], 7.941_055_859_745_535e-5, 1.780_396_513_786_331e-5),
+            (plate, [120.0, -90.0, 300.0], 2.966_034_694_225_653_5e1, [-3.076_382_506_458_516_5e-2, 2.307_149_084_728_148e-2, -7.861_952_504_954_749e-2], 3.667_048_272_270_566e-4, -7.013_391_218_529_682e-5),
         ];
         for ((min, max), p, v, g, tzz, txy) in cases {
             let (ov, og, ot) = prism(p, min, max);

@@ -383,6 +383,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::approx_constant)] // φ = 1.5707 is the notes' case near π/2, not π/2
     fn legendres_integrals_special_values_and_periods() {
         // DLMF 19.6: F(φ|1) = gd⁻¹φ, E(φ|1) = sin φ, F(φ|0) = E(φ|0) = φ, Π(1;φ|0) = tan φ, and
         // Π(n;φ|0) = R_C(csc²φ − 1, csc²φ − n), a principal value for n = 3.

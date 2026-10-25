@@ -203,11 +203,12 @@ pub fn euler3(points: &[[f64; 3]], f: &[f64], fx: &[f64], fy: &[f64], fz: &[f64]
 }
 
 /// Euler deconvolution in moving windows of `size × size` grid points, every `step` points,
-/// over `values` observed on `grid` at `z = 0` with the derivatives `fx`, `fy`, `fz`: the
+/// over `values` observed on `grid` at `z = 0` with the `derivatives` `[fx, fy, fz]`: the
 /// solutions of [`euler3`] whose depth variance is among the smallest `keep` fraction, best
 /// first, each as `[x₀, y₀, z₀, B]`. Reid et al.'s (1990) way of mapping many sources; windows
 /// without a source give deep, scattered, high-variance solutions that the ranking drops.
-pub fn euler_windows(grid: &Grid, values: &[f64], fx: &[f64], fy: &[f64], fz: &[f64], n: f64, size: usize, step: usize, keep: f64) -> Vec<[f64; 4]> {
+pub fn euler_windows(grid: &Grid, values: &[f64], derivatives: [&[f64]; 3], n: f64, size: usize, step: usize, keep: f64) -> Vec<[f64; 4]> {
+    let [fx, fy, fz] = derivatives;
     let mut solutions = Vec::new();
     for i0 in (0..=grid.nx - size).step_by(step.max(1)) {
         for j0 in (0..=grid.ny - size).step_by(step.max(1)) {
@@ -281,9 +282,9 @@ pub fn euler_inversion(points: &[[f64; 3]], f: &[f64], fx: &[f64], fy: &[f64], f
             .iter()
             .zip(&predicted)
             .zip(&observed)
-            .map(|(((a, b, q_inv, e), d), o)| {
+            .map(|(((a, b, q_inv, e), _d), o)| {
                 let lambda = q_inv * (e + (0..4).map(|i| a[i] * dp[i]).sum::<f64>());
-                core::array::from_fn(|k| o[k] - b[k] * lambda / WEIGHTS[k] + (d[k] - d[k]))
+                core::array::from_fn(|k| o[k] - b[k] * lambda / WEIGHTS[k])
             })
             .collect();
         let q: [f64; 4] = core::array::from_fn(|i| p[i] + dp[i]);
@@ -437,7 +438,7 @@ mod tests {
         let (big, values) = GRID.padded(&field, false);
         assert_eq!((big.nx, big.ny, values.len()), (256, 256, 65536));
         assert_eq!(values[0], field[0]);
-        assert_eq!(values[64 * 256 + 300 - 64], field[0 * 128 + 127]);
+        assert_eq!(values[64 * 256 + 300 - 64], field[127]);
         assert!(GRID.unpadded(&values) == field && GRID.unpadded(&GRID.padded(&field, true).1) == field);
         let tapered = GRID.padded(&field, true).1;
         assert!(tapered[0].abs() < 1e-12 * field[64 * 128 + 64] && tapered[64 * 256 + 64] == field[0]);
@@ -615,7 +616,7 @@ mod tests {
         let (big, padded) = grid.padded(&field, true);
         let spectral = |kernel: &dyn Fn(f64, f64) -> (f64, f64)| grid.unpadded(&big.filter(&padded, kernel));
         let (fx, fy, fz) = (spectral(&|kx, _| (0.0, kx)), spectral(&|_, ky| (0.0, ky)), spectral(&|kx, ky| (kx.hypot(ky), 0.0)));
-        let kept = euler_windows(&grid, &field, &fx, &fy, &fz, 3.0, 12, 4, 0.1);
+        let kept = euler_windows(&grid, &field, [&fx, &fy, &fz], 3.0, 12, 4, 0.1);
         let best = kept[0];
         assert!((best[2] / z0 - 1.0).abs() < 0.02 && (best[0] - x0).hypot(best[1] - y0) < 100.0, "{best:?}");
         assert!(kept.len() >= 10 && kept.iter().all(|p| p[2] > 0.0));
