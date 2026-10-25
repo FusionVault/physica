@@ -3,6 +3,7 @@
 pub mod anomalies;
 pub mod electrodes;
 pub mod electrogravity;
+pub mod equivalence;
 pub mod gem;
 pub mod hfgw;
 pub mod modified;

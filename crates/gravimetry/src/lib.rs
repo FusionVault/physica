@@ -12,6 +12,7 @@ pub mod missions;
 pub mod noise;
 pub mod sim;
 pub mod technotes;
+pub mod tides;
 
 /// Area of the world ocean, m²: 3.618×10⁸ km², so 361.8 Gt of water raise sea level 1 mm.
 pub const OCEAN_AREA: f64 = 3.618e14;

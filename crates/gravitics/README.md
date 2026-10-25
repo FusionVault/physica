@@ -99,6 +99,7 @@ assert!((near * 1e3 - 13.28).abs() < 0.01);
 | `gem` | Gravitoelectromagnetism in three conventions with the spin-2 factor, the gravitomagnetic dipole as a `Field`, the extremal charge-to-mass ratio, and Blackett's magnetism-from-spin |
 | `anomalies` | CODATA 2022's sixteen G measurements with their correlations, their generalised-least-squares mean and Birge ratio; Anderson's flyby formula; column densities and shielding against Majorana and lunar laser ranging; Pioneer's thermal decay |
 | `modified` | The radial acceleration relation ([McGaugh et al. 2016](https://arxiv.org/abs/1609.05917)), Tully–Fisher velocity and MOND radius; Yukawa forces with the current limits ([Lee et al. 2020](https://arxiv.org/abs/2002.11761)), the dark-energy length and boson mass; Einstein–Cartan density; Weber-like perihelion and mass shift |
+| `equivalence` | Tests of the equivalence principle: the Eötvös parameter η, the MICROSCOPE, Eöt-Wash and atom-interferometer results, the coupling to B, L or B − L that a bound on η allows for a vector or scalar boson, and the Yukawa form factor of a layered sphere ([Touboul et al. 2022](https://arxiv.org/abs/2209.15487); [Fayet 2025](https://arxiv.org/abs/2507.02723)) |
 | `quantum` | Bose–Marletto–Vedral entanglement phases ([Bose et al. 2017](https://arxiv.org/abs/1707.06050)); the Diósi–Penrose X-ray rate ([Donadi et al. 2021](https://arxiv.org/abs/2111.13490)) |
 | `hfgw` | High-frequency gravitational waves: the Li–Baker detector (flux conventions, graviton rate, the interference signal, the shot-noise time) and the Pais patents (radiated flux, surface field, magnetic conversion as he uses it and in SI) |
 | `superconductors` | The London moment; frame dragging of a ring in general relativity against Tajmar's report; the Cooper-pair density and gravitational London depth; a perfect shield's shadow; Podkletnov's pendulum and Marx bank; the measured bounds |
@@ -152,6 +153,8 @@ Every test reproduces a published number from the paper's own inputs, mostly to 
 - **Alternatives:** the RAR's published shape and deep-MOND limit; Eöt-Wash's 5.1 meV boson;
   Ruggiero & Tartaglia's Einstein–Cartan densities; the Weber perihelion ratios against a direct
   orbit integration.
+- **Equivalence principle:** MICROSCOPE's final η; Fayet's coupling limits on B, L and B − L for
+  both spins, his form factors (homogeneous and five-shell Earth) and their weakening at 710 km.
 - **Quantum gravity:** Bose et al.'s phases; Donadi et al.'s germanium rate.
 
 The formulas were independently re-derived from their sources and every test value recomputed;
