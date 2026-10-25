@@ -28,7 +28,7 @@ pub fn figure(signal: &Coefficients, signal_name: &str) -> (String, String) {
     };
     // Trimeche et al. (2019): T = 5 s, N = 1e6, D = 0.5 m, interleaved ~1 s cycle → ~3.5 mE/√Hz;
     // their mission simulation uses 5 mE/√Hz white, which is what is plotted.
-    let cai = AtomInterferometer { t: 5.0, contrast: 1.0, atoms: 1e6, cycle: 1.0 };
+    let cai = AtomInterferometer { t: 5.0, contrast: 1.0, atoms: 1e6, cycle: 1.0, diffraction: 2 };
     debug_assert!((cai.gradient_asd(0.5) - 3.5e-12).abs() < 0.1e-12);
     let goce_asd = |f: f64| 11e-12 * (1.0 + 5e-3 / f).sqrt();
     let signal_amp = signal.degree_amplitudes(&Functional::GeoidHeight);

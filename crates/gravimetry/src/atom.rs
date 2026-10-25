@@ -1,10 +1,11 @@
 //! Cold-atom (light-pulse) interferometers as space accelerometers and gradiometers, at the
 //! quantum-projection-noise limit.
 //!
-//! In microgravity the Mach–Zehnder π/2–π–π/2 sequence uses double diffraction, so the phase is
-//! `Δφ = 2·k_eff·a·T²` (Lévèque et al. 2021, arXiv:2011.03382; Trimeche et al. 2019,
-//! arXiv:1903.09828). Per-shot phase noise is `1/(C·√N)`, and the white noise density is the
-//! per-shot noise times `√T_c`.
+//! The Mach–Zehnder π/2–π–π/2 sequence has phase `Δφ = n·k_eff·a·T²`, where `n` is the
+//! diffraction order: 2 in microgravity, where double diffraction is used (Lévèque et al. 2021,
+//! arXiv:2011.03382; Trimeche et al. 2019, arXiv:1903.09828), and 1 for a ground sensor
+//! (Stray et al. 2022, Nature 602, 590). Per-shot phase noise is `1/(C·√N)`, and the white noise
+//! density is the per-shot noise times `√T_c`.
 
 /// Two-photon Raman wave number `k_eff = 4π/λ` for ⁸⁷Rb on the D2 line (780.241 nm), m⁻¹.
 pub const K_EFF_RB87: f64 = 4.0 * core::f64::consts::PI / 780.241e-9;
@@ -12,7 +13,8 @@ pub const K_EFF_RB87: f64 = 4.0 * core::f64::consts::PI / 780.241e-9;
 /// Interferometer phase per unit acceleration, rad per m/s²: `k_eff T²` (Kasevich–Chu), for
 /// effective wavenumber `k_eff` (m⁻¹) and pulse separation `t` (s). Rosi et al.'s 0.16 s with the
 /// doubled ⁸⁷Rb wavenumber gives 4.12×10⁵ rad per m/s², so Earth's gravity is 4.0×10⁶ rad. The
-/// double-diffraction sequence of [`AtomInterferometer::phase`] carries a further factor of 2.
+/// double-diffraction sequence of a sensor in free fall carries a further factor of 2
+/// ([`AtomInterferometer::diffraction`]).
 pub fn phase_sensitivity(k_eff: f64, t: f64) -> f64 {
     k_eff * t * t
 }
@@ -38,12 +40,21 @@ pub struct AtomInterferometer {
     /// Cycle time `T_c`, s: `2T + T_prep` when shots run one after another, `T_prep` when
     /// interleaved.
     pub cycle: f64,
+    /// Diffraction order `n`, the momentum each beam splitter gives, in units of `ħk_eff`: 2 for
+    /// the double diffraction of a sensor in free fall or orbit, 1 for the single diffraction of a
+    /// ground sensor.
+    pub diffraction: u32,
 }
 
 impl AtomInterferometer {
-    /// Interferometer phase for acceleration `a` (m/s²), radians: `2·k_eff·a·T²`.
+    /// Phase per unit acceleration, rad per m/s²: `n·k_eff·T²`.
+    pub fn scale(&self) -> f64 {
+        self.diffraction as f64 * phase_sensitivity(K_EFF_RB87, self.t)
+    }
+
+    /// Interferometer phase for acceleration `a` (m/s²), radians: `n·k_eff·a·T²`.
     pub fn phase(&self, a: f64) -> f64 {
-        2.0 * K_EFF_RB87 * a * self.t * self.t
+        self.scale() * a
     }
 
     /// Quantum-projection phase noise per shot, `1/(C·√N)`, radians.
@@ -53,7 +64,7 @@ impl AtomInterferometer {
 
     /// Acceleration noise per shot, m/s².
     pub fn acceleration_noise(&self) -> f64 {
-        self.phase_noise() / (2.0 * K_EFF_RB87 * self.t * self.t)
+        self.phase_noise() / self.scale()
     }
 
     /// White acceleration noise density, m s⁻² Hz⁻¹ᐟ²; use it as
@@ -63,9 +74,9 @@ impl AtomInterferometer {
     }
 
     /// Gravity-gradient noise per shot of a gradiometer made of two such interferometers a
-    /// `baseline` (m) apart sharing the same lasers, s⁻²: `√2·σ_φ/(2·k_eff·D·T²)`.
+    /// `baseline` (m) apart sharing the same lasers, s⁻²: `√2·σ_φ/(n·k_eff·D·T²)`.
     pub fn gradient_noise(&self, baseline: f64) -> f64 {
-        std::f64::consts::SQRT_2 * self.phase_noise() / (2.0 * K_EFF_RB87 * baseline * self.t * self.t)
+        std::f64::consts::SQRT_2 * self.phase_noise() / (self.scale() * baseline)
     }
 
     /// White gravity-gradient noise density of that gradiometer, s⁻² Hz⁻¹ᐟ².
@@ -87,18 +98,37 @@ mod tests {
     fn published_instruments() {
         // CARIOQA (Lévèque et al. 2022): T = 1 s, C = 0.8, N = 1e5, T_c = 3.5 s. The paper quotes
         // 3e-10 (conservative) and 8e-11 with N = 1e6; QPN alone gives 2.3e-10 and 7.3e-11.
-        let carioqa = AtomInterferometer { t: 1.0, contrast: 0.8, atoms: 1e5, cycle: 3.5 };
+        let carioqa = AtomInterferometer { t: 1.0, contrast: 0.8, atoms: 1e5, cycle: 3.5, diffraction: 2 };
         assert!(close(carioqa.phase_noise(), 3.95e-3, 0.01));
         assert!(close(carioqa.acceleration_asd(), 2.3e-10, 0.01));
         assert!(close(AtomInterferometer { atoms: 1e6, ..carioqa }.acceleration_asd(), 7.3e-11, 0.01));
         // GRICE (Lévèque et al. 2021): T = 0.5 s, C = 0.43, N = 5e5, T_c = 2 s → 6e-10.
-        let grice = AtomInterferometer { t: 0.5, contrast: 0.43, atoms: 5e5, cycle: 2.0 };
+        let grice = AtomInterferometer { t: 0.5, contrast: 0.43, atoms: 5e5, cycle: 2.0, diffraction: 2 };
         assert!(close(grice.acceleration_asd(), 5.8e-10, 0.01));
         // Trimeche et al. 2019 gradiometer: T = 5 s, N = 1e6, ideal contrast, D = 0.5 m → 3.5 mE
         // per shot, and a 1087 rad differential phase for T_zz = 2.7e-6 s⁻².
-        let tri = AtomInterferometer { t: 5.0, contrast: 1.0, atoms: 1e6, cycle: 1.0 };
+        let tri = AtomInterferometer { t: 5.0, contrast: 1.0, atoms: 1e6, cycle: 1.0, diffraction: 2 };
         assert!(close(tri.gradient_noise(0.5), 3.5e-12, 0.01));
         assert!(close(tri.phase(2.7e-6 * 0.5), 1087.0, 0.001));
+    }
+
+    #[test]
+    fn a_ground_gradiometer() {
+        // Stray et al. 2022 (Nature 602, 590), single diffraction: T = 85 ms, a 1 m baseline,
+        // 10⁵ atoms at 0.7 Hz. 150 E gives a 17.5 mrad differential phase, and the projection
+        // limit is "about 44 E/√Hz" (45.9 with ideal contrast). They reached 466 E/√Hz outdoors,
+        // which averages to 20 E in 543 s: "within 10 min".
+        let stray = AtomInterferometer { t: 0.085, contrast: 1.0, atoms: 1e5, cycle: 1.0 / 0.7, diffraction: 1 };
+        let eotvos = crate::local::EOTVOS;
+        assert!(close(stray.phase(150.0 * eotvos * 1.0), 17.5e-3, 0.01), "{}", stray.phase(150.0 * eotvos));
+        assert!(close(stray.gradient_asd(1.0) / eotvos, 45.9, 0.005), "{}", stray.gradient_asd(1.0) / eotvos);
+        assert!(close(stray.gradient_asd(1.0) / eotvos, 44.0, 0.05));
+        assert!(close(crate::local::averaging_time(466.0, 20.0), 543.0, 0.001));
+        // Treated as double diffraction it would claim half the noise: the defect this field fixes.
+        let doubled = AtomInterferometer { diffraction: 2, ..stray };
+        assert!(close(doubled.gradient_asd(1.0) / stray.gradient_asd(1.0), 0.5, 1e-12));
+        // The scale is phase_sensitivity times the order.
+        assert!(close(stray.scale(), phase_sensitivity(K_EFF_RB87, 0.085), 1e-15));
     }
 
     #[test]

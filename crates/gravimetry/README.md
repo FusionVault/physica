@@ -60,8 +60,8 @@ use gravimetry::atom::AtomInterferometer;
 use gravimetry::missions::{Accelerometer, Ranging, pair_noise};
 
 // A cold-atom accelerometer like CARIOQA's: 1 s between pulses, 80% contrast,
-// 100,000 atoms per shot, one shot every 3.5 s.
-let atoms = AtomInterferometer { t: 1.0, contrast: 0.8, atoms: 1e5, cycle: 3.5 };
+// 100,000 atoms per shot, one shot every 3.5 s, double diffraction in orbit.
+let atoms = AtomInterferometer { t: 1.0, contrast: 0.8, atoms: 1e5, cycle: 3.5, diffraction: 2 };
 let white = atoms.acceleration_asd(); // about 2.3e-10 m/s² per √Hz
 
 // Noise of a satellite pair at 0.1 mHz, the longest wavelengths, in m/s² per √Hz.
