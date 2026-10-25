@@ -81,6 +81,7 @@ pub fn prism(p: [f64; 3], min: [f64; 3], max: [f64; 3]) -> Newtonian {
 /// The same integrals by a 4×4×4 Gauss–Legendre cubature of `1/r`, which converges like
 /// `(half-width/2r)⁸` and so is at round-off far from the body, where the corner sums cancel.
 fn cubature(p: [f64; 3], min: [f64; 3], max: [f64; 3]) -> Newtonian {
+    // crate::gauss_legendre(4), written out for the inner loop (a test holds them equal).
     const NODES: [(f64, f64); 4] = [
         (-0.861_136_311_594_052_6, 0.347_854_845_137_453_9),
         (-0.339_981_043_584_856_3, 0.652_145_154_862_546_1),
@@ -355,6 +356,22 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn the_cubature_is_gauss_legendre() {
+        // The far-field nodes are the shared 4-point rule; the far field test pins their accuracy.
+        let (x, w) = crate::gauss_legendre(4);
+        let ours = cubature([30.0, 0.0, 0.0], MIN, MAX);
+        let mut v = 0.0;
+        for (&a, &wa) in x.iter().zip(&w) {
+            for (&b, &wb) in x.iter().zip(&w) {
+                for (&c, &wc) in x.iter().zip(&w) {
+                    v += 0.125 * wa * wb * wc / ((30.0 - 0.5 * a).powi(2) + 0.25 * b * b + 0.25 * c * c).sqrt();
+                }
+            }
+        }
+        assert!((ours.0 - v).abs() < 1e-17, "{} vs {v}", ours.0);
     }
 
     #[test]

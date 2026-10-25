@@ -1,6 +1,6 @@
 use crate::coefficients::Coefficients;
 use crate::functional::Functional;
-use crate::legendre::{Legendre, idx};
+use crate::legendre::{Legendre, gauss_legendre, idx};
 
 /// The gravitational potential and its first partial derivatives at one point.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -184,6 +184,62 @@ impl Coefficients {
                     })
                     .sum::<f64>()
             }));
+        }
+        out
+    }
+}
+
+/// The grid that [`Coefficients::analysis`] reads to degree `nmax`: `nmax + 1` Gauss–Legendre
+/// latitudes (radians, south to north) and `2·nmax + 2` longitudes `2πj/(2·nmax + 2)`.
+pub fn gauss_grid(nmax: usize) -> (Vec<f64>, Vec<f64>) {
+    let lats = gauss_legendre(nmax + 1).0.iter().map(|x| x.asin()).collect();
+    let nlon = 2 * nmax + 2;
+    (lats, (0..nlon).map(|j| core::f64::consts::TAU * j as f64 / nlon as f64).collect())
+}
+
+impl Coefficients {
+    /// The coefficients to degree `nmax` of a functional sampled on [`gauss_grid`]`(nmax)` at
+    /// radius `r`, row-major by latitude as [`grid`](Self::grid) writes it: its exact inverse
+    /// for a field of that degree. The latitude integral is Gauss–Legendre quadrature, exact for
+    /// the polynomial `P̄nm P̄n′m` of degree `n + n′ ≤ 2·nmax`; the longitude sum is exact for
+    /// orders up to `nmax`. A degree whose factor is zero, such as degree 1 of a gravity anomaly,
+    /// is left at zero.
+    ///
+    /// # Panics
+    /// If `values` is not one value per grid point.
+    pub fn analysis(functional: &Functional, r: f64, values: &[f64], nmax: usize, gm: f64, radius: f64) -> Coefficients {
+        let (x, w) = gauss_legendre(nmax + 1);
+        let nlon = 2 * nmax + 2;
+        assert_eq!(values.len(), x.len() * nlon, "one value per point of gauss_grid(nmax)");
+        let trig: Vec<(f64, f64)> =
+            (0..=nmax).flat_map(|m| (0..nlon).map(move |j| (m as f64 * core::f64::consts::TAU * j as f64 / nlon as f64).sin_cos())).collect();
+        let mut out = Coefficients::zeros(gm, radius, nmax);
+        let mut leg = Legendre::new(nmax);
+        for (i, (&xi, &wi)) in x.iter().zip(&w).enumerate() {
+            leg.compute(xi.asin());
+            let row = &values[i * nlon..(i + 1) * nlon];
+            for m in 0..=nmax {
+                let (mut a, mut b) = (0.0, 0.0);
+                for (f, &(sin, cos)) in row.iter().zip(&trig[m * nlon..(m + 1) * nlon]) {
+                    a += f * cos;
+                    b += f * sin;
+                }
+                // (1/4π)∫∫ f P̄nm (cos, sin) dΩ, with dλ = 2π/nlon.
+                let k = wi / (2.0 * nlon as f64);
+                for n in m..=nmax {
+                    let p = k * leg.p[idx(n, m)];
+                    out.c[idx(n, m)] += p * a;
+                    out.s[idx(n, m)] += p * b;
+                }
+            }
+        }
+        for n in 0..=nmax {
+            let factor = functional.factor(n, gm, radius, r);
+            for m in 0..=n {
+                let (c, s) = (out.c[idx(n, m)], out.s[idx(n, m)]);
+                let (c, s) = if factor == 0.0 { (0.0, 0.0) } else { (c / factor, s / factor) };
+                out.set(n, m, c, s);
+            }
         }
         out
     }
@@ -406,5 +462,34 @@ mod tests {
         assert!(t[0][1].abs() < 1e-20 && t[0][2].abs() < 1e-20 && t[1][2].abs() < 1e-20);
         // 1 Eotvos is 1e-9 s^-2: the radial gradient 2GM/r^3 at 7000 km is about 2330 E.
         assert!((2.0 * g3 * 1e9 - 2325.0).abs() < 5.0);
+    }
+
+    #[test]
+    fn analysis_inverts_the_grid() {
+        // Unit-size random coefficients to degree 16, the notes' case: synthesis on the Gauss grid
+        // and back recovers them to 9×10⁻¹⁵ (the notes' 1.6×10⁻¹⁴). A gravity disturbance at 400 km
+        // round-trips too.
+        let nmax = 16;
+        let mut seed: u64 = 7;
+        let mut rand = || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            (seed >> 11) as f64 / (1u64 << 53) as f64 * 2.0 - 1.0
+        };
+        let mut f = Coefficients::zeros(GM, R, nmax);
+        for n in 0..=nmax {
+            for m in 0..=n {
+                let s = if m == 0 { 0.0 } else { rand() };
+                f.set(n, m, rand(), s);
+            }
+        }
+        let (lats, lons) = gauss_grid(nmax);
+        for (functional, r, tol) in [(Functional::Potential, R, 2e-14), (Functional::GravityDisturbance, R + 400e3, 2e-14)] {
+            let values = f.grid(&functional, r, &lats, &lons);
+            let back = Coefficients::analysis(&functional, r, &values, nmax, GM, R);
+            let err = (0..=nmax).flat_map(|n| (0..=n).map(move |m| (n, m))).map(|(n, m)| (back.c(n, m) - f.c(n, m)).abs().max((back.s(n, m) - f.s(n, m)).abs())).fold(0.0, f64::max);
+            assert!(err < tol, "{err:e}");
+        }
     }
 }
