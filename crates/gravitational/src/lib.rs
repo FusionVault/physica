@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+pub mod cosmology;
 pub mod curves;
 pub mod detectors;
 pub mod energy;

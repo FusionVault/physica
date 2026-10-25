@@ -84,6 +84,7 @@ assert!(gradiometer_strain(1e-11, 0.1) > 1e10 * aion.peak_strain());
 | Module | What it computes |
 |---|---|
 | `strain` | Ω_GW ↔ S_h ↔ h_c, with the one-sided and two-sided conventions made explicit ([Moore, Cole & Berry 2015](https://arxiv.org/abs/1408.0740)) |
+| `cosmology` | Flat ΛCDM comoving, angular-diameter and time-delay distances; the six H0LiCOW lenses give back H₀ = 73.3 ([Wong et al. 2020](https://arxiv.org/abs/1907.04869)) |
 | `curves` | Advanced LIGO and Einstein Telescope fits ([Sathyaprakash & Schutz 2009](https://arxiv.org/abs/0903.0338)); LISA with galactic confusion ([Robson, Cornish & Liu 2019](https://arxiv.org/abs/1803.01944)); tabulated curves |
 | `inspiral` | Chirp mass, time to merger, ISCO, the energy spectrum, matched-filter SNR, horizon and range ([Chen et al. 2021](https://arxiv.org/abs/1709.08079)); the Kerr ISCO with its energy and angular momentum, and the equatorial photon orbit (Bardeen, Press & Teukolsky 1972) |
 | `energy` | The Planck luminosity, strain from luminosity, the circular-binary flux and the multipole flux coefficients ([Blanchet](https://arxiv.org/abs/1310.1528)), Peters' eccentricity enhancement and binary-pulsar decay, and the Shapiro range, shape and delay ([Kramer et al. 2021](https://arxiv.org/abs/2112.06795)) |
