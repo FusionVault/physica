@@ -92,8 +92,22 @@ pub fn critical_density(f: f64) -> f64 {
 
 /// Refractive index `√(1 − (f_p/f)²)` of an underdense plasma of electron density `n_e` (m⁻³) at
 /// frequency `f` (Hz); `None` at or above [`critical_density`], where the wave does not
-/// propagate. A graded index is what transformation optics (and the Gordon optical metric, which
-/// writes a curved metric as a medium with `n = 1/√g₀₀`) bends rays with.
+/// propagate. A graded index is what transformation optics bends rays with, and a static curved
+/// spacetime acts on light as one. In isotropic coordinates, `ds² = −A c²dt² + B dx²`, the
+/// flat-space index is `n = √(B/A)`, and near a mass `n − 1 ≈ 2GM/(rc²)`, which bends a ray
+/// grazing the Sun by 1.75″. Taking `n = 1/√g₀₀` alone keeps only the time part and gives half
+/// that, Einstein's 1911 value; it is right only together with the curved spatial metric.
+///
+/// ```
+/// use metrology::{C, GM_SUN};
+///
+/// // First order, the deflection is twice the index excess at the impact parameter: 4GM/(c²b).
+/// let limb = 6.957e8; // the Sun's radius, m
+/// let arcsec = |rad: f64| rad.to_degrees() * 3600.0;
+/// let full = arcsec(2.0 * 2.0 * GM_SUN / (C * C * limb)); // n − 1 = 2GM/(rc²)
+/// let time_only = arcsec(2.0 * GM_SUN / (C * C * limb)); // n − 1 = GM/(rc²), from 1/√g₀₀
+/// assert!((full - 1.7512).abs() < 1e-4 && (time_only - 0.8756).abs() < 1e-4);
+/// ```
 pub fn plasma_index(n_e: f64, f: f64) -> Option<f64> {
     let ratio = plasma_frequency(n_e) / f;
     (ratio < 1.0).then(|| (1.0 - ratio * ratio).sqrt())
