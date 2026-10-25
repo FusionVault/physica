@@ -18,16 +18,17 @@ published numbers, and the data tests are registered before the data decides the
 |---|---|
 | [`physica`](crates/physica) · [docs](https://docs.rs/physica) | All of them in one dependency, plus the cross-domain analogies: one spherical-harmonic engine for gravity and magnetism, the spin-2 factor, Schwinger and Unruh, the pinch and the filament |
 | [`metrology`](crates/metrology) · [docs](https://docs.rs/metrology) | The physical constants every crate shares, defined once: SI, CODATA 2018, IERS and IAU values |
-| [`geopotential`](crates/geopotential) · [docs](https://docs.rs/geopotential) | Earth's gravity field from spherical harmonics: read ICGEM `.gfc` models, then gravity, geoid and water height at a point or on a map |
-| [`gravimetry`](crates/gravimetry) · [docs](https://docs.rs/gravimetry) | Gravity missions and quantum sensors (noise models, error predictions, a satellite-pair simulator), GRACE processing (technical notes, smoothing, stripe removal, water height, a Kalman smoother), earthquake gravity, buried-body forward models, the Earth tide and the permanent-tide conventions, and the atmosphere's pressure waves |
-| [`gravitational`](crates/gravitational) · [docs](https://docs.rs/gravitational) | Gravitational waves: strain conventions, noise curves, inspirals and binary pulsars, Kerr orbits, ringdown and merger remnants, neutron-star tides, energy, memory, propagation and the graviton, stochastic backgrounds, high-frequency limits, gravity sensors as detectors, lab gravity, lensing and ΛCDM distances |
-| [`gravitics`](crates/gravitics) · [docs](https://docs.rs/gravitics) | Frontier gravity computed three ways (each proposal's own model, general relativity, and the measurements): superconductors, high-frequency generators, propellantless thrust, pulsed-field "electrogravity", warp drives, light in strong gravity (exact and multipole deflection, black-hole shadows), the Schwinger limit, gravitoelectromagnetism, gravity's anomalies, MOND and short-range forces, equivalence-principle tests with the new-force couplings they bound, and tabletop quantum gravity |
+| [`geopotential`](crates/geopotential) · [docs](https://docs.rs/geopotential) | Earth's gravity field from spherical harmonics: read ICGEM `.gfc` models, then gravity, geoid and water height at a point or on a map; the normal gravity of GRS80 and WGS84 from their defining constants, and heights from geopotential numbers |
+| [`gravimetry`](crates/gravimetry) · [docs](https://docs.rs/gravimetry) | Gravity missions and quantum sensors (noise models, error predictions, a satellite-pair simulator), GRACE processing (technical notes, smoothing, stripe removal, water height, a Kalman smoother), earthquake gravity, buried-body forward models, the Earth tide and the permanent-tide conventions, clocks as height meters with the GNSS relativistic corrections, and the atmosphere's pressure waves |
+| [`gravitational`](crates/gravitational) · [docs](https://docs.rs/gravitational) | Gravitational waves: strain conventions, noise curves, inspirals and binary pulsars, Kerr orbits, periastron advance and geodetic precession, ringdown and merger remnants, neutron-star tides, energy, memory, propagation and the graviton, stochastic backgrounds, high-frequency limits, gravity sensors as detectors, lab gravity, lensing and ΛCDM distances |
+| [`gravitics`](crates/gravitics) · [docs](https://docs.rs/gravitics) | Frontier gravity computed three ways (each proposal's own model, general relativity, and the measurements): superconductors, high-frequency generators, propellantless thrust, pulsed-field "electrogravity", warp drives, light in strong gravity (exact and multipole deflection, black-hole shadows), the Schwinger limit, gravitoelectromagnetism with the Lense–Thirring drag of orbits and gyroscopes, gravity's anomalies, MOND and short-range forces, equivalence-principle tests with the new-force couplings they bound, and tabletop quantum gravity |
 | [`magnetics`](crates/magnetics) · [docs](https://docs.rs/magnetics) | Earth's magnetic field from WMM2025 on the same engine as its gravity, magnetohydrodynamics (waves, shocks, stability, Hartmann flow, dynamos), magnet design and its stress limits, and space weather from the solar wind to the power grid |
 | [`plasmoid`](crates/plasmoid) · [docs](https://docs.rs/plasmoid) | Fusion and self-organising plasma: Coulomb barriers and Gamow peaks, Bosch–Hale and p–¹¹B reaction rates, Lawson, tokamak limits, Z-pinches and the plasma focus, Taylor-relaxed plasmoids and reconnection, aneutronic power balance and direct energy conversion |
 | [`lab`](lab) | The research workbench: regenerates every figure and reruns every analysis here (not published) |
 
-[`geo5d`](https://crates.io/crates/geo5d) (heights, normal gravity, relativistic geodesy) uses
-`geopotential` for its gravity.
+The former [`geo5d`](https://crates.io/crates/geo5d) crate (normal gravity, heights, clocks as
+height meters, frame dragging) is folded into these: `geopotential::normal`, `gravimetry::clocks`,
+`gravitational::energy` and `gravitics::gem`.
 
 [`web/`](web) holds 3D models of the physics, computed in the browser with the crates' equations.
 The first one rebuilds the rig of US 12,417,870 (a ball between high-voltage coils, claimed to
@@ -218,7 +219,7 @@ cargo test --workspace
 The tests compare against:
 - closed-form results;
 - published tables, such as Okada's (1985) check values and the Wahr et al. (1998) Love numbers;
-- an independent implementation (geo5d, to about 1e-15);
+- an independent implementation of the synthesis (the former geo5d crate, to about 1e-15);
 - the published figures of Zingerle et al. (2024), CARIOQA and GRICE;
 - simulations that recover a known field;
 - the numbers in the research notes' check scripts, for every physics formula;

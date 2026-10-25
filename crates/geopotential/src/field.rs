@@ -2,19 +2,14 @@
 //! [`Coefficients`], the main magnetic field (the `magnetics` crate), and the gravitomagnetic
 //! field of a spinning body (`gravitics`).
 
-use metrology::{WGS84_A, WGS84_F};
-
 use crate::Coefficients;
 
 /// Geocentric radius (m) and latitude (radians) of a point at geodetic latitude `lat` (radians)
 /// and height `height` (m) above the WGS84 ellipsoid: where to evaluate a [`Field`] for a point
-/// given by GNSS or a map.
+/// given by GNSS or a map. [`NormalGravity::geocentric`](crate::normal::NormalGravity::geocentric)
+/// does the same for any ellipsoid.
 pub fn geocentric(lat: f64, height: f64) -> (f64, f64) {
-    let e2 = WGS84_F * (2.0 - WGS84_F);
-    let (s, c) = lat.sin_cos();
-    let n = WGS84_A / (1.0 - e2 * s * s).sqrt();
-    let (p, z) = ((n + height) * c, (n * (1.0 - e2) + height) * s);
-    (p.hypot(z), z.atan2(p))
+    crate::normal::WGS84.geocentric(lat, height)
 }
 
 /// A static field with a scalar potential `V`, evaluated at geocentric radius `r` (m), latitude
@@ -48,6 +43,7 @@ impl Field for Coefficients {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use metrology::{WGS84_A, WGS84_F};
 
     #[test]
     fn geodetic_to_geocentric() {

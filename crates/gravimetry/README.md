@@ -133,6 +133,7 @@ maximum likelihood over many series at once.
 | `atom` | Phase, shot noise, and accelerometer and gradiometer noise of a cold-atom sensor, in orbit (double diffraction) or on the ground (single), its phase sensitivity and the gravitational Aharonov–Bohm rate ([Lévèque et al. 2021](https://arxiv.org/abs/2011.03382); [Stray et al. 2022](https://doi.org/10.1038/s41586-021-04315-3); [CARIOQA](https://arxiv.org/abs/2211.01215); [Trimeche et al. 2019](https://doi.org/10.1088/1361-6382/ab4548)) |
 | `gradiometry` | The error of each coefficient a gradiometer mission like GOCE achieves |
 | `local` | Gravity and gravity gradient of a buried sphere and horizontal cylinder, the shapes a ground survey fits, and the averaging time an instrument needs to see them |
+| `clocks` | Clocks as height meters: frequency ↔ geopotential ↔ height, the clock rates of TT and TCG, proper time along an orbit, and the GNSS relativistic corrections (eccentricity, Sagnac, Shapiro) ([IERS Conventions 2010](https://www.iers.org/TN36), ch. 10; IS-GPS-200) |
 | `tides` | The lunar and solar tide at a gravimeter, the gravimetric and diminishing factors of the Love numbers, and the permanent tide that separates mean-tide, zero-tide and tide-free gravity and geoids ([Longman 1959](https://doi.org/10.1029/JZ064i012p02351), as [LongmanTide](https://github.com/jrleeman/LongmanTide) codes it; [Mäkinen 2021](https://doi.org/10.1007/s00190-021-01541-5)) |
 | `sim` | A closed-loop simulation of a GRACE-type pair: simulate, estimate the field back, and compare its errors with the predicted ones |
 | `noise` | Noise with any spectrum, its whitening, and the FFT |
@@ -164,6 +165,8 @@ errors of a real month.*
   dense body, and the averaging time a quantum gravimeter needs to resolve it.
 - **Absolute gravimetry.** `tides` corrects a reading for the lunar and solar tide and moves it
   between the zero-tide convention of gravity and the mean-tide convention of the IHRS.
+- **Chronometric levelling.** `clocks` turns an optical-clock comparison into a height difference,
+  and gives a GNSS receiver its relativistic corrections.
 - **Mission design.** `missions`, `atom` and `sim` size the sensors and simulate what field a
   satellite pair recovers, including cold-atom instruments.
 
@@ -182,6 +185,9 @@ errors of a real month.*
   equivalent mass sums to zero); on the 2025 Kamchatka fault model, its uplift matches the
   USGS's own surface displacement with r = 0.89.
 - **Point masses:** their potential matches Newton's law.
+- **Clocks:** the Tokyo Skytree (452.6 m is 21.18 Hz on strontium, and GRS80 normal gravity there
+  is the measured g to 2×10⁻⁶); the JILA and Wisconsin redshift gradients; the Sun's 633.10 m/s;
+  Cassini's 262.4 µs Shapiro delay; the GPS clock offset 4.4647×10⁻¹⁰ and IS-GPS-200's F.
 - **Tides:** LongmanTide's test vector to 3×10⁻¹¹ mGal; averaged over the 18.61-year nodal cycle,
   Longman's tide is δ₂ times the permanent tide to 0.2 µGal; the permanent tide matches Mäkinen's
   (2021) Eqs. 19–21 to their printed digits.
@@ -189,7 +195,7 @@ errors of a real month.*
   recovers the settings of simulated data, and on the real record withheld months are predicted
   with calibrated errors.
 - **Atmosphere:** the isothermal values at 250 K (sound 317 m/s, cut-off 0.0217 rad/s, buoyancy
-  0.0196 rad/s); the Lamb wave is trapped at every wavelength; the Tonga Lamb speed of 318.2 m/s
+  0.0196 rad/s), with standard gravity; the Lamb wave is trapped at every wavelength; the Tonga Lamb speed of 318.2 m/s
   is sound at 252 K; a slow pressure pulse gives the inverse barometer.
 
 **Not included yet:** glacial isostatic adjustment, DDK filters, basin averages and leakage

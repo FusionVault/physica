@@ -15,7 +15,8 @@ pub const RHO_WATER: f64 = 1000.0;
 pub enum Functional<'a> {
     /// Gravitational potential `V`, m²/s².
     Potential,
-    /// Geoid height / height anomaly by Bruns' formula with `γ = GM/r²`, m.
+    /// Geoid height / height anomaly by Bruns' formula with `γ = GM/r²`, m, and no zero-degree
+    /// term; [`normal::bruns`](crate::normal::bruns) has both.
     GeoidHeight,
     /// Gravity disturbance `−∂T/∂r`, m/s² (×1e5 for mGal).
     GravityDisturbance,

@@ -135,8 +135,9 @@ pub fn permanent(lat: f64, h: f64) -> (f64, f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use geopotential::normal::GRS80;
     use geopotential::{Coefficients, TideSystem, julian_epoch};
-    use metrology::{GM_EARTH, WGS84_F};
+    use metrology::GM_EARTH;
 
     const MICROGAL: f64 = crate::local::MICROGAL;
 
@@ -185,21 +186,19 @@ mod tests {
         // Eq. 18's A follows from the IERS H₀ = −0.31460 m (Eq. 16): A = (3/2)H₀√(5/4π)g_e(a/R_e)².
         let a_iers = 1.5 * -0.31460 * (5.0 / (4.0 * core::f64::consts::PI)).sqrt() * 9.79828685 * (WGS84_A / 6378136.55f64).powi(2);
         assert!((a_iers - PERMANENT_A).abs() < 5e-5, "{a_iers}");
-        // Eqs. 19–21 in sin²φ, to their printed digits, with GRS80 normal gravity (Moritz 2000).
-        let e2 = WGS84_F * (2.0 - WGS84_F);
-        let gamma0 = |s2: f64| 9.780_326_771_5 * (1.0 + 0.001_931_851_353 * s2) / (1.0 - e2 * s2).sqrt();
+        // Eqs. 19–21 in sin²φ, to their printed digits, with GRS80 normal gravity.
         for deg in (0..=90).step_by(5) {
             let lat = f64::to_radians(f64::from(deg));
             let s2 = lat.sin().powi(2);
             let (w, g) = permanent(lat, 0.0);
             assert!((w - (0.9722 - 2.8841 * s2 - 0.0195 * s2 * s2)).abs() < 5e-5, "{deg}°: W_T {w}");
             assert!((g / MICROGAL - (-30.49 + 90.95 * s2 + 0.31 * s2 * s2)).abs() < 0.005, "{deg}°: g_T {}", g / MICROGAL);
-            assert!((w / gamma0(s2) * 1e3 - (99.40 - 295.41 * s2 - 0.42 * s2 * s2)).abs() < 0.005, "{deg}°: H_T");
+            assert!((w / GRS80.gamma(lat) * 1e3 - (99.40 - 295.41 * s2 - 0.42 * s2 * s2)).abs() < 0.005, "{deg}°: H_T");
         }
         // The spherical form −2A/a·(sin²φ − 1/3) at the equator: −30.485 µGal; the mean-tide geoid
         // 9.9 cm above the zero-tide one there.
         assert!((permanent(0.0, 0.0).1 / MICROGAL + 30.485).abs() < 1e-3);
-        assert!((permanent(0.0, 0.0).0 / 9.780_326_771_5 - 0.0994).abs() < 1e-4);
+        assert!((permanent(0.0, 0.0).0 / GRS80.gamma(0.0) - 0.0994).abs() < 1e-4);
         // Eq. 19's height factor 1 + 2h/a, to 4×10⁻⁶ at 1 km.
         let lat = 45f64.to_radians();
         assert!((permanent(lat, 1e3).0 / permanent(lat, 0.0).0 - (1.0 + 2e3 / WGS84_A)).abs() < 5e-6);

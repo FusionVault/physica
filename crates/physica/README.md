@@ -61,8 +61,8 @@ assert!((frame_dragging / analogue - 2.0).abs() < 1e-12);
 | Re-export | What it covers |
 |---|---|
 | [`metrology`](https://crates.io/crates/metrology) | The physical constants every crate shares |
-| [`geopotential`](https://crates.io/crates/geopotential) | Earth's gravity field from spherical harmonics, the `.gfc` reader, the shared `Field` trait |
-| [`gravimetry`](https://crates.io/crates/gravimetry) | Gravity missions and quantum sensors, GRACE processing, earthquake gravity, local forward models, Earth tides and tide systems, atmospheric waves |
+| [`geopotential`](https://crates.io/crates/geopotential) | Earth's gravity field from spherical harmonics, the `.gfc` reader, normal gravity and heights, the shared `Field` trait |
+| [`gravimetry`](https://crates.io/crates/gravimetry) | Gravity missions and quantum sensors, GRACE processing, earthquake gravity, local forward models, Earth tides and tide systems, clocks as height meters, atmospheric waves |
 | [`gravitational`](https://crates.io/crates/gravitational) | Gravitational waves from nanohertz to terahertz: detectors, inspirals, ringdown and remnants, energy, propagation, gravitons, backgrounds, lensing and cosmological distances |
 | [`gravitics`](https://crates.io/crates/gravitics) | Frontier gravity computed against general relativity and experiment, light in strong gravity, the Schwinger limit, gravity's anomalies, gravitoelectromagnetism, equivalence-principle tests |
 | [`magnetics`](https://crates.io/crates/magnetics) | Earth's magnetic field, magnetohydrodynamics, magnets, space weather |

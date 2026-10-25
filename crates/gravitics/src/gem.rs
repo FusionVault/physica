@@ -91,6 +91,31 @@ impl Field for GravitomagneticDipole {
     }
 }
 
+/// Radians per second to milliarcseconds per year, how precession rates are quoted.
+pub const MAS_PER_YEAR: f64 = metrology::YEAR * 180.0 / PI * 3.6e6;
+
+/// The Lense–Thirring drag of an orbit's node, `2GJ/(c²a³(1 − e²)^(3/2))` (rad/s), about a body
+/// of spin angular momentum `j` (kg m²/s), for semi-major axis `a` (m) and eccentricity `e`: about
+/// 31 mas/yr for LAGEOS and 118 for LARES (Ciufolini et al. 2013), measured to about 0.1% by
+/// LARES-2 and LAGEOS. Prograde for every inclination.
+pub fn lense_thirring_node_rate(j: f64, a: f64, e: f64) -> f64 {
+    2.0 * G * j / (C * C * a.powi(3) * (1.0 - e * e).powf(1.5))
+}
+
+/// The Lense–Thirring drag of the perigee, `−6GJ cos i/(c²a³(1 − e²)^(3/2))` (rad/s), at
+/// `inclination` (rad): three times the node rate, backwards, for a prograde orbit.
+pub fn lense_thirring_perigee_rate(j: f64, a: f64, e: f64, inclination: f64) -> f64 {
+    -3.0 * inclination.cos() * lense_thirring_node_rate(j, a, e)
+}
+
+/// The frame-dragging precession (rad/s) of a gyroscope on a circular polar orbit of radius `a`
+/// (m), averaged over the orbit: `GJ/(2c²a³)`, half the equatorial [`GravitomagneticDipole`] field
+/// over `c`, since Schiff's `(G/c²r³)[3(J·r̂)r̂ − J]` averages to `J/2` round a polar orbit. Gravity
+/// Probe B's 39 mas/yr.
+pub fn gyroscope_frame_dragging(j: f64, a: f64) -> f64 {
+    equatorial_field(j, a, Convention::Mashhoon) / (2.0 * C)
+}
+
 /// `√(4πε₀G)`, C/kg: the charge-to-mass ratio at which electric repulsion balances gravity. It
 /// is the extremal Reissner–Nordström ratio, the weak-gravity-conjecture scale and the constant in
 /// Blackett's hypothesis.
@@ -148,6 +173,29 @@ mod tests {
         assert!(close(forces[1], forces[0], 1e-12) && close(forces[2], forces[0], 1e-12));
         assert!(close(1.0 / (GM_PERMITTIVITY * GM_PERMEABILITY).sqrt(), C, 1e-12));
         assert!(close(GM_PERMITTIVITY, 1.192_297e9, 1e-6) && close(GM_PERMEABILITY, 9.331_99e-27, 1e-5));
+    }
+
+    #[test]
+    fn frame_dragging_of_orbits_and_gyroscopes() {
+        use metrology::{EARTH_ANGULAR_MOMENTUM as J, GM_EARTH};
+        // Ciufolini et al. (2013, arXiv:1309.1699): LAGEOS at 5900 km altitude, "approximately
+        // 31 mas/yr" (30.67 for a = 12 270 km, e = 0.0045); LARES at a = 7820 km, e = 0.0007,
+        // "approximately 118". The perigee drags back three times as fast at i = 0.
+        let lageos = lense_thirring_node_rate(J, 12_270e3, 0.0045) * MAS_PER_YEAR;
+        assert!(close(lageos, 30.67, 2e-4) && close(lageos, 31.0, 0.02));
+        assert!(close(lense_thirring_node_rate(J, 7820e3, 0.0007) * MAS_PER_YEAR, 118.0, 0.01));
+        let i = 109.8f64.to_radians();
+        assert!(close(lense_thirring_perigee_rate(J, 12_270e3, 0.0045, i) / lense_thirring_node_rate(J, 12_270e3, 0.0045), -3.0 * i.cos(), 1e-12));
+        // Gravity Probe B (Everitt et al. 2011): a 642 km polar orbit, and the predicted
+        // frame-dragging rate towards IM Pegasi (declination 16.84°) of 39.2 mas/yr, with its
+        // geodetic 6606.1; the bare formulas over the mean radius give both to 0.5%.
+        let a = 6371e3 + 642e3;
+        let dragging = gyroscope_frame_dragging(J, a) * MAS_PER_YEAR;
+        assert!(close(dragging * 16.84f64.to_radians().cos(), 39.2, 5e-3), "{dragging}");
+        assert!(close(gravitational::energy::geodetic_precession(GM_EARTH, a) * MAS_PER_YEAR, 6606.1, 6e-3));
+        // Half the dipole's equatorial field over c, and 1.68×10⁻¹⁴ rad/s at the equator's surface.
+        let earth = GravitomagneticDipole { j: J };
+        assert!(close(gyroscope_frame_dragging(J, a), 0.5 * earth.magnitude(a, 0.0, 0.0) / C, 1e-12));
     }
 
     #[test]

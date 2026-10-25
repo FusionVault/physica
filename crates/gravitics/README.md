@@ -96,7 +96,7 @@ assert!((near * 1e3 - 13.28).abs() < 0.01);
 |---|---|
 | `electrogravity` | The pulsed-field gravity claims against the forces in the same rig: dielectrophoresis (dilute and on a sphere), the Pauthenier charge, the polarisation-torque ceiling, spheroid depolarisation and the torque on a body not quite round, the image force, a thread's torsion, field angular momentum, the Thomson–Purcell kink field that Zhang's theory relabels, the carriers' drift (the theory's own bound), the gravity of field energy, Zhang's constants (`k_mq`, `μ_g`, his vortex constant and spin-up), and the mass-independence discriminator |
 | `electrodes` | The field of high-voltage rigs: coil turns as charged rings and wires as straight segments, with potential and field in closed form (elliptic integrals, logarithms) and the charge on each piece for given potentials |
-| `gem` | Gravitoelectromagnetism in three conventions with the spin-2 factor, the gravitomagnetic dipole as a `Field`, the extremal charge-to-mass ratio, and Blackett's magnetism-from-spin |
+| `gem` | Gravitoelectromagnetism in three conventions with the spin-2 factor, the gravitomagnetic dipole as a `Field`, the Lense–Thirring drag of orbits and gyroscopes (LAGEOS, LARES, Gravity Probe B), the extremal charge-to-mass ratio, and Blackett's magnetism-from-spin |
 | `anomalies` | CODATA 2022's sixteen G measurements with their correlations, their generalised-least-squares mean and Birge ratio; Anderson's flyby formula; column densities and shielding against Majorana and lunar laser ranging; Pioneer's thermal decay |
 | `modified` | The radial acceleration relation ([McGaugh et al. 2016](https://arxiv.org/abs/1609.05917)), Tully–Fisher velocity and MOND radius; Yukawa forces with the current limits ([Lee et al. 2020](https://arxiv.org/abs/2002.11761)), the dark-energy length and boson mass; Einstein–Cartan density; Weber-like perihelion and mass shift |
 | `equivalence` | Tests of the equivalence principle: the Eötvös parameter η, the MICROSCOPE, Eöt-Wash and atom-interferometer results, the coupling to B, L or B − L that a bound on η allows for a vector or scalar boson, and the Yukawa form factor of a layered sphere ([Touboul et al. 2022](https://arxiv.org/abs/2209.15487); [Fayet 2025](https://arxiv.org/abs/2507.02723)) |
@@ -144,6 +144,8 @@ Every test reproduces a published number from the paper's own inputs, mostly to 
   numbers; Tajmar's predicted field for niobium; Podkletnov's pendulum tables; Woodward's printed
   1.87×10²¹ prefactor; Shawyer's thrust at the Dresden and Eagleworks settings; the Army lifter
   thrust.
+- **Frame dragging:** LAGEOS's and LARES's node drags (31 and 118 mas/yr, Ciufolini et al. 2013)
+  and Gravity Probe B's 39.2 mas/yr towards IM Pegasi (Everitt et al. 2011).
 - **Spacetime:** Pfenning & Ford's warp energy; the quantum inequality; the Casimir pressure at
   1 µm; the Sun's 1.7512″ light bending; Unruh, Hawking and Gibbons–Hawking temperatures.
 - **Strong fields:** the Schwinger field and pair rates, CoReLS's a₀, LUXE's χ, PVLAS's QED

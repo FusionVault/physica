@@ -57,7 +57,8 @@ pub fn prompt_gravity(dm: f64, separation: f64, r: f64) -> f64 {
     metrology::G * dm * separation / r.powi(3)
 }
 
-/// Normal free-air gravity gradient, s⁻².
+/// The normal free-air gravity gradient, s⁻²: 0.3086 mGal/m, the conventional rounding of GRS80's
+/// 0.30855 at 45° (`geopotential::normal::GRS80::gamma_at`).
 pub const FREE_AIR: f64 = 3.086e-6;
 const EARTH_RADIUS: f64 = 6_371_000.0;
 
@@ -392,6 +393,10 @@ mod tests {
         let a = f.surface_change(3e3, 4e3, &m);
         let b = f.surface_change(-3e3, 4e3, &m);
         assert!((a.gravity + b.gravity).abs() < 1e-12 && (a.uplift + b.uplift).abs() < 1e-9, "{a:?} {b:?}");
+        // FREE_AIR is GRS80's gradient at 45° to 2×10⁻⁴.
+        let grs80 = geopotential::normal::GRS80;
+        let lat = core::f64::consts::FRAC_PI_4;
+        assert!(((grs80.gamma(lat) - grs80.gamma_at(lat, 1.0)) / FREE_AIR - 1.0).abs() < 2e-4);
         // Okubo (1992) Fig. 4a: tens of µGal near a 10 km fault with 5 m of slip.
         let peak = (1..20).map(|k| f.surface_change(k as f64 * 500.0, 3e3, &m).ground_gravity(FREE_AIR).abs()).fold(0.0, f64::max);
         assert!((20e-8..200e-8).contains(&peak), "{peak:e}");

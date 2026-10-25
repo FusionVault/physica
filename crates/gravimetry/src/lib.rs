@@ -4,6 +4,7 @@ use geopotential::{Coefficients, Legendre};
 
 pub mod atmosphere;
 pub mod atom;
+pub mod clocks;
 pub mod coseismic;
 pub mod gradiometry;
 pub mod kalman;

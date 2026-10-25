@@ -21,8 +21,8 @@ use metrology::R_GAS;
 pub const GAMMA: f64 = 1.4;
 /// Molar mass of dry air, kg/mol.
 pub const MOLAR_MASS: f64 = 0.028_964_4;
-/// Gravity used for the atmosphere, m/s².
-pub const G0: f64 = 9.81;
+/// Standard gravity, [`metrology::G0`] (this module once carried 9.81, 0.03% more).
+pub const G0: f64 = metrology::G0;
 
 /// Speed of sound in dry air at temperature `t` (K): `c = √(γRT/M)`, m/s.
 pub fn sound_speed(t: f64) -> f64 {
@@ -84,8 +84,8 @@ mod tests {
     fn isothermal_values_at_250_kelvin() {
         let c = sound_speed(250.0);
         assert!((c - 316.97).abs() < 0.01, "{c}");
-        assert!((acoustic_cutoff(c) - 0.02167).abs() < 1e-5);
-        assert!((buoyancy_frequency(c) - 0.01958).abs() < 1e-5);
+        assert!((acoustic_cutoff(c) - 0.02166).abs() < 1e-5);
+        assert!((buoyancy_frequency(c) - 0.01957).abs() < 1e-5);
         // Wright et al.'s 318.2 m/s Lamb wave is sound in an isothermal atmosphere at about 252 K.
         assert!((sound_speed(252.0) / 318.2 - 1.0).abs() < 1e-3);
     }
@@ -101,15 +101,15 @@ mod tests {
         }
         // Sound well above the cut-off propagates upward.
         assert!(vertical_wavenumber_sq(0.1, 1e-5, c) > 0.0);
-        assert!((pressure_to_mass(100.0) - 10.19).abs() < 0.01);
+        assert!((pressure_to_mass(100.0) - 10.197).abs() < 0.001);
     }
 
     #[test]
     fn ocean_response_limits() {
         assert!((forced_ocean_response(1e-3, 4000.0) + 1.0).abs() < 1e-9); // the inverse barometer
         // Tonga's Lamb wave over 4 km and 5 km of ocean raises the sea by 0.63 and 0.94 of Δp/(ρg).
-        assert!((forced_ocean_response(318.2, 4000.0) - 0.6328).abs() < 1e-4);
-        assert!((forced_ocean_response(318.2, 5000.0) - 0.9396).abs() < 1e-4);
+        assert!((forced_ocean_response(318.2, 4000.0) - 0.6324).abs() < 1e-4);
+        assert!((forced_ocean_response(318.2, 5000.0) - 0.9390).abs() < 1e-4);
     }
 
     #[test]

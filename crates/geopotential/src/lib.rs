@@ -7,6 +7,7 @@ mod field;
 mod functional;
 mod gfc;
 mod legendre;
+pub mod normal;
 pub mod planar;
 pub mod slepian;
 pub mod linalg;

@@ -68,7 +68,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `Legendre` | Normalized Legendre functions and their derivatives, stable to degree 2700 at every latitude ([Holmes & Featherstone 2002](https://doi.org/10.1007/s00190-002-0216-2)) |
 | `Coefficients` | The coefficients with their `GM`, radius and tide system; degree variances, rescaling, truncation and tide-system conversion ([IERS Conventions 2010](https://www.iers.org/TN36), ch. 6) |
 | `TimeVariable` | Models with trends and periodic terms, evaluated at any date ([ICGEM](https://icgem.gfz.de)) |
-| `partials`, `second_partials` | Potential, gravity vector and gravity-gradient tensor at a point |
+| `partials`, `second_partials` | Potential, gravity vector and gravity-gradient tensor at a point; the geopotential and gravity with the centrifugal term, and the deflections of the vertical |
+| `normal` | The normal gravity of a level ellipsoid from its four defining constants: GRS80 and WGS84 as Somigliana's formula on and above the ellipsoid, `U₀`, the zonal harmonics and the normal field as coefficients, Bruns' formula with its zero-degree term, and dynamic and normal heights from geopotential numbers ([Moritz 2000](https://doi.org/10.1007/s001900050278); Heiskanen & Moritz 1967) |
 | `grid` with `Functional` | Maps of geoid height, gravity anomaly or disturbance, radial gradient or equivalent water height ([Barthelmes 2013](https://doi.org/10.2312/GFZ.b103-0902-26); [Wahr et al. 1998](https://doi.org/10.1029/98JB02844)) |
 | `Coefficients::analysis`, `gauss_grid`, `gauss_legendre` | The exact inverse of `grid`: any functional on a Gauss–Legendre grid back to coefficients, by Gauss–Legendre quadrature |
 | `slepian` | Slepian functions of a polar cap, the basis for basin averages with the least leakage, from Grünbaum's commuting tridiagonal matrix ([Simons, Dahlen & Wieczorek 2006](https://doi.org/10.1137/S0036144504445765)) |
@@ -91,7 +92,8 @@ zip.
 ## Applications
 
 - **Height systems.** Turning a GNSS ellipsoidal height into a usable one needs the geoid; this
-  is the synthesis behind national models such as GEOID2022 and AUSGeoid2020.
+  is the synthesis behind national models such as GEOID2022 and AUSGeoid2020, and `normal` turns
+  a levelled geopotential number into a dynamic or normal height.
 - **Orbit design and determination.** `J2` from a real model sets the nodal precession that makes
   an orbit sun-synchronous; `examples/sun_synchronous_orbit.rs` reproduces Landsat's 98.2°.
 - **Inertial navigation.** The deflection of the vertical is what an accelerometer mistakes for
@@ -106,8 +108,12 @@ zip.
   pole, and the Legendre equation.
 - **Derivatives:** against finite differences.
 - **The field:** against Laplace's equation, and the IERS tide offset of C̄20.
-- **An independent implementation:** the degree-300 GOCO06s model agrees with
-  [geo5d](https://crates.io/crates/geo5d) to about 1e-15.
+- **An independent implementation:** the degree-300 GOCO06s model agreed with the former geo5d
+  crate's synthesis to about 1e-15.
+- **Normal gravity:** every derived constant that Moritz (2000) prints for GRS80 and the WGS84
+  document prints for WGS84 (γ_e, γ_p, k, U₀, J₂–J₈, the even zonals), to their digits; the
+  synthesized normal field is Somigliana's gravity to 10⁻¹⁰ m/s²; the free-air gradient 0.3086
+  mGal/m.
 - **Real files** from COST-G and GOCO06s, which bend the format in practice: missing header
   markers, comment and warning lines, `errors empirical`, and free text before the header. A
   malformed record fails with its line number. The fixtures' sources are listed in
