@@ -133,6 +133,7 @@ maximum likelihood over many series at once.
 | `atom` | Phase, shot noise, and accelerometer and gradiometer noise of a cold-atom sensor, in orbit (double diffraction) or on the ground (single), its phase sensitivity and the gravitational Aharonov–Bohm rate ([Lévèque et al. 2021](https://arxiv.org/abs/2011.03382); [Stray et al. 2022](https://doi.org/10.1038/s41586-021-04315-3); [CARIOQA](https://arxiv.org/abs/2211.01215); [Trimeche et al. 2019](https://doi.org/10.1088/1361-6382/ab4548)) |
 | `gradiometry` | The error of each coefficient a gradiometer mission like GOCE achieves |
 | `local` | Gravity and gravity gradient of a buried sphere and horizontal cylinder, the shapes a ground survey fits, and the averaging time an instrument needs to see them |
+| `tides` | The lunar and solar tide at a gravimeter, the gravimetric and diminishing factors of the Love numbers, and the permanent tide that separates mean-tide, zero-tide and tide-free gravity and geoids ([Longman 1959](https://doi.org/10.1029/JZ064i012p02351), as [LongmanTide](https://github.com/jrleeman/LongmanTide) codes it; [Mäkinen 2021](https://doi.org/10.1007/s00190-021-01541-5)) |
 | `sim` | A closed-loop simulation of a GRACE-type pair: simulate, estimate the field back, and compare its errors with the predicted ones |
 | `noise` | Noise with any spectrum, its whitening, and the FFT |
 | `technotes` | NASA's TN-14 (C̄20 and C̄30 from laser ranging, [Loomis et al. 2020](https://doi.org/10.1029/2019GL085488)) and TN-13 (degree 1, [Sun et al. 2016](https://doi.org/10.1002/2016JB013073)), from [PO.DAAC](https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-docs/gracefo/open/docs/) |
@@ -161,6 +162,8 @@ errors of a real month.*
   files; `prompt_lead` gives how far ahead of the P-wave a light-speed gravity signal arrives.
 - **Site surveys and monitoring.** `local` gives the gravity and gradient of a buried void or
   dense body, and the averaging time a quantum gravimeter needs to resolve it.
+- **Absolute gravimetry.** `tides` corrects a reading for the lunar and solar tide and moves it
+  between the zero-tide convention of gravity and the mean-tide convention of the IHRS.
 - **Mission design.** `missions`, `atom` and `sim` size the sensors and simulate what field a
   satellite pair recovers, including cold-atom instruments.
 
@@ -179,6 +182,9 @@ errors of a real month.*
   equivalent mass sums to zero); on the 2025 Kamchatka fault model, its uplift matches the
   USGS's own surface displacement with r = 0.89.
 - **Point masses:** their potential matches Newton's law.
+- **Tides:** LongmanTide's test vector to 3×10⁻¹¹ mGal; averaged over the 18.61-year nodal cycle,
+  Longman's tide is δ₂ times the permanent tide to 0.2 µGal; the permanent tide matches Mäkinen's
+  (2021) Eqs. 19–21 to their printed digits.
 - **Kalman smoother:** it matches the exact Gaussian-process solution to 1e-10, its fit
   recovers the settings of simulated data, and on the real record withheld months are predicted
   with calibrated errors.

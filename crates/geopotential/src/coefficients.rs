@@ -9,7 +9,11 @@ pub enum TideSystem {
     TideFree,
     /// Includes the permanent deformation (indirect) part, not the direct tidal potential.
     ZeroTide,
-    /// Includes both the direct and the indirect permanent parts.
+    /// Includes both the direct and the indirect permanent parts. The direct part, the tide-generating
+    /// potential itself, then sits in the Earth's own field, falling as `r⁻³` where it grows as `r²`:
+    /// right on the sphere `r = R` only ("there is no mean-tide C̄20", Mäkinen 2021, J. Geod. 95,
+    /// 106). Its gravity is +45.7 µGal at the equator against the true −30.5; take mean-tide gravity
+    /// from `gravimetry::tides::permanent`.
     MeanTide,
     /// Not stated; cannot be converted.
     Unknown,
@@ -17,8 +21,9 @@ pub enum TideSystem {
 
 impl TideSystem {
     /// `C̄20` in this system minus `C̄20` tide-free. Uses the EGM96/EGM2008 convention
-    /// `ΔC̄20 = −3.11080e-8·k/√5` with `k = 0.3` (Rapp 1989), which gives the IERS 2010 value
-    /// −4.1736e-9 for zero-tide minus tide-free.
+    /// `ΔC̄20 = −3.11080e-8·k/√5` with `k = 0.3` (Rapp 1989), which gives −4.1736e-9 for zero-tide
+    /// minus tide-free, the value the IERS Conventions 2010 quote for EGM2008 (their own
+    /// `A₀H₀k₂₀`, Eq. 6.14 with `k₂₀ = 0.30190`, gives −4.2007e-9).
     fn c20_offset(self) -> Option<f64> {
         let direct = -3.11080e-8 / 5f64.sqrt();
         let k = 0.3;
