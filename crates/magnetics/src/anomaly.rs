@@ -26,6 +26,8 @@
 
 use core::f64::consts::PI;
 
+use geopotential::linalg::gauss;
+use geopotential::special::carlson_rd;
 use metrology::MU_0;
 
 /// `μ₀/4π` (T m/A).
@@ -73,6 +75,39 @@ pub fn cylinder(p: [f64; 3], point: [f64; 3], axis: [f64; 3], a: f64, m: [f64; 3
     body(t, m)
 }
 
+/// The demagnetising factors `(N_a, N_b, N_c)` of a uniformly magnetised ellipsoid with semi-axes
+/// `a`, `b`, `c` along its own axes, in any order: `N_c = (abc/3)R_D(a², b², c²)` (Carlson's `R_D`
+/// is the Landau–Lifshitz integral `(abc/2)∫ds/((s + c²)√((s + a²)(s + b²)(s + c²)))`), and the
+/// others by permutation. They sum to 1, and are `1/3` each for a sphere, `0.1736` along the long
+/// axis of a 2:1 prolate spheroid and `0.9845` across a 100:1 disc (Chen, Brug & Goldfarb 1991,
+/// Table I; Osborn 1945). The field inside is `H = H₀ − N·M`.
+pub fn ellipsoid_factors(a: f64, b: f64, c: f64) -> [f64; 3] {
+    let factor = |x: f64, y: f64, z: f64| x * y * z / 3.0 * carlson_rd(x * x, y * y, z * z);
+    [factor(b, c, a), factor(c, a, b), factor(a, b, c)]
+}
+
+/// The magnetisation (A/m) of a body of susceptibility `chi` (SI, isotropic) and remanence
+/// `remanent` (A/m) in the field `h0 = F/μ₀` (A/m), given its demagnetising tensor `n` (diagonal
+/// for an ellipsoid in its own axes, [`ellipsoid_factors`]): `M = (I + χN)⁻¹(χH₀ + M_r)`
+/// (Clark, Saul & Emerson 1986, Eq. 38; Takahashi & Oliveira 2017, Eqs. 49–50). The remanence
+/// is demagnetised too, so pass the intrinsic value, not a measurement on the body. For `χ ≪ 1`
+/// it is the classical `χH₀ + M_r`; the error of using that for a sphere is `χ/3`. A prism's
+/// field is not uniform, so this is exact for ellipsoids only.
+pub fn magnetisation(chi: f64, h0: [f64; 3], remanent: [f64; 3], n: [[f64; 3]; 3]) -> [f64; 3] {
+    let rows: Vec<Vec<f64>> = (0..3)
+        .map(|i| (0..3).map(|j| if i == j { 1.0 } else { 0.0 } + chi * n[i][j]).chain([chi * h0[i] + remanent[i]]).collect())
+        .collect();
+    let m = gauss(rows);
+    [m[0], m[1], m[2]]
+}
+
+/// The Königsberger ratio `Q = |M_r|/(χ|H₀|)` of remanent to induced magnetisation: above 1 the
+/// remanence sets the anomaly's shape (Koenigsberger 1938).
+pub fn koenigsberger(remanent: [f64; 3], chi: f64, h0: [f64; 3]) -> f64 {
+    let norm = |v: [f64; 3]| (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+    norm(remanent) / (chi * norm(h0))
+}
+
 /// What a total-field magnetometer reads (T) when an anomaly `b` adds to the ambient field `f`:
 /// `|F + B| − |F|`, computed as `(2F·B + B²)/(|F + B| + |F|)` without cancellation. It is `B·F̂`
 /// to first order in `|B|/|F|`.
@@ -104,6 +139,60 @@ mod tests {
         // Inside, (2/3)μ₀M.
         let inside = sphere([1.0, 2.0, 19.0], [0.0, 0.0, 20.0], 5.0, [0.0, 0.0, 1.0]);
         assert!((inside[2] - 2.0 / 3.0 * MU_0).abs() < 1e-20 && inside[0] == 0.0);
+    }
+
+    #[test]
+    fn demagnetising_factors_of_ellipsoids() {
+        // Chen, Brug & Goldfarb (1991), Table I: N along the axis of a spheroid of axis 2l and
+        // diameter 2a, γ = l/a, to the printed digits; 1/3 for a sphere; the three sum to 1.
+        for (gamma, want, digits) in [(0.01, 0.9845, 4), (0.1, 0.8608, 4), (0.5, 0.5272, 4), (1.0, 0.3333, 4), (2.0, 0.1736, 4), (5.0, 0.05582, 5), (10.0, 0.02029, 5), (100.0, 0.0004299, 7)] {
+            let n = ellipsoid_factors(1.0, 1.0, gamma);
+            assert!((n[2] - want).abs() < 0.5 * 10f64.powi(-digits) + 1e-12, "γ = {gamma}: {}", n[2]);
+            assert!((n[0] + n[1] + n[2] - 1.0).abs() < 1e-14 && (n[0] - n[1]).abs() < 1e-15);
+        }
+        assert!((ellipsoid_factors(2.0, 2.0, 2.0)[1] - 1.0 / 3.0).abs() < 1e-15);
+        // Takahashi & Oliveira (2017), Table 2: Warrego, a = 490.7, b = 69.7, c = 30 m, χ = 1.69.
+        // Their Eq. 60 puts the susceptibility above which an 8% error needs demagnetisation at
+        // ε/N_max = 0.116 SI; the order of the axes does not matter.
+        let n = ellipsoid_factors(490.7, 69.7, 30.0);
+        assert!((n[2] - 0.689_521).abs() < 1e-6 && (0.08 / n[2] - 0.116).abs() < 5e-4, "{n:?}");
+        assert!((ellipsoid_factors(30.0, 490.7, 69.7)[0] - n[2]).abs() < 1e-15);
+    }
+
+    #[test]
+    fn induced_and_remanent_magnetisation() {
+        // A sphere: M = χH₀/(1 + χ/3), 0.75 of the classical value at χ = 1, 0.2308 at χ = 10; the
+        // remanence is demagnetised by the same factor, and Q is the ratio of the two inputs.
+        let n3 = [[1.0 / 3.0, 0.0, 0.0], [0.0, 1.0 / 3.0, 0.0], [0.0, 0.0, 1.0 / 3.0]];
+        let h0 = [0.0, 0.0, 50e-6 / MU_0]; // 50 000 nT: 39.79 A/m
+        assert!((h0[2] - 39.79).abs() < 0.01);
+        for (chi, factor) in [(0.1, 0.967_742), (1.0, 0.75), (10.0, 0.230_769)] {
+            let m = magnetisation(chi, h0, [0.0; 3], n3);
+            assert!((m[2] / (chi * h0[2]) - factor).abs() < 1e-6 && m[0] == 0.0, "χ = {chi}: {m:?}");
+        }
+        let m = magnetisation(1.0, h0, [3.0, 0.0, 0.0], n3);
+        assert!((m[0] - 2.25).abs() < 1e-12 && (m[2] - 0.75 * h0[2]).abs() < 1e-12);
+        assert!((koenigsberger([3.0, 0.0, 0.0], 1.0, h0) - 3.0 / h0[2]).abs() < 1e-15);
+        // Takahashi & Oliveira's confocal pair (Table 1): the (900, 500, 100) m ellipsoid at χ = 1.2
+        // and the confocal (1676.31, 1500, 1417.74) m one at χ′ = 0.01415 have the same dipole
+        // moment along a, so the same anomaly: a volume 79 times larger at a susceptibility 85
+        // times smaller.
+        let (a, b, c, chi, u) = (900.0f64, 500.0f64, 100.0f64, 1.2, 2e6);
+        let (a2, b2, c2) = ((a * a + u).sqrt(), (b * b + u).sqrt(), (c * c + u).sqrt());
+        assert!((a2 - 1676.31).abs() < 0.01 && (c2 - 1417.74).abs() < 0.01);
+        let diag = |n: [f64; 3]| [[n[0], 0.0, 0.0], [0.0, n[1], 0.0], [0.0, 0.0, n[2]]];
+        let h = [1.0, 0.0, 0.0];
+        let moment = a * b * c * magnetisation(chi, h, [0.0; 3], diag(ellipsoid_factors(a, b, c)))[0];
+        let chi2 = 0.014_15;
+        let moment2 = a2 * b2 * c2 * magnetisation(chi2, h, [0.0; 3], diag(ellipsoid_factors(a2, b2, c2)))[0];
+        assert!((moment2 / moment - 1.0).abs() < 1e-3 && (a2 * b2 * c2 / (a * b * c) - 79.2).abs() < 0.1 && (chi / chi2 - 84.8).abs() < 0.1);
+        // At χ ≪ 1 the classical χH₀ + M_r returns; a cube's centre (−T/4π = I/3) gives the
+        // sphere's factor, by the same route as the sphere.
+        let weak = magnetisation(1e-4, h0, [0.1, 0.0, 0.0], n3);
+        assert!((weak[2] / (1e-4 * h0[2]) - 1.0).abs() < 4e-5 && (weak[0] - 0.1).abs() < 1e-5);
+        let t = prism([0.0; 3], [-0.5; 3], [0.5; 3]).2;
+        let cube: [[f64; 3]; 3] = core::array::from_fn(|i| core::array::from_fn(|j| -t[i][j] / (4.0 * PI)));
+        assert!((magnetisation(1.0, h0, [0.0; 3], cube)[2] / (0.75 * h0[2]) - 1.0).abs() < 1e-13);
     }
 
     #[test]

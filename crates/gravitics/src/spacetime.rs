@@ -439,7 +439,7 @@ mod tests {
         let at = |b: f64| exact_deflection(m, b * rg, Metric::GeneralRelativity).unwrap();
         // Darwin's closed form, as Iyer & Petters (2007) print it, from the closest approach r₀:
         // 4√(r₀/Q)[K(k) − F(Ψ, k)] − π, Q = √((r₀ − 2)(r₀ + 6)), k² = (Q − r₀ + 6)/(2Q),
-        // sin²Ψ = (Q + 2 − r₀)/(Q + 6 − r₀); F through Carlson's R_F.
+        // sin²Ψ = (Q + 2 − r₀)/(Q + 6 − r₀).
         // (Closer to the photon sphere α is ill-conditioned in b: the round trip r₀ → b → r₀
         // alone costs 10⁻¹⁶/(b/b_c − 1). Bozza's limit below covers that regime.)
         for r0 in [3.05f64, 3.5, 4.0, 6.0, 10.0, 100.0] {
@@ -447,7 +447,7 @@ mod tests {
             let k2 = (q - r0 + 6.0) / (2.0 * q);
             let s2 = (q + 2.0 - r0) / (q + 6.0 - r0);
             let (big_k, _) = geopotential::special::complete_elliptic(k2);
-            let f = s2.sqrt() * geopotential::special::carlson_rf(1.0 - s2, 1.0 - k2 * s2, 1.0);
+            let f = geopotential::special::elliptic_f(s2.sqrt().asin(), k2);
             let darwin = 4.0 * (r0 / q).sqrt() * (big_k - f) - PI;
             let b = (r0.powi(3) / (r0 - 2.0)).sqrt();
             // Darwin's form subtracts π from nearly π and K from F near the photon sphere: 10⁻¹³.

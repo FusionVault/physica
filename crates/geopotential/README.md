@@ -72,13 +72,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `normal` | The normal gravity of a level ellipsoid from its four defining constants: GRS80 and WGS84 as Somigliana's formula on and above the ellipsoid, `U₀`, the zonal harmonics and the normal field as coefficients, Bruns' formula with its zero-degree term, and dynamic and normal heights from geopotential numbers ([Moritz 2000](https://doi.org/10.1007/s001900050278); Heiskanen & Moritz 1967) |
 | `grid` with `Functional` | Maps of geoid height, gravity anomaly or disturbance, radial gradient or equivalent water height ([Barthelmes 2013](https://doi.org/10.2312/GFZ.b103-0902-26); [Wahr et al. 1998](https://doi.org/10.1029/98JB02844)) |
 | `Coefficients::analysis`, `gauss_grid`, `gauss_legendre` | The exact inverse of `grid`: any functional on a Gauss–Legendre grid back to coefficients, by Gauss–Legendre quadrature |
-| `slepian` | Slepian functions of a polar cap, the basis for basin averages with the least leakage, from Grünbaum's commuting tridiagonal matrix ([Simons, Dahlen & Wieczorek 2006](https://doi.org/10.1137/S0036144504445765)) |
+| `slepian` | Slepian functions of a polar cap from Grünbaum's commuting tridiagonal matrix, and of any region (a cap anywhere, a polygon) from its concentration matrix, integrated exactly in longitude and on clustered Gauss–Legendre panels in colatitude; the basin kernel that averages a field over a region, with the least leakage ([Simons, Dahlen & Wieczorek 2006](https://doi.org/10.1137/S0036144504445765); [Swenson & Wahr 2002](https://doi.org/10.1029/2001JB000576)) |
 | `read_gfc`, `Gfc` | ICGEM `.gfc` models, static or time-variable (icgem1.0 and 2.0), with their errors ([format](https://icgem.gfz.de/docs/ICGEM-Format-2023.pdf)) |
 | `julian_epoch`, `parse_date` | The decimal-year dates these files use |
-| `bodies` | Potential, attraction and gradient tensor of a uniform body in closed form: a rectangular prism ([Nagy, Papp & Benedek 2000](https://doi.org/10.1007/s001900000116)), finite on its faces and edges, with a Gauss–Legendre cubature far away; and a triangulated polyhedron ([Werner & Scheeres 1997](https://doi.org/10.1007/BF00053511)), whose trace is an inside test |
-| `planar` | Level grids in the wavenumber domain: upward continuation, reduction to the pole and Baranov pseudo-gravity (Blakely 1995, ch. 12), or any kernel through `Grid::filter`; and Euler deconvolution of a profile for a source's position and the background ([Reid & Thurston 2014](https://doi.org/10.1190/geo2013-0235.1)) |
-| `special` | Complete elliptic integrals `K` and `E` by the arithmetic–geometric mean; Bulirsch's general complete integral `cel` (Bulirsch 1969); Carlson's symmetric `R_F`, `R_D`, `R_J`, `R_C` for the incomplete integrals and the third kind ([Carlson 1995](https://arxiv.org/abs/math/9409227)); and `ring`, the average of `1/r` over a ring and its gradient, which rings of mass, charge and current share |
-| `linalg` | Pivoted Gaussian elimination for general systems, Cholesky for the normal equations of least squares, and Jacobi's method for symmetric eigenproblems |
+| `bodies` | Potential, attraction and gradient tensor of a uniform body in closed form: a rectangular prism ([Nagy, Papp & Benedek 2000](https://doi.org/10.1007/s001900000116)), finite on its faces and edges, with a Gauss–Legendre cubature of Bernstein-ellipse order outside it that holds 10⁻¹⁴ on needles and plates where the corner sums lose 10⁻⁸ ([Fukushima 2019](https://doi.org/10.1093/gji/ggz449) diagnosed the loss); and a triangulated polyhedron ([Werner & Scheeres 1997](https://doi.org/10.1007/BF00053511)), whose trace is an inside test, with a mesh check and a cubature over its tetrahedra far away |
+| `planar` | Level grids in the wavenumber domain: upward continuation, reduction to the pole (plain or Wiener-damped) and to the equator, any change of field direction, Baranov pseudo-gravity (Blakely 1995, ch. 12), or any kernel through `Grid::filter`, with edge padding and a cosine taper against the periodic wrap; and Euler deconvolution of a profile or a grid for a source's position and the background, with its covariance, in moving windows, and as Euler inversion, which fits the data too and picks the structural index ([Reid & Thurston 2014](https://doi.org/10.1190/geo2013-0235.1); [Uieda et al. 2025](https://doi.org/10.1093/gji/ggaf114)) |
+| `special` | Complete elliptic integrals `K` and `E` by the arithmetic–geometric mean; Bulirsch's general complete integral `cel` (Bulirsch 1969); Carlson's symmetric `R_F`, `R_D`, `R_J`, `R_C` with their principal values ([Carlson 1995](https://arxiv.org/abs/math/9409227)); Legendre's incomplete `F`, `E` and `Π` for any `m`, with `Π` beyond its pole as a principal value ([DLMF §19.25](https://dlmf.nist.gov/19.25)); and `ring`, the average of `1/r` over a ring and its gradient, which rings of mass, charge and current share |
+| `linalg` | Pivoted Gaussian elimination for general systems, Cholesky for the normal equations of least squares, and symmetric eigenproblems by Jacobi's method or, for large matrices, Householder reduction and the implicit QL iteration |
 | `fft` | The radix-2 fast Fourier transform, for time series and gridded fields |
 
 **Conventions:**
@@ -114,6 +114,18 @@ zip.
   document prints for WGS84 (γ_e, γ_p, k, U₀, J₂–J₈, the even zonals), to their digits; the
   synthesized normal field is Somigliana's gravity to 10⁻¹⁰ m/s²; the free-air gradient 0.3086
   mGal/m.
+- **Bodies:** Fukushima's (2019) Table 4 prism to 10⁻¹⁴; a 1×1×100 needle and a 100×100×1 plate
+  to 3×10⁻¹⁴ from 0.3 off their sides to 100 Brillouin radii; a cube mesh against the prism
+  across the polyhedron's hand-over and out to 1000 sizes; a dented, non-convex mesh.
+- **Special functions:** Carlson's check values and principal values; Abramowitz & Stegun's
+  Tables 17.5, 17.6 and 17.9 within their rounding, DLMF's special values and periods, Π beyond
+  its pole against DLMF 19.25.16.
+- **Planar:** padding against the periodic wrap; reduction to the equator at 10° inclination to
+  1%; Euler deconvolution exact for a dipole, a point mass and a line mass, and Euler inversion's
+  misfit picking the structural index.
+- **Slepian functions:** a cap away from the pole has the polar cap's spectrum to 10⁻¹²; a box
+  and a triangle have their exact areas and Shannon numbers; the basin mean of P̄₂₀ over a cap in
+  closed form.
 - **Real files** from COST-G and GOCO06s, which bend the format in practice: missing header
   markers, comment and warning lines, `errors empirical`, and free text before the header. A
   malformed record fails with its line number. The fixtures' sources are listed in

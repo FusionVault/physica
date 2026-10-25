@@ -1,12 +1,18 @@
-//! Slepian functions: the bandlimited functions on the sphere best concentrated inside a region,
-//! here a polar cap (Simons, Dahlen & Wieczorek, SIAM Rev. 48, 504, 2006). They are the basis for
-//! averaging a gravity field over a basin, or a magnetic field over a region, with the least
-//! leakage from outside it.
+//! Slepian functions: the bandlimited functions on the sphere best concentrated inside a region
+//! (Simons, Dahlen & Wieczorek, SIAM Rev. 48, 504, 2006). They are the basis for averaging a
+//! gravity field over a basin, or a magnetic field over a region, with the least leakage from
+//! outside it.
 //!
-//! A function `g = Σ_l c_l P̄lm(cos θ) cos mλ` to degree `L` puts the fraction
-//! `λ = cᵀDc / cᵀc` of its energy inside the cap `θ ≤ Θ`, where `D` is the cap's concentration
-//! matrix. Its eigenvectors are the Slepian functions. The eigenvalues sum to the Shannon number
-//! `(L + 1)²(1 − cos Θ)/2`, about how many of them are well concentrated.
+//! A function `g = Σ c_lm P̄lm(cos θ){cos, sin}mλ` to degree `L` puts the fraction
+//! `λ = cᵀDc / cᵀc` of its energy inside a region `R`, where
+//! `D = (1/4π)∫_R P̄lm P̄l′m′ T_m T_m′ dΩ` is the region's concentration matrix. Its eigenvectors
+//! are the Slepian functions, and its eigenvalues sum to the Shannon number `(L + 1)²A/4π`,
+//! about how many of them are well concentrated. For a [`polar_cap`] the matrix is one block
+//! per order and Grünbaum's commuting matrix gives clean eigenvectors; any other [`region`] is
+//! integrated the way Simons' `kernelc` does it, exactly in longitude and by Gauss–Legendre in
+//! colatitude, here with the nodes clustered at the region's vertex colatitudes. The region's
+//! first row of `D` is its [`basin_kernel`], which averages a field over it (Swenson & Wahr
+//! 2002, Eqs. 17–18).
 //!
 //! ```
 //! use geopotential::slepian::polar_cap;
@@ -18,8 +24,11 @@
 //! assert!(cap[0].concentration > 1.0 - 1e-7);
 //! ```
 
+use core::f64::consts::{FRAC_PI_2, PI, TAU};
+
 use crate::legendre::{Legendre, gauss_legendre, idx};
 use crate::linalg::symmetric_eigen;
+use crate::{Coefficients, Functional};
 
 /// One Slepian function of a polar cap.
 #[derive(Clone, Debug, PartialEq)]
@@ -92,6 +101,221 @@ fn grunbaum(m: usize, lmax: usize, theta: f64) -> Vec<f64> {
         }
     }
     g
+}
+
+/// One Slepian function of any region: its concentration and its coefficients, a unit vector
+/// in the crate's normalization (`(1/4π)∫g² dΩ = 1`), held as a field with unit `GM` and radius
+/// so that it can be synthesized and compared with any [`Coefficients`] by their dot product.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RegionSlepian {
+    /// The fraction of its energy inside the region, between 0 and 1.
+    pub concentration: f64,
+    /// Its coefficients `C̄lm`, `S̄lm` to the degree the region was built for.
+    pub coefficients: Coefficients,
+}
+
+/// A region as the longitude intervals it covers at a colatitude: at `θ` (radians) the function
+/// returns each `(λ₁, λ₂)` with `λ₁ < λ₂` inside it, and nothing where the region is absent.
+/// Longitudes may run beyond `[0, 2π)`: only the differences matter.
+pub type Intervals<'a> = &'a dyn Fn(f64) -> Vec<(f64, f64)>;
+
+/// The basis the general matrices are indexed by: `(l, m, sine)` for `l ≤ L`, `m ≤ l`, the sine
+/// term for `m > 0` only.
+fn basis(lmax: usize) -> Vec<(usize, usize, bool)> {
+    (0..=lmax).flat_map(|l| (0..=l).flat_map(move |m| if m == 0 { vec![(l, m, false)] } else { vec![(l, m, false), (l, m, true)] })).collect()
+}
+
+/// The integrals of `cos fλ` and `sin fλ` over `intervals`, summed, for `f = 0 ..= 2L`, from which
+/// every product of two longitude factors follows: `cos a cos b = ½[S(a−b) + S(a+b)]`,
+/// `sin a sin b = ½[S(a−b) − S(a+b)]`, `sin a cos b = ½[C(a+b) + C(a−b)]`, with `S` even and `C`
+/// odd in `f`.
+fn longitude_integrals(lmax: usize, intervals: &[(f64, f64)]) -> (Vec<f64>, Vec<f64>) {
+    let (mut s, mut c) = (vec![0.0; 2 * lmax + 1], vec![0.0; 2 * lmax + 1]);
+    for &(lo, hi) in intervals {
+        s[0] += hi - lo;
+        for f in 1..=2 * lmax {
+            let ff = f as f64;
+            s[f] += ((ff * hi).sin() - (ff * lo).sin()) / ff;
+            c[f] += ((ff * lo).cos() - (ff * hi).cos()) / ff;
+        }
+    }
+    (s, c)
+}
+
+/// `∫ T_a T_b dλ` over the intervals behind `(s, c)`, for orders `a`, `b` and their sine flags.
+fn longitude_product((s, c): (&[f64], &[f64]), (a, sa): (usize, bool), (b, sb): (usize, bool)) -> f64 {
+    let even = |f: isize| s[f.unsigned_abs()];
+    let odd = |f: isize| if f < 0 { -c[(-f) as usize] } else { c[f as usize] };
+    let (sum, diff) = ((a + b) as isize, a as isize - b as isize);
+    match (sa, sb) {
+        (false, false) => 0.5 * (even(diff) + even(sum)),
+        (true, true) => 0.5 * (even(diff) - even(sum)),
+        (true, false) => 0.5 * (odd(sum) + odd(diff)),
+        (false, true) => 0.5 * (odd(sum) - odd(diff)),
+    }
+}
+
+/// The nodes and weights of the colatitude integration over `[a, b]`: `nodes` Gauss–Legendre
+/// points in `t ∈ [0, π]` mapped as `θ = a + (b − a)(1 − cos t)/2`, which clusters them at both
+/// ends, where a region's width goes like a square root; the weights carry `sin θ`.
+fn colatitude_rule(a: f64, b: f64, nodes: usize) -> Vec<(f64, f64)> {
+    let (x, w) = gauss_legendre(nodes);
+    x.iter()
+        .zip(&w)
+        .map(|(&x, &w)| {
+            let t = (x + 1.0) * FRAC_PI_2;
+            let theta = a + (b - a) * (1.0 - t.cos()) / 2.0;
+            (theta, w * FRAC_PI_2 * (b - a) * t.sin() / 2.0 * theta.sin())
+        })
+        .collect()
+}
+
+/// The concentration matrix `D` of a region to degree `lmax`, row-major over the basis `(l, m,
+/// cos)`, `(l, m, sin)` for `l ≤ L`, `m ≤ l` (the sine for `m > 0` only), `l` outermost:
+/// `D_ij = (1/4π)∫_R P̄_i P̄_j T_i T_j dΩ`, integrated exactly in longitude and with `nodes`
+/// clustered Gauss–Legendre points in colatitude on each panel between consecutive `breaks`,
+/// which should include every colatitude where the region's outline has a vertex or an extremum
+/// (Simons' `kernelc`, with the panels added). Its trace is the Shannon number `(L + 1)²A/4π` and
+/// its first entry the fractional area `A/4π`.
+pub fn concentration_matrix(lmax: usize, intervals: Intervals, breaks: &[f64], nodes: usize) -> Vec<f64> {
+    let basis = basis(lmax);
+    let n = basis.len();
+    let mut d = vec![0.0; n * n];
+    let mut leg = Legendre::new(lmax);
+    for panel in breaks.windows(2) {
+        for (theta, weight) in colatitude_rule(panel[0], panel[1], nodes) {
+            let at = intervals(theta);
+            if at.is_empty() {
+                continue;
+            }
+            let (s, c) = longitude_integrals(lmax, &at);
+            leg.compute(FRAC_PI_2 - theta);
+            let p: Vec<f64> = basis.iter().map(|&(l, m, _)| leg.p[idx(l, m)]).collect();
+            for i in 0..n {
+                for j in 0..=i {
+                    let value = weight * p[i] * p[j] * longitude_product((&s, &c), (basis[i].1, basis[i].2), (basis[j].1, basis[j].2));
+                    d[i * n + j] += value;
+                    if i != j {
+                        d[j * n + i] += value;
+                    }
+                }
+            }
+        }
+    }
+    d.iter_mut().for_each(|x| *x /= 4.0 * PI);
+    d
+}
+
+/// The Slepian functions to degree `lmax` of a region ([`concentration_matrix`] has the
+/// arguments), best concentrated first. Their eigenvalues cluster at 1 and 0, so vectors within
+/// a cluster are determined only up to rotations among themselves; the sum of the top `N`
+/// functions' projections, which is what a regional estimate uses, is not affected.
+pub fn region(lmax: usize, intervals: Intervals, breaks: &[f64], nodes: usize) -> Vec<RegionSlepian> {
+    let basis = basis(lmax);
+    let n = basis.len();
+    let (values, vectors) = symmetric_eigen(&concentration_matrix(lmax, intervals, breaks, nodes), n);
+    let mut out: Vec<RegionSlepian> = (0..n)
+        .map(|k| {
+            let mut coefficients = Coefficients::zeros(1.0, 1.0, lmax);
+            for (i, &(l, m, sine)) in basis.iter().enumerate() {
+                let (c, s) = (coefficients.c(l, m), coefficients.s(l, m));
+                if sine { coefficients.set(l, m, c, vectors[i * n + k]) } else { coefficients.set(l, m, vectors[i * n + k], s) }
+            }
+            RegionSlepian { concentration: values[k], coefficients }
+        })
+        .collect();
+    out.sort_by(|a, b| b.concentration.total_cmp(&a.concentration));
+    out
+}
+
+/// The longitude intervals of a spherical cap of angular `radius` centred at colatitude `colat`
+/// and longitude `lon` (radians), and the breaks its integration needs: the cap's two colatitude
+/// extremes and, when it holds a pole, the colatitude where it stops covering every longitude.
+pub fn cap(colat: f64, lon: f64, radius: f64) -> (impl Fn(f64) -> Vec<(f64, f64)> + use<>, Vec<f64>) {
+    let intervals = move |theta: f64| {
+        let q = (radius.cos() - theta.cos() * colat.cos()) / (theta.sin() * colat.sin()).max(f64::MIN_POSITIVE);
+        if q <= -1.0 {
+            vec![(0.0, TAU)]
+        } else if q >= 1.0 {
+            vec![]
+        } else {
+            let half = q.acos();
+            vec![(lon - half, lon + half)]
+        }
+    };
+    let mut breaks = vec![(colat - radius).max(0.0), (colat - radius).abs(), (colat + radius).min(PI), (TAU - colat - radius).min(PI)];
+    breaks.sort_by(f64::total_cmp);
+    breaks.dedup();
+    (intervals, breaks)
+}
+
+/// The longitude intervals of a polygon with `vertices` `(λ, φ)` (longitude and latitude,
+/// radians), its edges straight in `(λ, φ)` as in Simons' `dphregion`, and the breaks at its
+/// vertices' colatitudes. A vertical crossing of the polygon at a colatitude pairs the edges it
+/// cuts from west to east, so the polygon may be concave; it must not cross the dateline or
+/// hold a pole.
+pub fn polygon(vertices: &[(f64, f64)]) -> (impl Fn(f64) -> Vec<(f64, f64)> + use<>, Vec<f64>) {
+    let v: Vec<(f64, f64)> = vertices.iter().map(|&(lon, lat)| (lon, FRAC_PI_2 - lat)).collect();
+    let mut breaks: Vec<f64> = v.iter().map(|&(_, c)| c).collect();
+    breaks.sort_by(f64::total_cmp);
+    breaks.dedup();
+    let intervals = move |theta: f64| {
+        let mut crossings: Vec<f64> = (0..v.len())
+            .filter_map(|i| {
+                let ((l0, c0), (l1, c1)) = (v[i], v[(i + 1) % v.len()]);
+                ((c0 - theta) * (c1 - theta) < 0.0).then(|| l0 + (l1 - l0) * (theta - c0) / (c1 - c0))
+            })
+            .collect();
+        crossings.sort_by(f64::total_cmp);
+        crossings.chunks_exact(2).map(|pair| (pair[0], pair[1])).collect()
+    };
+    (intervals, breaks)
+}
+
+/// The basin kernel `ϑ̂_lm = (1/4π)∫_R P̄lm {cos, sin}mλ dΩ` of a region to degree `lmax`, as
+/// coefficients with unit `GM` and radius: the first row of its [`concentration_matrix`], at a
+/// cost of `n` per node instead of `n²`. `ϑ̂_00` is the fractional area. Swenson & Wahr's
+/// (2002) `ϑ^c_lm` is `4πϑ̂` and their `Ω_region` is `4πϑ̂_00`.
+pub fn basin_kernel(lmax: usize, intervals: Intervals, breaks: &[f64], nodes: usize) -> Coefficients {
+    let basis = basis(lmax);
+    let mut kernel = vec![0.0; basis.len()];
+    let mut leg = Legendre::new(lmax);
+    for panel in breaks.windows(2) {
+        for (theta, weight) in colatitude_rule(panel[0], panel[1], nodes) {
+            let at = intervals(theta);
+            if at.is_empty() {
+                continue;
+            }
+            let (s, c) = longitude_integrals(lmax, &at);
+            leg.compute(FRAC_PI_2 - theta);
+            for (k, &(l, m, sine)) in basis.iter().enumerate() {
+                kernel[k] += weight * leg.p[idx(l, m)] * longitude_product((&s, &c), (m, sine), (0, false));
+            }
+        }
+    }
+    let mut out = Coefficients::zeros(1.0, 1.0, lmax);
+    for (k, &(l, m, sine)) in basis.iter().enumerate() {
+        let (c, s) = (out.c(l, m), out.s(l, m));
+        let v = kernel[k] / (4.0 * PI);
+        if sine { out.set(l, m, c, v) } else { out.set(l, m, v, s) }
+    }
+    out
+}
+
+/// The mean of a `functional` of `field` over the region of `kernel` at radius `r`:
+/// `Σ_lm κ_l (C̄_lm ϑ̂^c_lm + S̄_lm ϑ̂^s_lm)/ϑ̂_00`, Swenson & Wahr's (2002) Eq. 17 in the
+/// crate's normalization, to the lower of the two degrees. With
+/// [`Functional::WaterHeight`] it is the basin's mean water height.
+pub fn basin_average(field: &Coefficients, kernel: &Coefficients, functional: &Functional, r: f64) -> f64 {
+    let nmax = field.max_degree().min(kernel.max_degree());
+    let mut sum = 0.0;
+    for n in 0..=nmax {
+        let factor = functional.factor(n, field.gm, field.radius, r);
+        for m in 0..=n {
+            sum += factor * (field.c(n, m) * kernel.c(n, m) + field.s(n, m) * kernel.s(n, m));
+        }
+    }
+    sum / kernel.c(0, 0)
 }
 
 #[cfg(test)]
@@ -171,5 +395,100 @@ mod tests {
                 .sum();
             assert!((inside / whole - s.concentration).abs() < 1e-13, "m = {}: {} vs {}", s.m, inside / whole, s.concentration);
         }
+    }
+
+    /// The polar cap's concentrations with their multiplicity, best first.
+    fn polar_spectrum() -> Vec<f64> {
+        let mut all: Vec<f64> = polar_cap(L, theta()).iter().flat_map(|s| vec![s.concentration; if s.m == 0 { 1 } else { 2 }]).collect();
+        all.sort_by(|a, b| b.total_cmp(a));
+        all
+    }
+
+    #[test]
+    fn a_cap_anywhere_has_the_polar_caps_spectrum() {
+        // The general integration of the polar cap itself reproduces the block method's
+        // eigenvalues, and the same cap centred at colatitude 60°, longitude 30° has them too
+        // (rotation invariance), with the trace the Shannon number: 48 nodes per panel reach
+        // 10⁻¹³, where 24 leave 4×10⁻³ (the notes).
+        let polar = polar_spectrum();
+        let shannon = (L as f64 + 1.0).powi(2) * (1.0 - theta().cos()) / 2.0;
+        let (at_pole, breaks) = cap(0.0, 0.0, theta());
+        let (moved, moved_breaks) = cap(60f64.to_radians(), 30f64.to_radians(), theta());
+        for (name, intervals, breaks) in [("polar", &at_pole as Intervals, &breaks[..]), ("moved", &moved as Intervals, &moved_breaks[..])] {
+            let d = concentration_matrix(L, intervals, breaks, 48);
+            let n = (L + 1) * (L + 1);
+            let trace: f64 = (0..n).map(|i| d[i * n + i]).sum();
+            assert!((trace - shannon).abs() < 1e-12, "{name}: {trace}");
+            let functions = region(L, intervals, breaks, 48);
+            for (k, (got, want)) in functions.iter().map(|s| s.concentration).zip(&polar).enumerate() {
+                assert!((got - want).abs() < 1e-12, "{name} λ{k}: {got} vs {want}");
+            }
+            // Unit norm, and the concentration is the Rayleigh quotient of the matrix.
+            let best = &functions[0];
+            let norm: f64 = (0..=L).flat_map(|l| (0..=l).map(move |m| (l, m))).map(|(l, m)| best.coefficients.c(l, m).powi(2) + best.coefficients.s(l, m).powi(2)).sum();
+            assert!((norm - 1.0).abs() < 1e-13 && best.concentration > 1.0 - 1e-6);
+        }
+        let coarse = region(L, &moved as Intervals, &moved_breaks, 24);
+        let worst = coarse.iter().map(|s| s.concentration).zip(&polar).map(|(a, b)| (a - b).abs()).fold(0f64, f64::max);
+        assert!(worst > 1e-4, "{worst:e}");
+    }
+
+    #[test]
+    fn polygons_have_their_areas_and_shannon_numbers() {
+        // A longitude–latitude box 10–50°E, 20°S–15°N: D₀₀ = A/4π exactly, and tr D = (L+1)²A/4π.
+        let d = f64::to_radians;
+        let (box_intervals, breaks) = polygon(&[(d(10.0), d(-20.0)), (d(50.0), d(-20.0)), (d(50.0), d(15.0)), (d(10.0), d(15.0))]);
+        let area = (d(15.0).sin() - d(-20.0).sin()) * d(40.0);
+        let n = 13 * 13;
+        let m = concentration_matrix(12, &box_intervals as Intervals, &breaks, 32);
+        assert!((m[0] - area / (4.0 * PI)).abs() < 1e-15, "{} vs {}", m[0], area / (4.0 * PI));
+        let trace: f64 = (0..n).map(|i| m[i * n + i]).sum();
+        assert!((trace / (169.0 * area / (4.0 * PI)) - 1.0).abs() < 1e-13);
+        // A triangle (0,0), (40,10), (15,50) with edges straight in (λ, φ): its area by a fine
+        // midpoint sum of its width times cos φ, 0.2601573187 of the sphere's... as 4πD₀₀.
+        let (tri, breaks) = polygon(&[(0.0, 0.0), (d(40.0), d(10.0)), (d(15.0), d(50.0))]);
+        let steps = 200_000;
+        let fine: f64 = (0..steps)
+            .map(|i| {
+                let lat = d(50.0) * (i as f64 + 0.5) / steps as f64;
+                tri(FRAC_PI_2 - lat).iter().map(|(a, b)| b - a).sum::<f64>() * lat.cos() * d(50.0) / steps as f64
+            })
+            .sum();
+        let m = concentration_matrix(12, &tri as Intervals, &breaks, 32);
+        assert!((m[0] * 4.0 * PI - fine).abs() < 1e-9 && (fine - 0.260_157_318_7).abs() < 1e-9, "{} vs {fine}", m[0] * 4.0 * PI);
+        let trace: f64 = (0..n).map(|i| m[i * n + i]).sum();
+        assert!((trace / (169.0 * fine / (4.0 * PI)) - 1.0).abs() < 1e-11, "{}", trace / (169.0 * fine / (4.0 * PI)) - 1.0);
+        // Concave polygons work: an L shape's area is the two boxes'.
+        let (ell, breaks) = polygon(&[(0.0, 0.0), (d(20.0), 0.0), (d(20.0), d(10.0)), (d(10.0), d(10.0)), (d(10.0), d(20.0)), (0.0, d(20.0))]);
+        let want = d(20.0) * d(10.0).sin() + d(10.0) * (d(20.0).sin() - d(10.0).sin());
+        assert!((basin_kernel(4, &ell as Intervals, &breaks, 32).c(0, 0) * 4.0 * PI - want).abs() < 1e-14);
+    }
+
+    #[test]
+    fn the_basin_average_of_a_harmonic() {
+        // The mean of P̄₂₀ over the 40° polar cap is √5 c(1 + c)/2 with c = cos 40° (the integral
+        // of P₂ over the cap in closed form): 1.512553001033005. The kernel is D's first row.
+        let (at_pole, breaks) = cap(0.0, 0.0, theta());
+        let kernel = basin_kernel(L, &at_pole as Intervals, &breaks, 48);
+        let c = theta().cos();
+        assert!((kernel.c(0, 0) - (1.0 - c) / 2.0).abs() < 1e-16);
+        let mut field = Coefficients::zeros(1.0, 1.0, L);
+        field.set(2, 0, 1.0, 0.0);
+        let mean = basin_average(&field, &kernel, &Functional::Potential, 1.0);
+        assert!((mean - 5f64.sqrt() * c * (1.0 + c) / 2.0).abs() < 1e-14, "{mean}");
+        let d = concentration_matrix(L, &at_pole as Intervals, &breaks, 48);
+        let n = (L + 1) * (L + 1);
+        for (k, &(l, m, sine)) in basis(L).iter().enumerate() {
+            let want = if sine { kernel.s(l, m) } else { kernel.c(l, m) };
+            assert!((d[k] - want).abs() < 1e-16 && (d[k * n] - want).abs() < 1e-16);
+        }
+        // A sine coefficient averages to zero over anything symmetric about λ = 0, and the mean
+        // of a field over the whole sphere is its C̄₀₀.
+        let (half, breaks) = polygon(&[(-1.0, -0.5), (1.0, -0.5), (1.0, 0.5), (-1.0, 0.5)]);
+        let symmetric = basin_kernel(6, &half as Intervals, &breaks, 32);
+        assert!((0..=6).all(|l| (1..=l).all(|m| symmetric.s(l, m).abs() < 1e-16)));
+        let (all, breaks) = cap(0.0, 0.0, PI);
+        let everywhere = basin_kernel(6, &all as Intervals, &breaks, 48);
+        assert!((everywhere.c(0, 0) - 1.0).abs() < 1e-15 && (1..=6).all(|l| everywhere.c(l, 0).abs() < 1e-15));
     }
 }
