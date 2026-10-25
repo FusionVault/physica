@@ -146,6 +146,27 @@ releases of the other five for the repository's new name (`metrology` 0.2.1, `ge
 0.3.1, `gravimetry` 0.6.1, `gravitational` 0.2.1, `magnetics` 0.1.1), each tagged
 `<crate>-vX.Y.Z`.
 
+## Phase F: cross-domain frontiers — planned 2026-10-25
+
+Research into 2022–2026 papers and patents in plasma physics, magnetics, gravity and light:
+[`topics/cross-domain-frontiers/report.md`](topics/cross-domain-frontiers/report.md), with seven
+notes and eight passing check scripts. It proposes 42 additions, each pinned to a published number,
+in six phases after a phase of ten fixes to the published crates. Tracked as GitHub issues in the
+[Cross-domain frontiers milestone](https://github.com/FusionVault/physica/milestone/1), with the
+build order in [#10](https://github.com/FusionVault/physica/issues/10):
+
+| Issue | Phase |
+|---|---|
+| [#1](https://github.com/FusionVault/physica/issues/1) | 0: fix the ten defects in the published crates |
+| [#2](https://github.com/FusionVault/physica/issues/2) | 1: the shared potential-field core in `geopotential` |
+| [#3](https://github.com/FusionVault/physica/issues/3) | 2: measuring gravity on the ground; the equivalence principle |
+| [#4](https://github.com/FusionVault/physica/issues/4) | 3: black holes, lensing and light in curved spacetime |
+| [#5](https://github.com/FusionVault/physica/issues/5) | 4: plasma kinetics, collisions, ignition, dense matter and lasers |
+| [#6](https://github.com/FusionVault/physica/issues/6) | 5: magnetometers, magnets, the main field, optics and aeromagnetics |
+| [#7](https://github.com/FusionVault/physica/issues/7) | 6: `physica` analogies and examples |
+| [#8](https://github.com/FusionVault/physica/issues/8) | Verify before coding |
+| [#9](https://github.com/FusionVault/physica/issues/9) | Deferred items and what would bring them in |
+
 ## Open
 
 - **Retired crates:** `satgrav`, `gravity-field` and `gravity-claims` are deleted; `gwsens` was
