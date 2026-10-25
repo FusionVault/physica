@@ -166,9 +166,61 @@ fn derive(src: &[f64], dst: &mut [f64], nmax: usize) {
     }
 }
 
+/// The `n` nodes (ascending) and weights of Gauss–Legendre quadrature on `[−1, 1]`, exact for
+/// polynomials of degree up to `2n − 1`: Newton's method on `P_n` from Tricomi's starting values,
+/// with the weights `2/((1 − x²)P_n′²)` and the symmetry about 0 imposed.
+pub fn gauss_legendre(n: usize) -> (Vec<f64>, Vec<f64>) {
+    let (mut x, mut w) = (vec![0.0; n], vec![0.0; n]);
+    for i in 0..n.div_ceil(2) {
+        let mut z = (core::f64::consts::PI * (i as f64 + 0.75) / (n as f64 + 0.5)).cos();
+        let mut dp = 0.0;
+        for _ in 0..100 {
+            let (mut p0, mut p1) = (1.0, z);
+            for k in 2..=n {
+                (p0, p1) = (p1, ((2 * k - 1) as f64 * z * p1 - (k - 1) as f64 * p0) / k as f64);
+            }
+            if n == 1 {
+                p0 = 1.0;
+            }
+            dp = n as f64 * (z * p1 - p0) / (z * z - 1.0);
+            let step = p1 / dp;
+            z -= step;
+            if step.abs() <= 1e-16 {
+                break;
+            }
+        }
+        let weight = 2.0 / ((1.0 - z * z) * dp * dp);
+        (x[i], x[n - 1 - i]) = (-z, z);
+        (w[i], w[n - 1 - i]) = (weight, weight);
+    }
+    if n % 2 == 1 {
+        x[n / 2] = 0.0;
+    }
+    (x, w)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gauss_legendre_quadrature() {
+        for n in [1, 2, 5, 17, 64] {
+            let (x, w) = gauss_legendre(n);
+            // Exact for x^k up to k = 2n − 1: ∫x^k = 2/(k+1) for even k, 0 for odd.
+            for k in 0..2 * n {
+                let sum: f64 = x.iter().zip(&w).map(|(x, w)| w * x.powi(k as i32)).sum();
+                let want = if k % 2 == 0 { 2.0 / (k + 1) as f64 } else { 0.0 };
+                assert!((sum - want).abs() < 2e-15, "n = {n}, x^{k}: {sum}");
+            }
+            assert!(x.windows(2).all(|p| p[0] < p[1]));
+        }
+        // The 4-point rule in closed form: ±√(3/7 ∓ (2/7)√(6/5)), weights (18 ± √30)/36.
+        let (x, w) = gauss_legendre(4);
+        assert!((x[3] - (3.0 / 7.0 + 2.0 / 7.0 * 1.2f64.sqrt()).sqrt()).abs() < 1e-16);
+        // Two ulp, as the closed forms themselves round.
+        assert!((w[3] - (18.0 - 30f64.sqrt()) / 36.0).abs() < 4e-16 && (w[2] - (18.0 + 30f64.sqrt()) / 36.0).abs() < 4e-16);
+    }
 
     const LATS_DEG: [f64; 7] = [-89.9999, -45.0, -3.0, 0.0, 30.0, 89.9, 89.9999];
 

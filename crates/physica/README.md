@@ -83,6 +83,7 @@ Each is an exact identity a test asserts, not a loose resemblance.
 | Schwinger and Unruh | pair-creation suppression `e^(−πE_S/E)` is a Boltzmann factor at the Unruh temperature |
 | Gravity's vacuum constants | `1/(4πG)` and `4πG/c²` give `1/√(εμ) = c` |
 | One plasma, three crates | the plasma frequency and Alfvén speed written in `gravitational`, `magnetics` and `plasmoid` agree: exactly, and to the 2.7×10⁻⁴ the electrons' mass makes |
+| Poisson's relation | a magnetised body's anomaly is its gravity gradient: `gravimetry`'s sphere and `magnetics`' sphere agree to 10⁻¹⁴, and a magnetic survey's pseudo-gravity from `geopotential::planar` is the gravity survey to 0.17% |
 
 ## Applications
 

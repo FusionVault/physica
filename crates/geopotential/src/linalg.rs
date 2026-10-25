@@ -105,6 +105,45 @@ pub fn cholesky_inverse_diagonal(l: &[f64], n: usize) -> Vec<f64> {
     diag
 }
 
+/// Eigenvalues and eigenvectors of a symmetric `n×n` matrix `a` (row-major), by cyclic Jacobi
+/// rotations, which keep small eigenvalues accurate to the matrix's round-off. Eigenvalue `k` is
+/// `values[k]`, with its unit eigenvector in column `k` of `vectors` (row-major), in no particular
+/// order.
+pub fn symmetric_eigen(a: &[f64], n: usize) -> (Vec<f64>, Vec<f64>) {
+    let mut a = a.to_vec();
+    let mut v: Vec<f64> = (0..n * n).map(|i| if i / n == i % n { 1.0 } else { 0.0 }).collect();
+    let scale = a.iter().map(|x| x * x).sum::<f64>();
+    for _ in 0..100 {
+        let off: f64 = (0..n).flat_map(|p| (p + 1..n).map(move |q| (p, q))).map(|(p, q)| a[p * n + q].powi(2)).sum();
+        if off <= 1e-34 * scale {
+            break;
+        }
+        for p in 0..n {
+            for q in p + 1..n {
+                if a[p * n + q] == 0.0 {
+                    continue;
+                }
+                // The rotation that zeroes a_pq: t = tan φ, the smaller root of t² + 2θt − 1 = 0.
+                let theta = (a[q * n + q] - a[p * n + p]) / (2.0 * a[p * n + q]);
+                let t = theta.signum() / (theta.abs() + theta.hypot(1.0));
+                let c = 1.0 / t.hypot(1.0);
+                let s = t * c;
+                for k in 0..n {
+                    let (kp, kq) = (a[k * n + p], a[k * n + q]);
+                    (a[k * n + p], a[k * n + q]) = (c * kp - s * kq, s * kp + c * kq);
+                }
+                for k in 0..n {
+                    let (pk, qk) = (a[p * n + k], a[q * n + k]);
+                    (a[p * n + k], a[q * n + k]) = (c * pk - s * qk, s * pk + c * qk);
+                    let (kp, kq) = (v[k * n + p], v[k * n + q]);
+                    (v[k * n + p], v[k * n + q]) = (c * kp - s * kq, s * kp + c * kq);
+                }
+            }
+        }
+    }
+    ((0..n).map(|k| a[k * n + k]).collect(), v)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -147,6 +186,30 @@ mod tests {
                 let v: f64 = row.iter().zip(&col).map(|(x, y)| x * y).sum();
                 assert!((v - e[i]).abs() < 1e-10);
             }
+        }
+    }
+
+    #[test]
+    fn symmetric_eigen_of_the_discrete_laplacian() {
+        // tridiag(−1, 2, −1) of size n has eigenvalues 2 − 2cos(kπ/(n+1)) in closed form.
+        let n: usize = 12;
+        let a: Vec<f64> = (0..n * n).map(|i| match (i / n).abs_diff(i % n) { 0 => 2.0, 1 => -1.0, _ => 0.0 }).collect();
+        let (mut values, vectors) = symmetric_eigen(&a, n);
+        for k in 0..n {
+            // A v = λ v, and the columns are orthonormal.
+            for i in 0..n {
+                let av: f64 = (0..n).map(|j| a[i * n + j] * vectors[j * n + k]).sum();
+                assert!((av - values[k] * vectors[i * n + k]).abs() < 1e-14);
+            }
+            for l in 0..n {
+                let dot: f64 = (0..n).map(|i| vectors[i * n + k] * vectors[i * n + l]).sum();
+                assert!((dot - if k == l { 1.0 } else { 0.0 }).abs() < 1e-14);
+            }
+        }
+        values.sort_by(f64::total_cmp);
+        for (k, v) in values.iter().enumerate() {
+            let want = 2.0 - 2.0 * ((k + 1) as f64 * core::f64::consts::PI / (n + 1) as f64).cos();
+            assert!((v - want).abs() < 1e-14, "λ{k} = {v} vs {want}");
         }
     }
 }

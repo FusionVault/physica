@@ -126,3 +126,47 @@
 //! let gap = ions_only / with_electrons - 1.0;
 //! assert!((gap - ((1.0 + M_E / M_P).sqrt() - 1.0)).abs() < 1e-14 && (gap - 2.72e-4).abs() < 1e-6);
 //! ```
+//!
+//! **Poisson's relation.** A uniformly magnetised body's anomaly is its own gravity gradient. With
+//! magnetisation `M` along `M̂` and density contrast `Δρ`, `B = (μ₀/4π)(M/(GΔρ))(Γ − I tr Γ)·M̂`,
+//! so at the magnetic pole a total-field survey reads `(μ₀/4π)(M/(GΔρ))Γ_uu`. The sphere in
+//! `gravimetry` and the sphere in `magnetics` are written independently and agree on the profile.
+//!
+//! ```
+//! use core::f64::consts::PI;
+//! use gravimetry::local::sphere as gravity;
+//! use magnetics::anomaly::{sphere as magnetic, total_field};
+//! use metrology::{G, MU_0};
+//!
+//! let (a, depth, rho, m) = (5.0, 20.0, 2700.0, 1.0);
+//! for x in [0.0, 7.0, 25.0] {
+//!     let (_, gamma_uu) = gravity(a, depth, rho, x);
+//!     let b = magnetic([x, 0.0, 0.0], [0.0, 0.0, depth], a, [0.0, 0.0, m]); // z down, at the pole
+//!     let poisson = MU_0 / (4.0 * PI) * m / (G * rho) * gamma_uu;
+//!     assert!((b[2] / poisson - 1.0).abs() < 1e-14);
+//!     // A magnetometer in a 60 000 nT field reads it to within B²/2F.
+//!     assert!((total_field([0.0, 0.0, 6e-5], b) - poisson).abs() < 1e-12);
+//! }
+//! ```
+//!
+//! In the wavenumber domain the same relation is Baranov's pseudo-gravity: a magnetic survey,
+//! reduced to the pole and integrated once downward, is the gravity survey of the same body.
+//!
+//! ```
+//! use geopotential::planar::Grid;
+//! use gravimetry::local::sphere as gravity;
+//! use magnetics::anomaly::{sphere as magnetic, total_field};
+//!
+//! let grid = Grid { nx: 128, ny: 128, dx: 10.0, dy: 10.0 };
+//! let (a, depth, rho) = (10.0, 50.0, 2700.0);
+//! let tilted = [45f64.to_radians().cos(), 0.0, 45f64.to_radians().sin()]; // I = 45°, z down
+//! let earth = tilted.map(|u| 5e-5 * u);
+//! let survey: Vec<f64> = grid
+//!     .points()
+//!     .map(|(x, y)| total_field(earth, magnetic([x, y, 0.0], [640.0, 640.0, depth], a, tilted)))
+//!     .collect();
+//! let pseudo = grid.pseudo_gravity(&survey, tilted, tilted, rho);
+//! let (centre, corner) = (64 * 128 + 64, 0);
+//! let peak = gravity(a, depth, rho, 0.0).0 - gravity(a, depth, rho, 640f64.hypot(640.0)).0;
+//! assert!(((pseudo[centre] - pseudo[corner]) / peak - 1.0).abs() < 3e-3); // −0.17%, from the periodic grid
+//! ```
