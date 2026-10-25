@@ -1,6 +1,6 @@
 [package]
 name = "gravimetry"
-version = "0.6.0"
+version = "0.6.1"
 description = "Satellite gravimetry: mission and sensor noise (electrostatic and cold-atom accelerometers, laser ranging, gradiometers), closed-loop simulation, GRACE processing (technical notes, smoothing, stripe removal, water height), earthquake gravity, a Kalman smoother and atmospheric waves."
 keywords = ["geodesy", "grace", "hydrology", "gravimetry", "earthquake"]
 categories = ["science::geo"]
