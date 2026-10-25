@@ -78,6 +78,7 @@ assert!(dynamo_field(2.04, 3e-5) > 0.0); // a neutral wind across the field driv
 | `stability` | Kadomtsev's sausage and kink criteria, magnetic Rayleigh–Taylor cut-off, Furth–Killeen–Rosenbluth tearing growth |
 | `flow` | The Hartmann velocity profile and pressure gradient, and the thin-walled pipe limit that sizes liquid-metal blankets |
 | `dynamo` | The αΩ dynamo number and growth rate, with the published laboratory self-excitation thresholds (Riga, Karlsruhe, VKS) |
+| `anomaly` | Magnetic anomalies of uniformly magnetised bodies by Poisson's relation, `B = (μ₀/4π)(T − I tr T)·M` from any body's gravity-gradient tensor in `geopotential::bodies`, inside or out; the sphere and the infinite cylinder in closed form; and the total-field reading `\|F + B\| − \|F\|` without cancellation |
 | `magnets` | Loop, solenoid and Helmholtz fields; Lorentz line load, stored energy and the virial limit; skin depth; diamagnetic levitation and Inductrack lift-to-drag; the force on a susceptible body in a field gradient; MRI Larmor frequency, SAR limits and magnetometer energy resolution; flux compression |
 | `space_weather` | Solar-wind dynamic pressure, magnetopause standoff (Chapman–Ferraro and [Shue et al. 1998](https://doi.org/10.1029/98JA01103)), the Parker spiral, ring-current energy from Dst, the plasmapause, dipole L-shells, the induced geoelectric field and apparent resistivity, the ionospheric dynamo, and the NERC benchmarks |
 
