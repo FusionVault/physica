@@ -124,6 +124,39 @@ pub fn light_bending(mass: f64, b: f64, metric: Metric) -> f64 {
     4.0 * x + second * x * x
 }
 
+/// The angular diameter (rad) of the shadow of a non-spinning black hole of mass `mass` (kg) at
+/// distance `distance` (m): `6√3 GM/(c²D)`, the critical impact parameter `3√3 GM/c²` seen from
+/// `D`. Spin and inclination make a Kerr shadow smaller, by up to about 7.5%
+/// ([EHT Sgr A* Paper VI](https://arxiv.org/abs/2311.09484)).
+pub fn shadow_diameter(mass: f64, distance: f64) -> f64 {
+    6.0 * 3f64.sqrt() * G * mass / (C * C * distance)
+}
+
+/// The fractional deviation `δ = d_sh/(6√3 θ_g) − 1` of a shadow of angular diameter `diameter`
+/// from a Schwarzschild black hole of angular gravitational radius `theta_g = GM/(c²D)` (both in
+/// the same angular unit), as the EHT defines it. Kerr black holes give `δ` from about −0.075 to 0.
+pub fn shadow_deviation(diameter: f64, theta_g: f64) -> f64 {
+    diameter / (6.0 * 3f64.sqrt() * theta_g) - 1.0
+}
+
+/// The shadow radius, in units of `GM/c²`, that a Kerr black hole of spin `a` (−1 to 1) shows an
+/// observer on its spin axis. Its edge is the spherical photon orbit with no angular momentum
+/// about the axis, the largest root of `r³ − 3r² + a²r + a² = 0`, where Teo's constants
+/// (Gen. Rel. Grav. 35, 1909, 2003) give the radius `√(η + a²) = √(8r³/(r² − 1))`. `√27` without
+/// spin and `2(1 + √2)` at `a = 1`.
+pub fn kerr_pole_on_shadow(a: f64) -> f64 {
+    // Newton from r = 3 descends monotonically: the cubic is rising and convex for r > 1.
+    let mut r = 3.0;
+    for _ in 0..100 {
+        let step = (r * r * r - 3.0 * r * r + a * a * r + a * a) / (3.0 * r * r - 6.0 * r + a * a);
+        r -= step;
+        if step.abs() <= 1e-16 * r {
+            break;
+        }
+    }
+    (8.0 * r * r * r / (r * r - 1.0)).sqrt()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -206,5 +239,41 @@ mod tests {
         assert!((G / (C * C) / 7.426e-28 - 1.0).abs() < 1e-3);
         assert!((induced_acceleration(1e4, 1e4, 1.0) / 2.97046e-19 - 1.0).abs() < 1e-5);
         assert!((9.8 / induced_acceleration(1.0, 1e6, 1.0) / 3.29915e21 - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn the_shadow_of_sgr_a_star() {
+        // EHT Paper VI's stellar-orbit priors: VLTI M = 4.297×10⁶ M☉ at 8277 pc and Keck
+        // 3.951×10⁶ M☉ at 7935 pc give θ_g = 5.125 and 4.92 µas, so 6√3θ_g = 53.3 and 51.1 µas.
+        let uas = PI / 180.0 / 3600.0 * 1e-6;
+        let pc = metrology::PARSEC;
+        let vlti = shadow_diameter(4.297e6 * metrology::SOLAR_MASS, 8277.0 * pc) / uas;
+        let keck = shadow_diameter(3.951e6 * metrology::SOLAR_MASS, 7935.0 * pc) / uas;
+        assert!((vlti / (6.0 * 3f64.sqrt() * 5.125) - 1.0).abs() < 1e-3 && (keck / (6.0 * 3f64.sqrt() * 4.92) - 1.0).abs() < 2e-3);
+        assert!((vlti - 53.3).abs() < 0.05 && (keck - 51.1).abs() < 0.1, "{vlti} {keck}");
+        // Its Table 1 shadow, 48.9 µas, against each prior: the fiducial δ = −0.08 and −0.04.
+        assert!((shadow_deviation(48.9, 5.125) + 0.08).abs() < 0.005 && (shadow_deviation(48.9, 4.92) + 0.04).abs() < 0.005);
+    }
+
+    #[test]
+    fn a_kerr_shadow_seen_from_the_pole() {
+        assert!(close(kerr_pole_on_shadow(0.0), 27f64.sqrt(), 1e-15) && close(kerr_pole_on_shadow(1.0), 2.0 * (1.0 + 2f64.sqrt()), 1e-15));
+        // Against Teo's η = r³(4a² − r(r − 3)²)/(a²(r − 1)²) at the same orbit, and inside the
+        // EHT's Kerr range: from a = 0 to 1 the pole-on shadow shrinks by 7.1%.
+        for a in [0.1, 0.5, 0.94, -0.7] {
+            // The orbit by bisection on [1 + √2, 3], where the cubic changes sign.
+            let cubic = |r: f64| r * r * r - 3.0 * r * r + a * a * r + a * a;
+            let (mut lo, mut hi) = (1.0 + 2f64.sqrt(), 3.0);
+            for _ in 0..200 {
+                let mid = 0.5 * (lo + hi);
+                if cubic(mid) > 0.0 { hi = mid } else { lo = mid }
+            }
+            let r = 0.5 * (lo + hi);
+            let eta = r.powi(3) * (4.0 * a * a - r * (r - 3.0).powi(2)) / (a * a * (r - 1.0).powi(2));
+            let shadow = kerr_pole_on_shadow(a);
+            assert!(close(shadow, (eta + a * a).sqrt(), 1e-13), "a = {a}");
+            assert!(shadow < 27f64.sqrt() && shadow > 2.0 * (1.0 + 2f64.sqrt()));
+        }
+        assert!((kerr_pole_on_shadow(1.0) / 27f64.sqrt() - 1.0 + 0.0708).abs() < 1e-3);
     }
 }
