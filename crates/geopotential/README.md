@@ -72,6 +72,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `grid` with `Functional` | Maps of geoid height, gravity anomaly or disturbance, radial gradient or equivalent water height ([Barthelmes 2013](https://doi.org/10.2312/GFZ.b103-0902-26); [Wahr et al. 1998](https://doi.org/10.1029/98JB02844)) |
 | `read_gfc`, `Gfc` | ICGEM `.gfc` models, static or time-variable (icgem1.0 and 2.0), with their errors ([format](https://icgem.gfz.de/docs/ICGEM-Format-2023.pdf)) |
 | `julian_epoch`, `parse_date` | The decimal-year dates these files use |
+| `special` | Complete elliptic integrals `K` and `E` by the arithmetic–geometric mean, and Bulirsch's general complete integral `cel` (Bulirsch 1969), which the fields of rings of mass, charge and current share |
+| `linalg` | Pivoted Gaussian elimination for general systems and Cholesky for the normal equations of least squares |
+| `fft` | The radix-2 fast Fourier transform, for time series and gridded fields |
 
 **Conventions:**
 - angles in radians, geocentric latitude;

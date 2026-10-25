@@ -50,20 +50,38 @@ pub fn love_numbers(nmax: usize) -> Option<Vec<f64>> {
 
 /// Gaussian smoothing weights for averaging radius `radius` (m; the distance at which the
 /// spatial kernel falls to half), on a sphere of radius `earth_radius`, for `n = 0..=nmax`.
-/// Jekeli (1981) / Wahr et al. (1998, eqs. 32–34), normalized so `W_0 = 1`. The recursion is
-/// unstable once the weights are tiny, so they are held at 1e-10 from there on, as gravity-toolkit
-/// does.
+/// Jekeli (1981) / Wahr et al. (1998, eqs. 32–34), normalized so `W_0 = 1`.
+///
+/// The weights are ratios of modified spherical Bessel functions, `W_n = i_n(b)/i_0(b)` with
+/// `b = ln 2/(1 − cos(r/a))`: the decaying solution of their three-term recurrence. Run forward,
+/// as Wahr et al. print it, that recurrence loses every digit once the weights are small (at
+/// 1000 km it turns negative by degree 60). So the ratios `ρ_n = W_n/W_{n−1} =
+/// 1/((2n+1)/b + ρ_{n+1})` are run backward instead (Gautschi, SIAM Rev. 9, 24, 1967), from a
+/// depth where the starting guess no longer matters: an error there shrinks like
+/// `exp(−(N² − n²)/b)`, so `N² ≥ nmax² + 40b` leaves it below 10⁻¹⁷. Every weight is then exact
+/// to about 10⁻¹⁴, however small: W₉₆ at 1000 km is 1.39×10⁻³¹. For radii so small that
+/// `b > 10⁶(nmax+1)²` the weights are `exp(−n(n+1)/2b)` to 10⁻¹⁴, which avoids millions of steps.
 pub fn gaussian_weights(radius: f64, earth_radius: f64, nmax: usize) -> Vec<f64> {
     let b = core::f64::consts::LN_2 / (1.0 - (radius / earth_radius).cos());
-    let e = (-2.0 * b).exp();
-    let mut w = vec![1.0];
-    if nmax >= 1 {
-        w.push((1.0 + e) / (1.0 - e) - 1.0 / b);
+    let top = ((nmax + 1) * (nmax + 1)) as f64;
+    if b >= 1e6 * top {
+        // Also radius 0, where b is infinite and every weight is 1.
+        return (0..=nmax).map(|n| (-((n * (n + 1)) as f64) / (2.0 * b)).exp()).collect();
     }
-    for n in 1..nmax {
-        let next = -((2 * n + 1) as f64) / b * w[n] + w[n - 1];
-        let floor = w[n] <= 1e-10 || !(1e-10..=w[n]).contains(&next);
-        w.push(if floor { 1e-10 } else { next });
+    let start = ((nmax * nmax) as f64 + 40.0 * b).sqrt().ceil() as usize + 10;
+    // Amos's estimate of i_N/i_{N−1} (Math. Comp. 28, 239, 1974) as the starting guess.
+    let mut rho = b / (start as f64 + ((start * start) as f64 + b * b).sqrt());
+    let mut ratios = vec![0.0; nmax + 1];
+    for n in (1..=start).rev() {
+        rho = 1.0 / ((2 * n + 1) as f64 / b + rho);
+        if n <= nmax {
+            ratios[n] = rho;
+        }
+    }
+    let mut w = Vec::with_capacity(nmax + 1);
+    w.push(1.0);
+    for n in 1..=nmax {
+        w.push(w[n - 1] * ratios[n]);
     }
     w
 }
@@ -261,9 +279,33 @@ mod tests {
         // Half weight where n(n+1) = 2b·ln2, degree ≈ 29 for 300 km.
         let half = w.iter().position(|&x| x < 0.5).unwrap();
         assert!((28..=30).contains(&half), "{half}");
-        // A 1000 km filter decays to the floor without going negative or oscillating.
+        // Against the Legendre transform of the Gaussian kernel, by quadrature (and, with
+        // a = 6 378 136.3 m, the value the cross-domain report quotes: 0.475 974 043 972 641).
+        assert!((w[30] / 0.475_182_474_894_050 - 1.0).abs() < 1e-12, "{}", w[30]);
+        let report = gaussian_weights(300e3, 6_378_136.3, 30);
+        assert!((report[30] / 0.475_974_043_972_641 - 1.0).abs() < 1e-12);
+        // A 1000 km filter decays without a floor, positive and monotone, to the values of the
+        // positive-term series of i_n(b)/i_0(b): W₉₆ = 1.391 224 300 882 06×10⁻³¹,
+        // W₁₂₀ = 2.702 118 043 068 33×10⁻⁴⁶.
         let wide = gaussian_weights(1000e3, r, 120);
-        assert!(wide.iter().all(|&x| x >= 1e-10) && wide[120] == 1e-10);
+        assert!(wide.windows(2).all(|p| p[1] < p[0] && p[1] > 0.0));
+        assert!((wide[96] / 1.391_224_300_882_055e-31 - 1.0).abs() < 1e-12, "{}", wide[96]);
+        assert!((wide[120] / 2.702_118_043_068_331e-46 - 1.0).abs() < 1e-12, "{}", wide[120]);
+        // A 20 km filter needs a deep start (2 383 steps): a start at nmax + 400 is 2×10⁻⁸ off.
+        let narrow = gaussian_weights(20e3, r, 60);
+        assert!((narrow[60] / 0.987_075_319_875_3 - 1.0).abs() < 1e-12, "{}", narrow[60]);
+        // No smoothing at radius 0, and the large-b form joins the recurrence smoothly.
+        assert!(gaussian_weights(0.0, r, 10).iter().all(|&x| x == 1.0));
+        // For degree 60 the switch at b = 10⁶·61² falls at a 123 m radius. Just above it, where the
+        // recurrence still runs (123.1 m, 2.4×10⁵ steps), it agrees with exp(−n(n+1)/2b).
+        let rad = 123.1;
+        let b = core::f64::consts::LN_2 / (1.0 - (rad / r).cos());
+        assert!(b < 1e6 * 61.0 * 61.0);
+        let w = gaussian_weights(rad, r, 60);
+        for n in [1, 30, 60] {
+            let asymptotic = (-((n * (n + 1)) as f64) / (2.0 * b)).exp();
+            assert!((w[n] / asymptotic - 1.0).abs() < 1e-13, "n={n}: {} vs {asymptotic}", w[n]);
+        }
     }
 
     #[test]

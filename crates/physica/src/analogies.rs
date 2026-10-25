@@ -103,3 +103,26 @@
 //!
 //! assert!((1.0 / (GM_PERMITTIVITY * GM_PERMEABILITY).sqrt() / metrology::C - 1.0).abs() < 1e-12);
 //! ```
+//!
+//! **One plasma, three crates.** The plasma frequency and the Alfvén speed appear in
+//! `gravitational` (waves meeting a plasma), `magnetics` (MHD) and `plasmoid` (reconnection), which
+//! share no dependency but `metrology`, so each keeps its one-line formula. These tests hold the
+//! copies together. The electron inertial length is `c` over the plasma's angular frequency,
+//! exactly. The reconnection calculator's Alfvén speed counts only the ions' mass, `A·m_p`, so it
+//! sits `√(1 + m_e/m_p) − 1` = 2.7×10⁻⁴ above MHD's, which counts the electrons too.
+//!
+//! ```
+//! use gravitational::hf::plasma_frequency;
+//! use magnetics::mhd::{alfven_speed, inertial_length, mass_density};
+//! use metrology::{C, M_E, M_P};
+//! use plasmoid::relaxation::lundquist;
+//!
+//! let n = 1e19;
+//! let skin = inertial_length(n, M_E, 1.0);
+//! assert!((skin * 2.0 * core::f64::consts::PI * plasma_frequency(n) / C - 1.0).abs() < 1e-14);
+//!
+//! let (_, ions_only) = lundquist(0.1, n, 10.0, 0.1, 10.0, 1.0);
+//! let with_electrons = alfven_speed(0.1, mass_density(n, M_P, 1.0));
+//! let gap = ions_only / with_electrons - 1.0;
+//! assert!((gap - ((1.0 + M_E / M_P).sqrt() - 1.0)).abs() < 1e-14 && (gap - 2.72e-4).abs() < 1e-6);
+//! ```

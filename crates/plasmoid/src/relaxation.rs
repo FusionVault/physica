@@ -18,6 +18,7 @@
 
 use core::f64::consts::PI;
 
+use crate::collisions::{Resistivity, spitzer_eta};
 use metrology::{M_P, MU_0 as MU0};
 
 /// First zero of J₁, the cylinder's radial eigenvalue.
@@ -68,9 +69,11 @@ pub fn frc_s_bounds(xs: f64, r_over_rho: f64) -> (f64, f64) {
 
 /// Lundquist number S and Alfvén speed (m/s) of a current sheet of length `length` (m) in plasma
 /// of ion density `n` (m⁻³), electron temperature `te` (eV), field `b` (T), Coulomb logarithm
-/// `ln_lambda` and ion mass number `a`, with Spitzer's parallel resistivity.
+/// `ln_lambda` and ion mass number `a`, with Spitzer's parallel resistivity. The Alfvén speed counts
+/// the ions' mass `a·m_p` only, 2.7×10⁻⁴ above `magnetics::mhd::alfven_speed` with the electrons'
+/// mass included for hydrogen (`physica` checks the gap).
 pub fn lundquist(length: f64, n: f64, te: f64, b: f64, ln_lambda: f64, a: f64) -> (f64, f64) {
-    let eta = 1.03e-4 * ln_lambda * te.powf(-1.5) / 1.96;
+    let eta = spitzer_eta(te, 1.0, ln_lambda, Resistivity::Parallel);
     let va = b / (MU0 * n * a * M_P).sqrt();
     (MU0 * length * va / eta, va)
 }

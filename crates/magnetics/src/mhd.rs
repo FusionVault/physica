@@ -84,7 +84,8 @@ pub fn free_decay_time(r: f64, sigma: f64) -> f64 {
 }
 
 /// Inertial length `c/ω_p` (m) of particles of density `n` (m⁻³), mass `m` (kg) and charge state
-/// `z`: below the ion value, ions decouple from the field and Hall MHD takes over.
+/// `z`: below the ion value, ions decouple from the field and Hall MHD takes over. For electrons,
+/// `ω_p` is `2π` times `gravitational::hf::plasma_frequency`, which `physica` checks.
 pub fn inertial_length(n: f64, m: f64, z: f64) -> f64 {
     C / (n * (z * E_CHARGE).powi(2) / (EPS_0 * m)).sqrt()
 }

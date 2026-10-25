@@ -372,8 +372,8 @@ mod tests {
     #[test]
     fn five_constants_is_keplers_law() {
         // The Moon: mean distance 384 399 km, sidereal month 27.321 661 days, about the
-        // Earth-Moon mass (GM_EARTH x (1 + 1/81.3006)).
-        let mass = metrology::GM_EARTH * (1.0 + 1.0 / 81.300_57) / G;
+        // Earth-Moon mass.
+        let mass = (metrology::GM_EARTH + metrology::GM_MOON) / G;
         let nu = mass * C * C / H;
         let ratio = five_constants(384_399e3, 27.321_661 * 86_400.0, nu);
         // 1 to the 0.3% by which the Sun perturbs the lunar orbit.

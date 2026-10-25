@@ -82,6 +82,7 @@ Each is an exact identity a test asserts, not a loose resemblance.
 | Pinch and filament | Bennett's `μ₀I²/4π` ↔ Ostriker's `Gλ²` |
 | Schwinger and Unruh | pair-creation suppression `e^(−πE_S/E)` is a Boltzmann factor at the Unruh temperature |
 | Gravity's vacuum constants | `1/(4πG)` and `4πG/c²` give `1/√(εμ) = c` |
+| One plasma, three crates | the plasma frequency and Alfvén speed written in `gravitational`, `magnetics` and `plasmoid` agree: exactly, and to the 2.7×10⁻⁴ the electrons' mass makes |
 
 ## Applications
 

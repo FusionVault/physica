@@ -60,8 +60,8 @@ use gravimetry::atom::AtomInterferometer;
 use gravimetry::missions::{Accelerometer, Ranging, pair_noise};
 
 // A cold-atom accelerometer like CARIOQA's: 1 s between pulses, 80% contrast,
-// 100,000 atoms per shot, one shot every 3.5 s.
-let atoms = AtomInterferometer { t: 1.0, contrast: 0.8, atoms: 1e5, cycle: 3.5 };
+// 100,000 atoms per shot, one shot every 3.5 s, double diffraction in orbit.
+let atoms = AtomInterferometer { t: 1.0, contrast: 0.8, atoms: 1e5, cycle: 3.5, diffraction: 2 };
 let white = atoms.acceleration_asd(); // about 2.3e-10 m/s² per √Hz
 
 // Noise of a satellite pair at 0.1 mHz, the longest wavelengths, in m/s² per √Hz.
@@ -130,8 +130,9 @@ maximum likelihood over many series at once.
 | Item | What it does |
 |---|---|
 | `missions` | Noise spectra of electrostatic and cold-atom accelerometers and laser ranging, and of a whole satellite pair ([Zingerle et al. 2024](https://doi.org/10.1029/2024EA003630), eqs. 1–8) |
-| `atom` | Phase, shot noise, and accelerometer and gradiometer noise of a cold-atom sensor in orbit ([Lévèque et al. 2021](https://arxiv.org/abs/2011.03382); [CARIOQA](https://arxiv.org/abs/2211.01215); [Trimeche et al. 2019](https://doi.org/10.1088/1361-6382/ab4548)) |
+| `atom` | Phase, shot noise, and accelerometer and gradiometer noise of a cold-atom sensor, in orbit (double diffraction) or on the ground (single), its phase sensitivity and the gravitational Aharonov–Bohm rate ([Lévèque et al. 2021](https://arxiv.org/abs/2011.03382); [Stray et al. 2022](https://doi.org/10.1038/s41586-021-04315-3); [CARIOQA](https://arxiv.org/abs/2211.01215); [Trimeche et al. 2019](https://doi.org/10.1088/1361-6382/ab4548)) |
 | `gradiometry` | The error of each coefficient a gradiometer mission like GOCE achieves |
+| `local` | Gravity and gravity gradient of a buried sphere and horizontal cylinder, the shapes a ground survey fits, and the averaging time an instrument needs to see them |
 | `sim` | A closed-loop simulation of a GRACE-type pair: simulate, estimate the field back, and compare its errors with the predicted ones |
 | `noise` | Noise with any spectrum, its whitening, and the FFT |
 | `technotes` | NASA's TN-14 (C̄20 and C̄30 from laser ranging, [Loomis et al. 2020](https://doi.org/10.1029/2019GL085488)) and TN-13 (degree 1, [Sun et al. 2016](https://doi.org/10.1002/2016JB013073)), from [PO.DAAC](https://archive.podaac.earthdata.nasa.gov/podaac-ops-cumulus-docs/gracefo/open/docs/) |

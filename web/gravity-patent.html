@@ -240,8 +240,7 @@ const C = 299792458, G = 6.6743e-11, E_CHARGE = 1.602176634e-19, K_B = 1.380649e
 const MU_0 = 1.25663706212e-6, EPS_0 = 8.8541878128e-12, M_E = 9.1093837015e-31, AMU = 1.6605390666e-27;
 const R_GAS = 8.314462618, G0 = 9.80665;
 
-// gravitics::electrodes
-const KC = 1 / (4 * PI * EPS_0);
+// geopotential::special
 function elliptic(m) {
   let a = 1, b = Math.sqrt(1 - m), c = Math.sqrt(m), sum = 0.5 * m, weight = 0.5;
   for (let i = 0; i < 64; i++) {
@@ -252,6 +251,20 @@ function elliptic(m) {
   const k = PI / (2 * a);
   return [k, k * (1 - sum)];
 }
+function cel(kc, p, a, b) {
+  kc = Math.abs(kc); let e = kc, m = 1;
+  p = Math.sqrt(p); b = b / p;
+  for (let i = 0; i < 64; i++) {
+    const f = a; a += b / p; const g = e / p; b = 2 * (b + f * g); p += g;
+    const previous = m; m += kc;
+    if (Math.abs(previous - kc) <= previous * 1e-15) break;
+    kc = 2 * Math.sqrt(e); e = kc * m;
+  }
+  return PI / 2 * (a * m + b) / (m * (m + p));
+}
+
+// gravitics::electrodes
+const KC = 1 / (4 * PI * EPS_0);
 const dist = (a, b) => Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
 const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 function stack(radius, z0, step, n) { const r = []; for (let i = 0; i < n; i++) r.push({ ring: true, radius, z: z0 + step * i }); return r; }
@@ -269,9 +282,18 @@ function ringPotential(q, ring, rho, z) {
 }
 function ringField(q, ring, rho, z) {
   const r = ring.radius, dz = z - ring.z, s = (r + rho) ** 2 + dz * dz, d = (r - rho) ** 2 + dz * dz;
-  const [k, e] = elliptic(4 * r * rho / s), c = q * KC;
+  const e = elliptic(4 * r * rho / s)[1], c = q * KC;
   const ez = c * 2 / PI * dz * e / (Math.sqrt(s) * d);
-  const erho = rho === 0 ? 0 : c / (PI * rho * Math.sqrt(s)) * (k - (r * r - rho * rho + dz * dz) / d * e);
+  const u = r * r + dz * dz;
+  let erho;
+  if (rho === 0) erho = 0;
+  else if (rho * rho < 9e-8 * u) {
+    const dz2 = dz * dz, r2 = r * r;
+    erho = c * (-0.5 * rho * (r2 - 2 * dz2) / u ** 2.5 + rho ** 3 / 16 * (-24 * dz2 * dz2 + 72 * dz2 * r2 - 9 * r2 * r2) / u ** 4.5);
+  } else {
+    const kc = Math.sqrt(d / s);
+    erho = c * 2 / (PI * s ** 1.5) * cel(kc, kc * kc, rho + r, rho - r);
+  }
   return [erho, ez];
 }
 function unitPotential(el, p) {
