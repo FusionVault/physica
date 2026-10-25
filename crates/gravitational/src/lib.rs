@@ -9,6 +9,7 @@ pub mod laboratory;
 pub mod memory;
 pub mod propagation;
 pub mod quanta;
+pub mod ringdown;
 pub mod sgwb;
 pub mod strain;
 pub mod ultralight;
