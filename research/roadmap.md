@@ -141,9 +141,10 @@ with the theory's equations and four rigs computed both ways.
   needs the real layout in 3D), the paper behind the "calibrated" `k_mq`, and the Michelson and
   80 V rigs, which have no published details.
 
-Published 2026-10-25: `gravitics` 0.5.0, `plasmoid` 0.4.0 and `physica` 0.2.0, tagged
-`<crate>-vX.Y.Z`. The other five crates still carry the old repository link on crates.io until
-their next release.
+Published 2026-10-25: `gravitics` 0.5.0, `plasmoid` 0.4.0 and `physica` 0.2.0, then patch
+releases of the other five for the repository's new name (`metrology` 0.2.1, `geopotential`
+0.3.1, `gravimetry` 0.6.1, `gravitational` 0.2.1, `magnetics` 0.1.1), each tagged
+`<crate>-vX.Y.Z`.
 
 ## Open
 
