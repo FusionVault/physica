@@ -1,6 +1,6 @@
 [package]
 name = "gravitics"
-version = "0.5.1"
+version = "0.5.2"
 description = "Gravitics: gravity control, exotic propulsion and gravity's open anomalies, each proposal's own model (Li–Baker, Pais, Tajmar, Podkletnov, EmDrive, Mach-effect and ion-wind thrusters, warp drives, the polarizable vacuum, MOND) next to general relativity and the measurements; plus the Schwinger limit, the scatter of G, short-range forces and tabletop quantum gravity."
 keywords = ["gravity", "physics", "general-relativity", "propulsion", "gravitational-waves"]
 categories = ["science"]
@@ -11,7 +11,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-geopotential = { path = "../geopotential", version = "0.3.2" }
+geopotential = { path = "../geopotential", version = "0.3.3" }
 gravitational = { path = "../gravitational", version = "0.2.0" }
 metrology = { path = "../metrology", version = "0.2.2" }
 
