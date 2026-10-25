@@ -71,6 +71,16 @@ pub fn wormhole_edge_tension() -> f64 {
 
 /// Temperature (K) of a horizon of surface gravity `kappa` (s⁻¹): `ħκ/(2πk_B)`. With κ = a/c it is
 /// the Unruh temperature, with c³/(4GM) Hawking's, with the Hubble rate Gibbons–Hawking's.
+///
+/// An optical pulse in a fibre makes a horizon for light whose `κ` is the steepness `α` of its
+/// refractive-index front ([Philbin et al. 2008](https://arxiv.org/abs/0711.4796)): a shock as
+/// steep as twice the carrier frequency, 8×10¹⁴ Hz, "reaches 10³ K".
+///
+/// ```
+/// use gravitics::spacetime::horizon_temperature;
+///
+/// assert!((horizon_temperature(8e14) - 972.5).abs() < 0.1);
+/// ```
 pub fn horizon_temperature(kappa: f64) -> f64 {
     HBAR * kappa / (2.0 * PI * K_B)
 }
@@ -134,7 +144,33 @@ pub fn light_bending(mass: f64, b: f64, metric: Metric) -> f64 {
 /// `u = u₀(1 − t²)` divides that root out exactly, and panels graded toward `t = 0` follow the
 /// integrand's peak as the ray nears the photon sphere, where the deflection grows as
 /// `−ln(b/b_c − 1) + ln[216(7 − 4√3)] − π` ([Bozza 2002](https://arxiv.org/abs/gr-qc/0208075)).
-/// Far out it is [`light_bending`] plus `(128/3)(GM/c²b)³`. It is accurate to round-off except
+/// Far out it is [`light_bending`] plus `(128/3)(GM/c²b)³`.
+///
+/// The photon ring's subrings are images whose light went round `n` half-orbits more. Each
+/// half-orbit adds π to the deflection, so with Bozza's slope of 1 each subring sits `e^π` = 23.1
+/// times closer to `b_c`: the Lyapunov exponent `γ = π` of a Schwarzschild black hole
+/// ([Johnson et al. 2020](https://arxiv.org/abs/1907.04329)).
+///
+/// ```
+/// use gravitics::spacetime::{Metric, exact_deflection};
+/// use metrology::{C, G, SOLAR_MASS};
+///
+/// let rg = G * SOLAR_MASS / (C * C);
+/// let critical = 27f64.sqrt() * rg;
+/// // The impact parameter at which light turns by `angle`, by bisection.
+/// let image = |angle: f64| {
+///     let (mut lo, mut hi) = (critical, 2.0 * critical);
+///     for _ in 0..200 {
+///         let mid = 0.5 * (lo + hi);
+///         if exact_deflection(SOLAR_MASS, mid, Metric::GeneralRelativity).map_or(true, |a| a > angle) { lo = mid } else { hi = mid }
+///     }
+///     0.5 * (lo + hi)
+/// };
+/// let ratio = (image(4.0 * std::f64::consts::PI) - critical) / (image(5.0 * std::f64::consts::PI) - critical);
+/// assert!((ratio / std::f64::consts::PI.exp() - 1.0).abs() < 2e-5); // corrections of order e^(−4π)
+/// ```
+///
+/// It is accurate to round-off except
 /// close to `b_c`, where the deflection itself is ill-conditioned: `dα/d ln b = −1/(b/b_c − 1)`,
 /// so the rounding of `b` alone moves it by `10⁻¹⁶/(b/b_c − 1)`.
 pub fn exact_deflection(mass: f64, b: f64, metric: Metric) -> Option<f64> {
@@ -286,7 +322,7 @@ mod tests {
         assert!(close(unruh_temperature(1.0), 4.055e-21, 1e-3));
         assert!(close(1.0 / unruh_temperature(1.0), 2.466e20, 1e-3));
         // A solar-mass black hole: 61.7 nK, evaporating (photons only) in 2.1×10⁶⁷ years.
-        let sun = 1.327_124_4e20 / G;
+        let sun = metrology::SOLAR_MASS;
         assert!(close(hawking_temperature(sun), 6.17e-8, 2e-3));
         assert!(close(hawking_lifetime(sun) / 3.155_76e7, 2.095e67, 3e-3));
         // The cosmological horizon at H₀ = 67.4 km/s/Mpc: 2.7×10⁻³⁰ K.
@@ -312,7 +348,7 @@ mod tests {
 
     #[test]
     fn polarizable_vacuum_against_general_relativity() {
-        let (sun, limb) = (1.327_124_4e20 / G, 6.957e8);
+        let (sun, limb) = (metrology::SOLAR_MASS, 6.957e8);
         let arcsec = 180.0 / PI * 3600.0;
         let gr = light_bending(sun, limb, Metric::GeneralRelativity);
         assert!((gr * arcsec - 1.7512).abs() < 1e-4);
