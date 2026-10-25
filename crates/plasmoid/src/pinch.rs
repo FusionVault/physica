@@ -16,6 +16,7 @@
 
 use core::f64::consts::PI;
 
+use crate::collisions::spitzer_eta;
 use metrology::{E_CHARGE as E, G, HBAR, K_B, M_E, M_H, M_P, MU_0 as MU0};
 
 /// Bennett temperature (eV) with `T_e = T_i`, for current `current` (A), ion line density
@@ -29,23 +30,13 @@ pub fn bennett_line_density(current: f64, t_sum: f64) -> f64 {
     MU0 * current * current / (8.0 * PI * t_sum * E)
 }
 
-/// Which Spitzer resistivity a calculation uses.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Resistivity {
-    /// Across the field (NRL: `η⊥ = 1.03×10⁻⁴ Z lnΛ T^(−3/2)` Ω m, T in eV).
-    Perpendicular,
-    /// Along the field, `η⊥/1.96`.
-    Parallel,
-}
+pub use crate::collisions::Resistivity;
 
 /// Pease–Braginskii current (A): above it bremsstrahlung beats Ohmic heating and a hydrogen pinch
 /// collapses radiatively, `(π/μ₀)√(48 lnΛ/(σ₀A))·(1 + z)/z` (Klír 2005), about 1.4 MA.
 pub fn pease_braginskii(ln_lambda: f64, z: f64, resistivity: Resistivity) -> f64 {
-    let c = match resistivity {
-        Resistivity::Perpendicular => 9.71e3,
-        Resistivity::Parallel => 1.96 * 9.71e3,
-    };
-    let sigma0 = c / E.powf(1.5); // S/m per J^(3/2)
+    // Spitzer's conductivity per J^(3/2), without lnΛ: 1/η at 1 eV with lnΛ = 1.
+    let sigma0 = 1.0 / (spitzer_eta(1.0, 1.0, 1.0, resistivity) * E.powf(1.5));
     let a = 1.69e-38 / E.sqrt(); // bremsstrahlung, W m³ J^(−1/2)
     PI / MU0 * (48.0 * ln_lambda / (sigma0 * a)).sqrt() * (1.0 + z) / z
 }
