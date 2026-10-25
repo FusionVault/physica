@@ -20,6 +20,7 @@
 //! ```
 
 use crate::fft::fft;
+use crate::linalg::{cholesky, cholesky_solve};
 use metrology::{G, MU_0};
 
 /// A level grid of `nx × ny` values at spacings `dx` and `dy` (m). Value `i·ny + j` is at
@@ -97,6 +98,40 @@ impl Grid {
             }
         }
     }
+}
+
+/// Euler deconvolution of a profile (Thompson 1982; Reid & Thurston 2014): the source position
+/// `[x₀, z₀]` and background `B` that best satisfy Euler's homogeneity equation
+/// `(x − x₀)∂f/∂x + (z − z₀)∂f/∂z = −N(f − B)` at the points `(x, z)`, `z` down, by least
+/// squares, returned as `[x₀, z₀, B]`.
+///
+/// The structural index `N` is the field's rate of fall-off from its source: 3 for a sphere's
+/// (a dipole's) magnetic anomaly, 2 for a horizontal cylinder's magnetic anomaly or a sphere's
+/// gravity, 1 for a cylinder's gravity. `fz` can come from the grid as
+/// `filter(values, |kx, ky| (kx.hypot(ky), 0.0))`.
+///
+/// # Panics
+/// If the slices differ in length, or the points cannot fix three unknowns.
+pub fn euler(x: &[f64], z: &[f64], f: &[f64], fx: &[f64], fz: &[f64], n: f64) -> [f64; 3] {
+    let len = x.len();
+    assert!([z.len(), f.len(), fx.len(), fz.len()].iter().all(|&l| l == len), "one value per point");
+    // Rows [f_x, f_z, N]·[x₀, z₀, B] = x f_x + z f_z + N f, solved by normal equations whose
+    // columns are scaled to unit norm first (f_x and N differ by orders of magnitude).
+    let row = |i: usize| [fx[i], fz[i], n];
+    let scale: [f64; 3] = core::array::from_fn(|c| 1.0 / (0..len).map(|i| row(i)[c].powi(2)).sum::<f64>().sqrt());
+    let (mut normal, mut rhs) = ([0.0; 9], [0.0; 3]);
+    for i in 0..len {
+        let (a, b) = (row(i), x[i] * fx[i] + z[i] * fz[i] + n * f[i]);
+        for r in 0..3 {
+            rhs[r] += a[r] * scale[r] * b;
+            for c in 0..=r {
+                normal[r * 3 + c] += a[r] * scale[r] * a[c] * scale[c];
+            }
+        }
+    }
+    cholesky(&mut normal, 3);
+    let y = cholesky_solve(&normal, 3, &rhs);
+    core::array::from_fn(|c| y[c] * scale[c])
 }
 
 /// The FFT's wavenumber (rad/m) at index `i` of `n` samples `d` apart, negative above `n/2`.
@@ -179,6 +214,54 @@ mod tests {
         let mean = field.iter().sum::<f64>() / field.len() as f64;
         let same = GRID.reduce_to_pole(&field, pole, pole);
         assert!(same.iter().zip(&field).all(|(a, b)| (a - (b - mean)).abs() < 1e-14 * field[64 * 128 + 64]));
+    }
+
+    /// Value and derivatives of `field(x, z)` along `z = 0`, by fourth-order 5-point stencils.
+    fn sampled(field: impl Fn(f64, f64) -> f64, xs: &[f64]) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
+        let h = 1e-2;
+        let d = |g: &dyn Fn(f64) -> f64| (g(-2.0 * h) - 8.0 * g(-h) + 8.0 * g(h) - g(2.0 * h)) / (12.0 * h);
+        let f = xs.iter().map(|&x| field(x, 0.0)).collect();
+        let fx = xs.iter().map(|&x| d(&|e| field(x + e, 0.0))).collect();
+        let fz = xs.iter().map(|&x| d(&|e| field(x, e))).collect();
+        (f, fx, fz)
+    }
+
+    #[test]
+    fn euler_deconvolution() {
+        // Sources at x₀ = 3 m, z₀ = 20 m (z down), seen along z = 0. Each field is homogeneous of
+        // degree −N in (x − x₀, z − z₀), the structural indices of Reid & Thurston (2014).
+        let (x0, z0) = (3.0, 20.0);
+        let tilted = unit(60.0, 0.0);
+        let dipole = move |x: f64, z: f64| {
+            let d = [x - x0, 0.0, z - z0];
+            let r2 = d[0] * d[0] + d[2] * d[2];
+            let dm = d[0] * tilted[0] + d[2] * tilted[2];
+            (3.0 * dm * dm - r2) / (r2 * r2 * r2.sqrt())
+        };
+        let line_dipole = move |x: f64, z: f64| {
+            let (dx, dz) = (x - x0, z - z0);
+            let r2 = dx * dx + dz * dz;
+            ((dz * dz - dx * dx) * (tilted[2].powi(2) - tilted[0].powi(2)) + 4.0 * dx * dz * tilted[0] * tilted[2]) / (r2 * r2)
+        };
+        let point_mass = move |x: f64, z: f64| (z0 - z) / ((x - x0).powi(2) + (z0 - z).powi(2)).powf(1.5);
+        let line_mass = move |x: f64, z: f64| (z0 - z) / ((x - x0).powi(2) + (z0 - z).powi(2));
+        let xs: Vec<f64> = (0..41).map(|i| 2.0 * i as f64 - 40.0).collect();
+        let zs = vec![0.0; xs.len()];
+        type Profile<'a> = &'a dyn Fn(f64, f64) -> f64;
+        let cases: [(Profile, f64); 4] = [(&dipole, 3.0), (&line_dipole, 2.0), (&point_mass, 2.0), (&line_mass, 1.0)];
+        for (k, (field, n)) in cases.into_iter().enumerate() {
+            // A background of 1/10 of the peak, which the solve should return.
+            let (f, fx, fz) = sampled(field, &xs);
+            let background = 0.1 * f.iter().fold(0f64, |m, v| m.max(v.abs()));
+            let f: Vec<f64> = f.iter().map(|v| v + background).collect();
+            let [x, z, b] = euler(&xs, &zs, &f, &fx, &fz, n);
+            // 2×10⁻¹¹ m at worst, set by the stencils (the notes' second-order ones gave 1.2×10⁻⁹).
+            assert!((x - x0).abs() < 1e-10 && (z - z0).abs() < 1e-10, "case {k}: {x} {z}");
+            assert!((b / background - 1.0).abs() < 1e-11, "case {k}: background {b:e}");
+        }
+        // The wrong index biases the depth: a dipole read as a point mass looks shallower.
+        let (f, fx, fz) = sampled(dipole, &xs);
+        assert!(euler(&xs, &zs, &f, &fx, &fz, 2.0)[1] < 0.9 * z0);
     }
 
     #[test]
