@@ -8,6 +8,10 @@ whole parallel track of physics, and gravity's open anomalies, three ways:
 - **The standard prediction,** from general relativity or standard physics, for the same setup.
 - **What experiments measured.**
 
+It also carries the general-relativity side that light near strong gravity needs: exact light
+deflection at any field strength, deflection by a body's whole multipole field, and black-hole
+shadows.
+
 Use it to explore a proposal, to design an experiment that could test one, or to see how large
 an effect must be before an instrument can see it.
 
@@ -99,7 +103,7 @@ assert!((near * 1e3 - 13.28).abs() < 0.01);
 | `hfgw` | High-frequency gravitational waves: the Li–Baker detector (flux conventions, graviton rate, the interference signal, the shot-noise time) and the Pais patents (radiated flux, surface field, magnetic conversion as he uses it and in SI) |
 | `superconductors` | The London moment; frame dragging of a ring in general relativity against Tajmar's report; the Cooper-pair density and gravitational London depth; a perfect shield's shadow; Podkletnov's pendulum and Marx bank; the measured bounds |
 | `propulsion` | Ion wind and ion mobility, the vacuum (ballistic) limit, the photon rocket, Shawyer's EmDrive formula, buoyancy on a balance, Woodward's Mach-effect thrust and general relativity's bound on it ([Rodal](https://arxiv.org/abs/2512.22687)) |
-| `spacetime` | Alcubierre warp-bubble energy ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026)), the quantum inequality, Casimir plates and spheres, wormhole tensions, light bending in Puthoff's polarizable vacuum against general relativity, Forward's induced acceleration, and horizon temperatures (Unruh, Hawking, Gibbons–Hawking) with black-hole lifetimes and zero-point energy |
+| `spacetime` | Alcubierre warp-bubble energy ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026)), the quantum inequality, Casimir plates and spheres, wormhole tensions, light bending in Puthoff's polarizable vacuum against general relativity, to second order and exactly at any field strength (Darwin's integral, checked against [Bozza 2002](https://arxiv.org/abs/gr-qc/0208075) and [Iyer & Petters 2007](https://arxiv.org/abs/gr-qc/0611086)), Forward's induced acceleration, and horizon temperatures (Unruh, Hawking, Gibbons–Hawking) with black-hole lifetimes and zero-point energy; deflection by a body's whole gravity field from `geopotential` coefficients (the Born integral, with J₂ adding 239 µas at Jupiter's limb); black-hole shadows: the Schwarzschild diameter, the EHT's deviation δ, and the Kerr shadow seen from the pole ([EHT Sgr A* Paper VI](https://arxiv.org/abs/2311.09484); Teo 2003) |
 | `strong_field` | The Schwinger limit: the critical field, the pair-production and vacuum-decay rates, laser a₀ and the quantum parameter χ (with explicit intensity conventions), Ritus–Narozhny, Breit–Wheeler suppression, vacuum birefringence, Euler–Heisenberg, supercritical atoms, and the graphene analogue. The Schwinger exponent is exactly a Boltzmann factor at twice the Unruh temperature, and a test pins that identity |
 
 ![The energy a warp bubble needs](https://raw.githubusercontent.com/FusionVault/physica/main/figures/warp_energy.svg)

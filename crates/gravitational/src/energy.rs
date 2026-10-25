@@ -70,6 +70,31 @@ pub fn peters_pbdot(mp: f64, mc: f64, pb: f64, e: f64) -> f64 {
         / (mp + mc).cbrt()
 }
 
+/// The Shapiro range `r = Gm_c/c³` (s) of a binary pulsar's companion of mass `mc` (kg), the
+/// post-Keplerian parameter that sets the size of the delay (Damour & Deruelle 1986).
+pub fn shapiro_range(mc: f64) -> f64 {
+    G * mc / C.powi(3)
+}
+
+/// The Shapiro shape `s = sin i` that general relativity predicts for pulsar and companion masses
+/// `mp`, `mc` (kg), orbital period `pb` (s) and projected semi-major axis `x` (light-seconds):
+/// `s = x n_b^(2/3) (GM/c³)^(−1/3) M/m_c`, with `n_b = 2π/P_b` and `M = m_p + m_c`.
+pub fn shapiro_shape(mp: f64, mc: f64, pb: f64, x: f64) -> f64 {
+    let m = mp + mc;
+    x * (2.0 * PI / pb).powf(2.0 / 3.0) * (G * m / C.powi(3)).powf(-1.0 / 3.0) * m / mc
+}
+
+/// The Shapiro delay (s) at eccentric anomaly `u` of an orbit with eccentricity `e` and longitude
+/// of periastron `omega` (rad): `Δ_S = −2r ln Λ_u`, with
+/// `Λ_u = 1 − e cos u − s[sin ω(cos u − e) + √(1 − e²) cos ω sin u]`
+/// ([Kramer et al. 2021](https://arxiv.org/abs/2112.06795), after Damour & Deruelle 1986).
+/// On a circular orbit it peaks at superior conjunction at `2r z_s`, with `z_s = −ln(1 − s)`.
+pub fn shapiro_delay(r: f64, s: f64, e: f64, omega: f64, u: f64) -> f64 {
+    let (sw, cw) = omega.sin_cos();
+    let (su, cu) = u.sin_cos();
+    -2.0 * r * (1.0 - e * cu - s * (sw * (cu - e) + (1.0 - e * e).sqrt() * cw * su)).ln()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,5 +130,23 @@ mod tests {
         assert!(close(b1913, -2.40210e-12, 1e-5) && close(b1913, -2.40263e-12, 1e-3));
         let j0737 = peters_pbdot(1.338185 * SOLAR_MASS, 1.248868 * SOLAR_MASS, 0.1022515592973 * day, 0.087777023);
         assert!(close(j0737, -1.24781e-12, 1e-5));
+    }
+
+    #[test]
+    fn the_double_pulsar_shapiro_delay() {
+        // Kramer et al. (2021), Table 3: r = 6.162(21) µs against GR's Gm_B/c³ = 6.1513 µs for
+        // m_B = 1.248868 M☉, 0.5σ apart.
+        let (ma, mb) = (1.338185 * SOLAR_MASS, 1.248868 * SOLAR_MASS);
+        let r = shapiro_range(mb);
+        assert!((r / 6.1513e-6 - 1.0).abs() < 1e-5 && ((6.162e-6 - r) / 0.021e-6 - 0.51).abs() < 0.01);
+        // s = 1 − e^(−z_s) = 0.999936 for z_s = 9.65. GR's s from the masses (m_A = 1.338185),
+        // P_b and x gives s_obs/s_GR = 1.000013, inside the paper's own test 1.00009(18).
+        let measured = 1.0 - (-9.65f64).exp();
+        assert!((measured - 0.999936).abs() < 1e-6);
+        let s = shapiro_shape(ma, mb, 0.1022515592973 * 86_400.0, 1.415028603);
+        assert!((measured / s - 1.00009).abs() < 0.00018 && (measured / s - 1.000013).abs() < 1e-6, "{s}");
+        // On a circular orbit the delay peaks at superior conjunction (ω + u = π/2) at 2r z_s.
+        let peak = shapiro_delay(r, measured, 0.0, 0.3, PI / 2.0 - 0.3);
+        assert!((peak / (2.0 * r * 9.65) - 1.0).abs() < 1e-12 && peak > shapiro_delay(r, measured, 0.0, 0.3, 1.0));
     }
 }

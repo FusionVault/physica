@@ -1,16 +1,21 @@
 #![doc = include_str!("../README.md")]
 
+pub mod cosmology;
 pub mod curves;
 pub mod detectors;
 pub mod energy;
 pub mod hf;
 pub mod inspiral;
 pub mod laboratory;
+pub mod lensing;
 pub mod memory;
 pub mod propagation;
 pub mod quanta;
+pub mod remnant;
+pub mod ringdown;
 pub mod sgwb;
 pub mod strain;
+pub mod tides;
 pub mod ultralight;
 
 /// Hubble constant for h = 1 (100 km s⁻¹ Mpc⁻¹), s⁻¹. Multiply by the dimensionless h.
