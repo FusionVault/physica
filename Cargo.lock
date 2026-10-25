@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "geopotential"
-version = "0.3.5"
+version = "0.3.6"
 dependencies = [
  "metrology",
  "serde",
@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "gravimetry"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "geopotential",
  "metrology",
@@ -67,14 +67,14 @@ dependencies = [
 
 [[package]]
 name = "gravitational"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "metrology",
 ]
 
 [[package]]
 name = "gravitics"
-version = "0.5.5"
+version = "0.5.6"
 dependencies = [
  "geopotential",
  "gravitational",
@@ -104,7 +104,7 @@ dependencies = [
 
 [[package]]
 name = "metrology"
-version = "0.2.2"
+version = "0.2.3"
 
 [[package]]
 name = "miniz_oxide"
@@ -128,7 +128,7 @@ dependencies = [
 
 [[package]]
 name = "physica"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "geopotential",
  "gravimetry",
