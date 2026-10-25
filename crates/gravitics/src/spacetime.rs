@@ -124,6 +124,58 @@ pub fn light_bending(mass: f64, b: f64, metric: Metric) -> f64 {
     4.0 * x + second * x * x
 }
 
+/// The exact deflection (rad) of light passing a `mass` (kg) at impact parameter `b` (m), at any
+/// strength of field, or `None` when the light is captured: at or inside the critical impact
+/// parameter, `3√3 GM/c²` in general relativity and `2e GM/c²` in the polarizable vacuum.
+///
+/// It is [Darwin's](https://doi.org/10.1098/rspa.1959.0015) integral `α = 2∫₀^{u₀} du/√F(u) − π` over `u = GM/(c²r)`, with
+/// `F = (c²b/GM)⁻² − u²(1 − 2u)` in Schwarzschild's radius or `e^{4u}(c²b/GM)⁻² − u²` in
+/// Puthoff's isotropic one, and the turning point `u₀` the root of `F`. Writing
+/// `u = u₀(1 − t²)` divides that root out exactly, and panels graded toward `t = 0` follow the
+/// integrand's peak as the ray nears the photon sphere, where the deflection grows as
+/// `−ln(b/b_c − 1) + ln[216(7 − 4√3)] − π` ([Bozza 2002](https://arxiv.org/abs/gr-qc/0208075)).
+/// Far out it is [`light_bending`] plus `(128/3)(GM/c²b)³`. It is accurate to round-off except
+/// close to `b_c`, where the deflection itself is ill-conditioned: `dα/d ln b = −1/(b/b_c − 1)`,
+/// so the rounding of `b` alone moves it by `10⁻¹⁶/(b/b_c − 1)`.
+pub fn exact_deflection(mass: f64, b: f64, metric: Metric) -> Option<f64> {
+    let b = b * C * C / (G * mass);
+    // u²(1 − 2u) or u²e^(−4u) reaches its maximum 1/b_c² at the photon sphere.
+    let (g, photon): (fn(f64) -> f64, f64) = match metric {
+        Metric::GeneralRelativity => (|u| u * u * (1.0 - 2.0 * u), 1.0 / 3.0),
+        Metric::PolarizableVacuum => (|u| u * u * (-4.0 * u).exp(), 0.5),
+    };
+    if b * b * g(photon) <= 1.0 {
+        return None;
+    }
+    let (mut lo, mut hi) = (0.0, photon);
+    while hi - lo > f64::EPSILON * hi {
+        let mid = 0.5 * (lo + hi);
+        if b * b * g(mid) < 1.0 { lo = mid } else { hi = mid }
+    }
+    let u0 = 0.5 * (lo + hi);
+    // (F(u) − F(u₀))/(u₀ − u), with the divided difference of e^{4u} taken by expm1.
+    let q = |u: f64| match metric {
+        Metric::GeneralRelativity => (u + u0) - 2.0 * (u * u + u * u0 + u0 * u0),
+        Metric::PolarizableVacuum => {
+            let d = u - u0;
+            let slope = if d == 0.0 { 4.0 } else { (4.0 * d).exp_m1() / d };
+            (u + u0) - (4.0 * u0).exp() * slope / (b * b)
+        }
+    };
+    // Panels halving toward t = 0 keep the integrand's near-singularity, at the peak's width, a
+    // panel away from each panel, so 16 points reach round-off for any width down to 2⁻⁴⁰.
+    let (x, w) = geopotential::gauss_legendre(16);
+    let mut sum = 0.0;
+    let mut upper = 1.0;
+    for k in 1..=41 {
+        let lower = if k == 41 { 0.0 } else { 0.5f64.powi(k) };
+        let (mid, half) = (0.5 * (upper + lower), 0.5 * (upper - lower));
+        sum += half * x.iter().zip(&w).map(|(x, w)| w * 2.0 * u0.sqrt() / q(u0 * (1.0 - (mid + half * x).powi(2))).sqrt()).sum::<f64>();
+        upper = lower;
+    }
+    Some(2.0 * sum - PI)
+}
+
 /// The angular diameter (rad) of the shadow of a non-spinning black hole of mass `mass` (kg) at
 /// distance `distance` (m): `6√3 GM/(c²D)`, the critical impact parameter `3√3 GM/c²` seen from
 /// `D`. Spin and inclination make a Kerr shadow smaller, by up to about 7.5%
@@ -275,5 +327,64 @@ mod tests {
             assert!(shadow < 27f64.sqrt() && shadow > 2.0 * (1.0 + 2f64.sqrt()));
         }
         assert!((kerr_pole_on_shadow(1.0) / 27f64.sqrt() - 1.0 + 0.0708).abs() < 1e-3);
+    }
+
+    #[test]
+    fn exact_deflection_against_darwin_bozza_and_the_series() {
+        let m = metrology::SOLAR_MASS;
+        let rg = G * m / (C * C);
+        let at = |b: f64| exact_deflection(m, b * rg, Metric::GeneralRelativity).unwrap();
+        // Darwin's closed form, as Iyer & Petters (2007) print it, from the closest approach r₀:
+        // 4√(r₀/Q)[K(k) − F(Ψ, k)] − π, Q = √((r₀ − 2)(r₀ + 6)), k² = (Q − r₀ + 6)/(2Q),
+        // sin²Ψ = (Q + 2 − r₀)/(Q + 6 − r₀); F through Carlson's R_F.
+        // (Closer to the photon sphere α is ill-conditioned in b: the round trip r₀ → b → r₀
+        // alone costs 10⁻¹⁶/(b/b_c − 1). Bozza's limit below covers that regime.)
+        for r0 in [3.05f64, 3.5, 4.0, 6.0, 10.0, 100.0] {
+            let q = ((r0 - 2.0) * (r0 + 6.0)).sqrt();
+            let k2 = (q - r0 + 6.0) / (2.0 * q);
+            let s2 = (q + 2.0 - r0) / (q + 6.0 - r0);
+            let (big_k, _) = geopotential::special::complete_elliptic(k2);
+            let f = s2.sqrt() * geopotential::special::carlson_rf(1.0 - s2, 1.0 - k2 * s2, 1.0);
+            let darwin = 4.0 * (r0 / q).sqrt() * (big_k - f) - PI;
+            let b = (r0.powi(3) / (r0 - 2.0)).sqrt();
+            // Darwin's form subtracts π from nearly π and K from F near the photon sphere: 10⁻¹³.
+            assert!((at(b) - darwin).abs() < 2e-13, "r₀ = {r0}: {} vs {darwin}", at(b));
+        }
+        // Bozza's strong-field limit, b̄ = ln[216(7 − 4√3)] − π = −0.4002, approached linearly:
+        // 2.5×10⁻², 3.1×10⁻³, 3.8×10⁻⁴ at b/b_c − 1 = 10⁻², 10⁻³, 10⁻⁴.
+        let bbar = (216.0 * (7.0 - 4.0 * 3f64.sqrt())).ln() - PI;
+        assert!((bbar + 0.4002).abs() < 5e-5);
+        for (eps, gap) in [(1e-2, 2.5e-2), (1e-3, 3.1e-3), (1e-4, 3.8e-4)] {
+            let d = at(27f64.sqrt() * (1.0 + eps)) + eps.ln() - bbar;
+            assert!((d / gap - 1.0).abs() < 0.03, "{eps}: {d:e}");
+        }
+        // Iyer & Petters' series in h = GM/(c²r₀) at h = 10⁻³, to its h⁵ term.
+        let h = 1e-3;
+        let series = 4.0 * h + (-4.0 + 15.0 * PI / 4.0) * h * h + (122.0 / 3.0 - 7.5 * PI) * h.powi(3) + (-130.0 + 3465.0 * PI / 64.0) * h.powi(4)
+            + (778.3 - 3465.0 * PI / 16.0) * h.powi(5);
+        assert!((at((1e9f64 / 998.0).sqrt()) - series).abs() < 1e-15, "{:e}", at((1e9f64 / 998.0).sqrt()) - series);
+        // Far out, light_bending plus (128/3)(GM/c²b)³: the 2.7×10⁻⁸ beyond second order at 2×10⁴.
+        let b = 2e4;
+        let rest = at(b) - light_bending(m, b * rg, Metric::GeneralRelativity);
+        assert!((rest / (128.0 / 3.0 / b.powi(3)) - 1.0).abs() < 2e-3, "{rest:e}");
+        assert!(((rest / at(b)) / 2.67e-8 - 1.0).abs() < 2e-3);
+        // Inside the photon sphere's critical impact parameter the light is captured.
+        assert!(exact_deflection(m, 27f64.sqrt() * rg * (1.0 - 1e-12), Metric::GeneralRelativity).is_none());
+    }
+
+    #[test]
+    fn exact_deflection_in_the_polarizable_vacuum() {
+        let m = metrology::SOLAR_MASS;
+        let rg = G * m / (C * C);
+        // Far out it is light_bending's 4/b + 4π/b²; its photon sphere is at isotropic r = 2M, so
+        // light is captured inside b = 2e, and it bends more than in general relativity.
+        let b = 2e4;
+        let pv = exact_deflection(m, b * rg, Metric::PolarizableVacuum).unwrap();
+        assert!((pv / light_bending(m, b * rg, Metric::PolarizableVacuum) - 1.0).abs() < 1e-7);
+        let critical = 2.0 * core::f64::consts::E;
+        assert!(exact_deflection(m, critical * rg * (1.0 - 1e-9), Metric::PolarizableVacuum).is_none());
+        assert!(exact_deflection(m, critical * rg * (1.0 + 1e-6), Metric::PolarizableVacuum).unwrap() > 10.0);
+        let gr = exact_deflection(m, 10.0 * rg, Metric::GeneralRelativity).unwrap();
+        assert!(exact_deflection(m, 10.0 * rg, Metric::PolarizableVacuum).unwrap() > gr);
     }
 }
