@@ -1,0 +1,63 @@
+(2,+2,0) F max  1.85% at j=0.99 (stated 1.85)  Q max  0.88% at j=0.00 (stated 0.88) <-- Q over stated <-- F over stated
+(2,+2,1) F max  1.56% at j=0.00 (stated 1.56)  Q max  1.69% at j=0.00 (stated 1.69) <-- Q over stated <-- F over stated
+(2,+2,2) F max  1.91% at j=0.99 (stated 1.91)  Q max  2.52% at j=0.99 (stated 2.52)
+(2,+1,0) F max  2.03% at j=0.00 (stated 2.03)  Q max  3.65% at j=0.99 (stated 3.65)
+(2,+1,1) F max  2.40% at j=0.00 (stated 2.4)  Q max  3.18% at j=0.99 (stated 3.18)
+(2,+1,2) F max  4.04% at j=0.99 (stated 4.04)  Q max  2.46% at j=0.99 (stated 2.46) <-- Q over stated
+(2,+0,0) F max  1.04% at j=0.00 (stated 1.04)  Q max  2.63% at j=0.00 (stated 2.63)
+(2,+0,1) F max  1.50% at j=0.99 (stated 1.5)  Q max  4.01% at j=0.99 (stated 4.01) <-- Q over stated
+(2,+0,2) F max  2.72% at j=0.99 (stated 2.72)  Q max  4.33% at j=0.00 (stated 4.33) <-- F over stated
+(2,-1,0) F max  0.07% at j=0.00 (stated 0.07)  Q max  2.82% at j=0.99 (stated 2.82) <-- F over stated
+(2,-1,1) F max  0.05% at j=0.99 (stated 0.05)  Q max  3.22% at j=0.60 (stated 0.67) <-- Q over stated
+(2,-1,2) F max  0.43% at j=0.99 (stated 0.43)  Q max  2.40% at j=0.99 (stated 2.4) <-- F over stated
+(2,-2,0) F max  0.63% at j=0.99 (stated 0.63)  Q max  0.71% at j=0.99 (stated 0.71) <-- F over stated
+(2,-2,1) F max  0.87% at j=0.99 (stated 0.87)  Q max  0.79% at j=0.00 (stated 0.79) <-- F over stated
+(2,-2,2) F max  1.35% at j=0.99 (stated 1.34)  Q max  1.17% at j=0.99 (stated 1.16) <-- Q over stated <-- F over stated
+(3,+3,0) F max  1.36% at j=0.00 (stated 1.36)  Q max  0.59% at j=0.99 (stated 0.42) <-- Q over stated
+(3,+3,1) F max  1.35% at j=0.00 (stated 1.35)  Q max  0.88% at j=0.00 (stated 0.88)
+(3,+3,2) F max  1.28% at j=0.00 (stated 1.28)  Q max  1.52% at j=0.00 (stated 1.52) <-- F over stated
+(3,+2,0) F max  1.09% at j=0.00 (stated 1.09)  Q max  1.28% at j=0.99 (stated 1.28) <-- Q over stated <-- F over stated
+(3,+2,1) F max  1.23% at j=0.00 (stated 1.23)  Q max  0.51% at j=0.99 (stated 0.51) <-- Q over stated
+(3,+2,2) F max  1.41% at j=0.00 (stated 1.41)  Q max  0.81% at j=0.00 (stated 0.81) <-- F over stated
+(3,+1,0) F max  1.12% at j=0.99 (stated 1.12)  Q max  3.47% at j=0.00 (stated 3.47) <-- F over stated
+(3,+1,1) F max  1.55% at j=0.99 (stated 1.55)  Q max  3.64% at j=0.99 (stated 3.64) <-- Q over stated <-- F over stated
+(3,+1,2) F max  2.67% at j=0.99 (stated 2.67)  Q max  4.04% at j=0.99 (stated 4.04) <-- F over stated
+(3,+0,0) F max  0.83% at j=0.00 (stated 0.83)  Q max  3.99% at j=0.99 (stated 3.99) <-- Q over stated
+(3,+0,1) F max  0.95% at j=0.99 (stated 0.95)  Q max  4.18% at j=0.99 (stated 4.18) <-- F over stated
+(3,+0,2) F max  1.28% at j=0.99 (stated 1.28)  Q max  2.89% at j=0.00 (stated 2.89) <-- Q over stated
+(3,-1,0) F max  0.42% at j=0.99 (stated 0.42)  Q max  2.65% at j=0.99 (stated 2.65)
+(3,-1,1) F max  0.42% at j=0.99 (stated 0.42)  Q max  2.75% at j=0.00 (stated 2.75)
+(3,-1,2) F max  0.29% at j=0.98 (stated 0.29)  Q max  3.15% at j=0.00 (stated 3.15) <-- Q over stated
+(3,-2,0) F max  0.35% at j=0.99 (stated 0.35)  Q max  0.72% at j=0.99 (stated 0.72) <-- Q over stated <-- F over stated
+(3,-2,1) F max  0.41% at j=0.99 (stated 0.41)  Q max  0.80% at j=0.98 (stated 0.8) <-- Q over stated
+(3,-2,2) F max  0.53% at j=0.99 (stated 0.53)  Q max  0.52% at j=0.99 (stated 0.52) <-- Q over stated <-- F over stated
+(3,-3,0) F max  0.61% at j=0.99 (stated 0.61)  Q max  0.79% at j=0.00 (stated 0.79)
+(3,-3,1) F max  0.68% at j=0.99 (stated 0.68)  Q max  0.73% at j=0.00 (stated 0.73) <-- F over stated
+(3,-3,2) F max  0.82% at j=0.99 (stated 0.82)  Q max  0.88% at j=0.00 (stated 0.88) <-- F over stated
+(4,+4,0) F max  1.83% at j=0.00 (stated 1.83)  Q max  0.37% at j=0.99 (stated 0.37)
+(4,+4,1) F max  1.75% at j=0.00 (stated 1.75)  Q max  1.02% at j=0.99 (stated 0.77) <-- Q over stated
+(4,+4,2) F max  1.61% at j=0.00 (stated 1.61)  Q max  1.09% at j=0.99 (stated 0.1) <-- Q over stated
+(4,+3,0) F max  1.05% at j=0.00 (stated 1.05)  Q max  0.14% at j=0.00 (stated 0.14)
+(4,+3,1) F max  1.10% at j=0.00 (stated 1.1)  Q max  0.37% at j=0.99 (stated 0.37) <-- Q over stated
+(4,+3,2) F max  1.15% at j=0.00 (stated 1.15)  Q max  0.66% at j=0.00 (stated 0.66) <-- Q over stated <-- F over stated
+(4,+2,0) F max  1.11% at j=0.99 (stated 1.11)  Q max  2.97% at j=0.99 (stated 0.97) <-- Q over stated
+(4,+2,1) F max  1.39% at j=0.99 (stated 1.39)  Q max  3.11% at j=0.99 (stated 0.12) <-- Q over stated <-- F over stated
+(4,+2,2) F max  2.26% at j=0.99 (stated 2.26)  Q max  3.31% at j=0.00 (stated 0.31) <-- Q over stated
+(4,+1,0) F max  0.97% at j=0.99 (stated 0.97)  Q max  2.81% at j=0.00 (stated 0.81) <-- Q over stated <-- F over stated
+(4,+1,1) F max  1.15% at j=0.99 (stated 1.15)  Q max  2.91% at j=0.00 (stated 0.91) <-- Q over stated <-- F over stated
+(4,+1,2) F max  1.53% at j=0.99 (stated 1.53)  Q max  3.53% at j=0.99 (stated 0.53) <-- Q over stated <-- F over stated
+(4,+0,0) F max  0.75% at j=0.00 (stated 0.75)  Q max  2.26% at j=0.99 (stated 0.26) <-- Q over stated <-- F over stated
+(4,+0,1) F max  0.82% at j=0.00 (stated 0.82)  Q max  2.26% at j=0.00 (stated 0.26) <-- Q over stated
+(4,+0,2) F max  0.96% at j=0.99 (stated 0.96)  Q max  2.60% at j=0.00 (stated 0.6) <-- Q over stated <-- F over stated
+(4,-1,0) F max  0.96% at j=0.99 (stated 0.96)  Q max  2.51% at j=0.99 (stated 2.52) <-- F over stated
+(4,-1,1) F max  0.98% at j=0.99 (stated 0.98)  Q max  2.37% at j=0.00 (stated 2.37) <-- F over stated
+(4,-1,2) F max  0.96% at j=0.99 (stated 0.96)  Q max  2.32% at j=0.00 (stated 2.32)
+(4,-2,0) F max  0.23% at j=0.99 (stated 0.23)  Q max  2.11% at j=0.99 (stated 2.11)
+(4,-2,1) F max  0.25% at j=0.99 (stated 0.25)  Q max  0.75% at j=0.70 (stated 0.75) <-- F over stated
+(4,-2,2) F max  0.32% at j=0.99 (stated 0.32)  Q max  0.66% at j=0.99 (stated 0.66)
+(4,-3,0) F max  0.43% at j=0.99 (stated 0.43)  Q max  0.45% at j=0.99 (stated 0.45)
+(4,-3,1) F max  0.46% at j=0.99 (stated 0.46)  Q max  0.70% at j=0.00 (stated 0.7)
+(4,-3,2) F max  0.52% at j=0.99 (stated 0.52)  Q max  0.81% at j=0.00 (stated 0.82)
+(4,-4,0) F max  0.62% at j=0.99 (stated 0.62)  Q max  0.63% at j=0.00 (stated 0.63) <-- F over stated
+(4,-4,1) F max  0.67% at j=0.99 (stated 0.67)  Q max  0.81% at j=0.00 (stated 0.81) <-- Q over stated
+(4,-4,2) F max  0.74% at j=0.99 (stated 0.74)  Q max  0.69% at j=0.00 (stated 0.69) <-- Q over stated

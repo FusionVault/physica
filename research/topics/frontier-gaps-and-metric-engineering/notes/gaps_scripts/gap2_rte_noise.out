@@ -1,0 +1,4 @@
+I=10 clean: floor 0.115; exact RTE 0.00835; Seequent REDE Ia=20 0.0485
+I=10 noisy: floor 0.115; exact RTE 0.105; Seequent REDE Ia=20 0.107
+I=5 clean: floor 0.123; exact RTE 0.00809; Seequent REDE Ia=20 0.0605
+I=5 noisy: floor 0.123; exact RTE 0.119; Seequent REDE Ia=20 0.118

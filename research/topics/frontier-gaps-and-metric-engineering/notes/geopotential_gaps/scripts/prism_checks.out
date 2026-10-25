@@ -1,0 +1,45 @@
+=== Fukushima (2019) Table 4: half-dims (2.5, 3.1, 5.0), point (30, 40, 50), G = rho = 1 ===
+V   split-GL 4.3854130354034266e+00  long-double corners 4.3854130354034275e+00  double corners 4.3854130354011431e+00  table +4.385413035403429E+00
+g_x split-GL -2.6383761635318914e-02  long-double -2.6383761635318970e-02  table -2.638376163531892e-02
+g_y split-GL -3.5154605601538068e-02  long-double -3.5154605601538075e-02  table -3.515460560153808e-02
+g_z split-GL -4.3808384002893684e-02  long-double -4.3808384002893719e-02  table -4.380838400289370e-02
+Gxx split-GL -4.0194174445642951e-04  long-double -4.0194174445642967e-04  table -4.019417444564296E-04
+M/R order 0: 4.3840620433565949e+00 (table order 0 +4.384062043356595E+00)
+quadrupole coefficients (2a²-b²-c²)/6 etc.: [-3.685, -2.0049999999999994, 5.69]  (table C200 -3.685, C020 -2.005, C002 +5.69)
+through order 2: 4.3854124221471888e+00
+
+=== Corner-sum loss against distance (max over 12 directions), relative errors V, |g|, T ===
+cube 1x1x1 diagonal 1.732, abc 1.0
+     1 diagonals: corner sums V 4.2e-15 g 5.9e-15 T 3.3e-15;  eps r^3/abc = 1.2e-15
+     3 diagonals: corner sums V 1.2e-13 g 2.1e-13 T 9.2e-14;  eps r^3/abc = 3.1e-14
+    10 diagonals: corner sums V 5.6e-12 g 1.3e-11 T 2.8e-12;  eps r^3/abc = 1.2e-12
+    30 diagonals: corner sums V 2.1e-10 g 4.5e-10 T 1.6e-10;  eps r^3/abc = 3.1e-11
+   100 diagonals: corner sums V 1.0e-08 g 2.0e-08 T 7.1e-09;  eps r^3/abc = 1.2e-09
+1x1x10 diagonal 10.100, abc 10.0
+     1 diagonals: corner sums V 9.9e-14 g 1.8e-13 T 8.0e-14;  eps r^3/abc = 2.3e-14
+     3 diagonals: corner sums V 2.4e-12 g 7.8e-12 T 3.1e-12;  eps r^3/abc = 6.2e-13
+    10 diagonals: corner sums V 2.2e-10 g 6.6e-10 T 1.7e-10;  eps r^3/abc = 2.3e-11
+    30 diagonals: corner sums V 6.2e-09 g 1.1e-08 T 3.9e-09;  eps r^3/abc = 6.2e-10
+   100 diagonals: corner sums V 2.1e-07 g 4.5e-07 T 1.1e-07;  eps r^3/abc = 2.3e-08
+1x1x100 needle diagonal 100.010, abc 100.0
+     1 diagonals: corner sums V 2.7e-11 g 4.4e-11 T 9.5e-12;  eps r^3/abc = 2.2e-12
+     3 diagonals: corner sums V 9.7e-10 g 1.2e-09 T 3.5e-10;  eps r^3/abc = 6.0e-11
+    10 diagonals: corner sums V 2.0e-08 g 4.3e-08 T 1.0e-08;  eps r^3/abc = 2.2e-09
+    30 diagonals: corner sums V 5.2e-07 g 2.0e-06 T 5.2e-07;  eps r^3/abc = 6.0e-08
+   100 diagonals: corner sums V 3.6e-05 g 5.6e-05 T 2.6e-05;  eps r^3/abc = 2.2e-06
+
+=== Corner sums next to a long needle (point 2 from the axis, at mid-length) ===
+  L = 10: V 1.1e-15 g 5.3e-15 T 1.3e-15
+  L = 100: V 1.3e-14 g 7.3e-14 T 1.9e-15
+  L = 10000: V 8.5e-13 g 3.1e-11 T 4.4e-15
+
+=== Strategies for the 1x1x100 needle: max rel error over 12 directions, and kernel evaluations ===
+  0.60 diag: | crate (10 diag, 4^3 GL): 1e-11 (8) | near-cubes x crate: 2e-13 (3200) | split GL ratio 8, n=4: 3e-12 (1728) | Bernstein per-axis GL: 1e-14 (2075) | hybrid corner/Bernstein: 2e-12 (384)
+  1.00 diag: | crate (10 diag, 4^3 GL): 4e-11 (8) | near-cubes x crate: 7e-16 (3200) | split GL ratio 8, n=4: 7e-12 (768) | Bernstein per-axis GL: 7e-15 (336) | hybrid corner/Bernstein: 7e-15 (336)
+  2.00 diag: | crate (10 diag, 4^3 GL): 5e-10 (8) | near-cubes x crate: 5e-16 (3200) | split GL ratio 8, n=4: 8e-12 (384) | Bernstein per-axis GL: 4e-15 (90) | hybrid corner/Bernstein: 4e-15 (90)
+  3.00 diag: | crate (10 diag, 4^3 GL): 1e-09 (8) | near-cubes x crate: 5e-16 (3200) | split GL ratio 8, n=4: 3e-12 (256) | Bernstein per-axis GL: 6e-16 (72) | hybrid corner/Bernstein: 6e-16 (72)
+  5.00 diag: | crate (10 diag, 4^3 GL): 7e-09 (8) | near-cubes x crate: 7e-16 (3200) | split GL ratio 8, n=4: 9e-12 (128) | Bernstein per-axis GL: 4e-16 (63) | hybrid corner/Bernstein: 4e-16 (63)
+  9.99 diag: | crate (10 diag, 4^3 GL): 5e-08 (8) | near-cubes x crate: 5e-16 (3200) | split GL ratio 8, n=4: 8e-12 (64) | Bernstein per-axis GL: 6e-15 (45) | hybrid corner/Bernstein: 6e-15 (45)
+ 10.01 diag: | crate (10 diag, 4^3 GL): 8e-12 (64) | near-cubes x crate: 4e-16 (3200) | split GL ratio 8, n=4: 8e-12 (64) | Bernstein per-axis GL: 6e-15 (45) | hybrid corner/Bernstein: 6e-15 (45)
+ 20.00 diag: | crate (10 diag, 4^3 GL): 3e-14 (64) | near-cubes x crate: 6e-16 (3200) | split GL ratio 8, n=4: 3e-14 (64) | Bernstein per-axis GL: 4e-16 (45) | hybrid corner/Bernstein: 4e-16 (45)
+ 50.00 diag: | crate (10 diag, 4^3 GL): 4e-16 (64) | near-cubes x crate: 6e-16 (3200) | split GL ratio 8, n=4: 4e-16 (64) | Bernstein per-axis GL: 3e-16 (16) | hybrid corner/Bernstein: 3e-16 (16)

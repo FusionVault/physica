@@ -1,0 +1,12 @@
+Om=0.3 OL=0 Ok=+0.7 z=0.5: integral D_M=1710.1240353013  Mattig=1710.1240353013  rel=+6.7e-16
+Om=0.3 OL=0 Ok=+0.7 z=2.0: integral D_M=4747.5448061535  Mattig=4747.5448061535  rel=+2.2e-16
+Om=0.3 OL=0 Ok=+0.7 z=5.0: integral D_M=8122.3768186607  Mattig=8122.3768186607  rel=+0.0e+00
+Om=1.0 OL=0 Ok=+0.0 z=0.5: integral D_M=1571.7983158595  Mattig=1571.7983158595  rel=-4.4e-16
+Om=1.0 OL=0 Ok=+0.0 z=2.0: integral D_M=3620.2057620766  Mattig=3620.2057620766  rel=+2.2e-16
+Om=1.0 OL=0 Ok=+0.0 z=5.0: integral D_M=5068.6485579297  Mattig=5068.6485579297  rel=-2.2e-16
+Om=2.0 OL=0 Ok=-1.0 z=0.5: integral D_M=1427.5831333333  Mattig=1427.5831333333  rel=-1.1e-16
+Om=2.0 OL=0 Ok=-1.0 z=2.0: integral D_M=2855.1662666667  Mattig=2855.1662666667  rel=+0.0e+00
+Om=2.0 OL=0 Ok=-1.0 z=5.0: integral D_M=3568.9578333333  Mattig=3568.9578333333  rel=-1.1e-16
+Om=3 Ok=-2: z1=0.5 z2=1.0: sqrt|Ok| chi2 = 0.680 rad; S_k form D_A12 = 342.9812 Mpc; Hogg Eq.19 = 342.9812 Mpc
+Om=3 Ok=-2: z1=1.0 z2=10.0: sqrt|Ok| chi2 = 1.413 rad; S_k form D_A12 = 184.3056 Mpc; Hogg Eq.19 = 184.3056 Mpc
+Om=3 Ok=-2: z1=2.0 z2=50.0: sqrt|Ok| chi2 = 1.681 rad; S_k form D_A12 = 40.5883 Mpc; Hogg Eq.19 = 30.0828 Mpc

@@ -1,0 +1,30 @@
+a=+0.0: M Omega = 0.068041381743977, exact 0.068041381743977
+a=+1.0: M Omega = 0.500000000000000, exact 0.500000000000000
+a=-1.0: M Omega = 0.038461538461538, exact 0.038461538461538
+a=-0.90: r=8.7173522796 M Omega=0.040260688975 z0''=+0.0e+00 E0'=+2.8e-06 E0(Omega)=0.9610016543 vs sqrt(1-2/(3r))=0.9610016544
+a=-0.50: r=7.5545847145 M Omega=0.049348031104 z0''=-9.1e-06 E0'=-2.8e-06 E0(Omega)=0.9548577731 vs sqrt(1-2/(3r))=0.9548577730
+a=+0.00: r=6.0000000000 M Omega=0.068041381744 z0''=-4.8e-06 E0'=+5.6e-06 E0(Omega)=0.9428090416 vs sqrt(1-2/(3r))=0.9428090416
+a=+0.50: r=4.2330025295 M Omega=0.108588358980 z0''=+0.0e+00 E0'=+5.3e-09 E0(Omega)=0.9178820066 vs sqrt(1-2/(3r))=0.9178820067
+a=+0.90: r=2.3208830418 M Omega=0.225441708835 z0''=-7.6e-07 E0'=+1.5e-05 E0(Omega)=0.8442470080 vs sqrt(1-2/(3r))=0.8442470080
+a=+0.99: r=1.4544979381 M Omega=0.364409991055 z0''=-1.5e-06 E0'=+3.5e-06 E0(Omega)=0.7359698998 vs sqrt(1-2/(3r))=0.7359698999
+
+GW frequency f = Omega/pi for M = 10 Msun (Hz):
+  a=-1.000: r_isco=9.000000  M Omega=0.03846154  f_GW=  248.550 Hz  ratio to Schwarzschild 0.56527
+  a=-0.900: r_isco=8.717352  M Omega=0.04026069  f_GW=  260.177 Hz  ratio to Schwarzschild 0.59171
+  a=+0.000: r_isco=6.000000  M Omega=0.06804138  f_GW=  439.704 Hz  ratio to Schwarzschild 1.00000
+  a=+0.500: r_isco=4.233003  M Omega=0.10858836  f_GW=  701.731 Hz  ratio to Schwarzschild 1.59592
+  a=+0.700: r_isco=3.393128  M Omega=0.14387880  f_GW=  929.789 Hz  ratio to Schwarzschild 2.11458
+  a=+0.900: r_isco=2.320883  M Omega=0.22544171  f_GW= 1456.873 Hz  ratio to Schwarzschild 3.31330
+  a=+0.990: r_isco=1.454498  M Omega=0.36440999  f_GW= 2354.929 Hz  ratio to Schwarzschild 5.35571
+  a=+0.998: r_isco=1.236971  M Omega=0.42127459  f_GW= 2722.405 Hz  ratio to Schwarzschild 6.19145
+  a=+1.000: r_isco=1.000000  M Omega=0.50000000  f_GW= 3231.153 Hz  ratio to Schwarzschild 7.34847
+
+conservative GSF shift (M+mu)Omega/(M Omega0) - 1 = eta C_Omega, eta = mu/M:
+  a=+0.0: C=1.25101539; eta=1e-3 -> 1.25e-03; eta=0.1 -> 0.125
+  a=+0.1: C=1.245568; eta=1e-3 -> 1.25e-03; eta=0.1 -> 0.125
+  a=+0.3: C=1.239927; eta=1e-3 -> 1.24e-03; eta=0.1 -> 0.124
+  a=+0.5: C=1.249234; eta=1e-3 -> 1.25e-03; eta=0.1 -> 0.125
+  a=+0.7: C=1.29319; eta=1e-3 -> 1.29e-03; eta=0.1 -> 0.129
+  a=+0.9: C=1.38157; eta=1e-3 -> 1.38e-03; eta=0.1 -> 0.138
+  a=-0.5: C=1.286093; eta=1e-3 -> 1.29e-03; eta=0.1 -> 0.129
+  a=-0.9: C=1.314016; eta=1e-3 -> 1.31e-03; eta=0.1 -> 0.131

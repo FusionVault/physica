@@ -1,0 +1,17 @@
+k00 = -3.8211589605510183
+1. generic formula at beta, gamma in {0, pi} vs aligned Eq. 7: max |diff| = 1.1e-16
+2. equal mass, no spin: 0.6864600000000001 (0.68646)
+3. q=1, both spins 0.5 in-plane and parallel: |a_fin| = 0.730566 = sqrt((A/2)^2 + (ell nu)^2) = 0.730566
+   ... and antiparallel in-plane: |a_fin| = 0.686460 = ell nu = 0.686460
+3. q=1, both spins 0.9 in-plane and parallel: |a_fin| = 0.820809 = sqrt((A/2)^2 + (ell nu)^2) = 0.820809
+   ... and antiparallel in-plane: |a_fin| = 0.686460 = ell nu = 0.686460
+4. angle map with eps=0.024 at beta=60deg: 61.183725701144155 deg; small-eps form 61.19087041411107
+5. BMR12 E_rad q=1 a=0.6 at beta=gamma=60deg equals aligned a=0.3: 0.06004829999999997 0.06004829999999997
+   BMR12 q=1 aligned maximal:  0.09947999999999999  (p0 + 3 p1 = 0.09947999999999999 )
+6. chi=0.0: kappa/kappa_Schw = 1.000000000000
+6. chi=0.6: kappa/kappa_Schw = 0.888888888889
+6. chi=0.8: kappa/kappa_Schw = 0.750000000000
+6. chi=1.0: kappa/kappa_Schw = 0.000000000000
+   Townsend forms: 0.20830902332069898 0.20830902332069898 0.20830902332069898
+   first law at chi=0.7: dM/dA|_J = 0.0082883527, kappa/(8 pi) = 0.0082883527
+   T_Schw(1 Msun) = 6.170074e-08 K; T(chi=0.8) = 4.627555e-08 K

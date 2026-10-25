@@ -1,0 +1,45 @@
+/home/dan/code/FusionVault/quantum-gravimeter/research/topics/frontier-gaps-and-metric-engineering/notes/bh_gw_scripts/gap5_checks2.py:58: RuntimeWarning: overflow encountered in scalar multiply
+  return [dth, -th**n - 2 * dth / x, (-(yy * yy + yy - 6) - x * x * n * th ** (n - 1)) / x]
+/home/dan/code/FusionVault/quantum-gravimeter/research/topics/frontier-gaps-and-metric-engineering/notes/bh_gw_scripts/gap5_checks2.py:58: RuntimeWarning: invalid value encountered in scalar add
+  return [dth, -th**n - 2 * dth / x, (-(yy * yy + yy - 6) - x * x * n * th ** (n - 1)) / x]
+incompressible: k2(C->0) = 0.0002420612079701935 (3/4); k2(0.44) = 0.002227798375772876 ; DN09 k2(4/9) = 0.001710300596148968
+   incompressible C=0.05: k2=0.556257
+   incompressible C=0.1: k2=0.400305
+   incompressible C=0.2: k2=0.183019
+   incompressible C=0.3: k2=0.063206
+   incompressible C=0.4: k2=0.010347
+   incompressible C=0.444: k2=0.001758
+
+Newtonian n=1 limit k2N = 0.2599088773175333
+  Gamma=2 C=0.001: mu-polytrope k2=0.25325 (DN09 fit 0.25788); e-polytrope k2=0.25968
+  Gamma=2 C=0.05: mu-polytrope k2=0.17919 (DN09 fit 0.17921); e-polytrope k2=0.18285
+  Gamma=2 C=0.1: mu-polytrope k2=0.11710 (DN09 fit 0.11706); e-polytrope k2=0.12321
+  Gamma=2 C=0.15: mu-polytrope k2=0.07075 (DN09 fit 0.07077); e-polytrope k2=0.07837
+  Gamma=2 C=0.2: mu-polytrope k2=0.03729 (DN09 fit 0.03727); e-polytrope k2=0.04589
+  Hinderer 2008 erratum Table 1, n=1: C=0.1 0.122, C=0.15 0.0776, C=0.2 0.0459
+  n=0.5 C=0.1: mu 0.2249  e 0.2284  Hinderer 0.251
+  n=0.5 C=0.15: mu 0.1488  e 0.1531  Hinderer 0.173
+  n=0.5 C=0.2: mu 0.0921  e 0.0968  Hinderer 0.095
+  n=0.3 C=0.1: mu 0.2847  e 0.2869  Hinderer 0.294
+  n=0.3 C=0.2: mu 0.1230  e 0.1259  Hinderer 0.119
+
+Read et al. 2009 piecewise polytropes, 1.4 Msun:
+  SLy: pressure continuity at boundaries (rel): 1.16e-04
+  SLy: M_max = 2.0484 (Read fit: 2.0494); R_1.4 = 11.705 km (Read fit: 11.711, table 11.736); C = 0.1766; k2 = 0.07620; Lambda_1.4 = 295.6   [Hinderer+2010 tabulated: R 11.74, C 0.176, k2 0.0763, Lambda 301]
+  AP4: pressure continuity at boundaries (rel): 1.16e-04
+  AP4: M_max = 2.1879 (Read fit: 2.1891); R_1.4 = 11.319 km (Read fit: 11.325, table 11.428); C = 0.1826; k2 = 0.07548; Lambda_1.4 = 247.6
+(a) k2(4/9, y=2): float 0.0017103005961489647  Decimal 0.00171030059614896786238494016153626413130759261094046178314735  DN09: 0.001710300596148968
+(b) cancellation: float Eq.23 vs 60-digit exact, y = (pi^2-9)/3 (n=1 Newtonian):
+   C=1e-05: exact 0.259896551608  float rel err -1.0e+00  series(as printed, C^4,C^5) -6.2e-06  series(C^3,C^4) -6.2e-06
+   C=0.0001: exact 0.259785636752  float rel err -1.0e+00  series(as printed, C^4,C^5) -6.2e-05  series(C^3,C^4) -6.2e-05
+   C=0.001: exact 0.258678123820  float rel err +1.0e-03  series(as printed, C^4,C^5) -6.2e-04  series(C^3,C^4) -6.2e-04
+   C=0.01: exact 0.247765812479  float rel err +9.8e-08  series(as printed, C^4,C^5) -6.2e-03  series(C^3,C^4) -6.2e-03
+   C=0.05: exact 0.202766512622  float rel err -1.7e-11  series(as printed, C^4,C^5) -3.2e-02  series(C^3,C^4) -3.2e-02
+   true series coefficients b0..b4: ['0.5198177546', '-0.3859076044', '0.0504002356', '0.0713280642', '0.1123952356']
+   Postnikov terms t0..t4         : ['0.5198177546', '-0.7072919650', '0.0504002356', '0.0713280642', '0.0559826558']
+(c) Newtonian n=1.0: k2 = 0.25991, xi_1 = 3.14159
+(c) Newtonian n=0.5: k2 = 0.44915, xi_1 = 2.75270
+(c) Newtonian n=0.3: k2 = 0.55315, xi_1 = 2.62268
+(c) Newtonian n=0.7: k2 = 0.36264, xi_1 = 2.89628
+(c) Newtonian n=1.2: k2 = 0.20619, xi_1 = 3.32887
+    Hinderer 2008 erratum Table 1 at M/R = 1e-5: n=0.3 0.5511, 0.5 0.4491, 0.7 0.3626, 1.0 0.2599, 1.2 0.2062

@@ -1,0 +1,6 @@
+Gauss-Jacobi n = 2: exact through total degree 3 (2n-1 = 3)
+Gauss-Jacobi n = 3: exact through total degree 5 (2n-1 = 5)
+Gauss-Jacobi n = 4: exact through total degree 7 (2n-1 = 7)
+Gauss-Legendre n = 2: exact through total degree 1 (2n-1 = 3)
+Gauss-Legendre n = 3: exact through total degree 3 (2n-1 = 5)
+Gauss-Legendre n = 4: exact through total degree 5 (2n-1 = 7)

@@ -1,0 +1,12 @@
+s = 0.999936, x_B = 1.516229 lt-s, A = 3.6503 us (Kramer: 3.65 us)
+a_R = 878825.6 km, dLambda_len = 4.2041e-06
+D = 15.1891 ns
+Lambda_u min = 6.6368e-05 (1-s = 6.4426e-05); peak LO delay = 118.560 us
+k_ret = 2 pi x_B/P_b = 1.0784e-03; dLambda_ret range near conj: -2.041e-04 .. 2.007e-04
+lensing:     delay change at conj -0.7569 us, extreme -0.7569 us
+retardation: delay change extremes -1.0820 / +1.1885 us
+both:        extremes -1.4925 / +0.8357 us
+aberration NLO D cos(psi)/Lambda extremes -1.3002 / +1.2977 us
+lensing far from conj (u_sc+pi): -0.027 ns
+e=0 identity residual 4.472333961502706e-19
+KS99 Eq.130 vs retarded-position construction: max rel diff 4.94e+01

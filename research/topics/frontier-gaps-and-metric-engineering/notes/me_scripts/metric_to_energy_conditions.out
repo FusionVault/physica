@@ -1,0 +1,24 @@
+--- Schwarzschild (isotropic, M = 1): T should vanish ---
+r = 3.0: max |T_ab| = 6.52e-12 (curvature scale 1/r^2 = 1.11e-01)
+r = 6.0: max |T_ab| = 1.74e-11 (curvature scale 1/r^2 = 2.78e-02)
+
+--- Alcubierre (lab frame, t = 0), v = 1.0, R = 1.0, sigma = 8.0 ---
+wall, side (theta=90)  rho = -1.59155e-01 (analytic -1.59155e-01, SSV -1.59155e-01); rho+pbar = -3.7136e-01 (SSV K=+v_(i,j): -3.7136e-01, K=-v_(i,j): -2.6526e-01); NEC min -7.957e-01; WEC min(<=0.99c) -3.943e+01; SEC_E -3.979e-01; DEC_E -2.387e-01
+wall, 45 deg           rho = -7.95775e-02 (analytic -7.95775e-02, SSV -7.95775e-02); rho+pbar = -3.9792e-01 (SSV K=+v_(i,j): -3.9792e-01, K=-v_(i,j): -3.4481e-01); NEC min -7.624e-01; WEC min(<=0.99c) -3.770e+01; SEC_E -5.173e-01; DEC_E -2.054e-01
+wall, front on axis    rho = -1.56549e-07 (analytic -1.59155e-07, SSV -1.59155e-07); rho+pbar = -4.2441e-01 (SSV K=+v_(i,j): -4.2441e-01, K=-v_(i,j): -4.2442e-01); NEC min -6.765e-01; WEC min(<=0.99c) -3.336e+01; SEC_E -6.366e-01; DEC_E -1.592e-01
+wall, rear on axis     rho = -1.56549e-07 (analytic -1.59155e-07, SSV -1.59155e-07); rho+pbar = -4.2441e-01 (SSV K=+v_(i,j): -4.2441e-01, K=-v_(i,j): -4.2442e-01); NEC min -6.765e-01; WEC min(<=0.99c) -3.336e+01; SEC_E -6.366e-01; DEC_E -1.592e-01
+inside                 rho = -8.24935e-12 (analytic -8.24935e-12, SSV -8.24935e-12); rho+pbar = -1.9442e-10 (SSV K=+v_(i,j): -1.9365e-10, K=-v_(i,j): -1.5338e-11); NEC min -3.117e-05; WEC min(<=0.99c) -1.550e-03; SEC_E -2.834e-10; DEC_E -1.559e-05
+outside                rho = -1.16780e-08 (analytic -1.16780e-08, SSV -1.16780e-08); rho+pbar = -1.7985e-05 (SSV K=+v_(i,j): -1.7985e-05, K=-v_(i,j):  1.7939e-05); NEC min -6.627e-04; WEC min(<=0.99c) -3.297e-02; SEC_E -2.697e-05; DEC_E -3.314e-04
+
+--- Warp Factory test case in SI: comoving Alcubierre v = 0.1, R = 300 m, sigma = 0.015 /m ---
+rho at (0, 300, 0) = -6.7751e+35 J/m^3 ; analytic -6.7751e+35; NEC min -1.475e+37 J/m^3
+
+--- Natario zero expansion (static), v = 1.0, R = 1.0, sigma = 4.0 ---
+x,y,z = (0.6, 0.85, 0.0): rho = -4.05272e-02 (Natario formula -4.05272e-02); expansion-free check; NEC min -1.225e+00; WEC min -6.091e+01
+x,y,z = (1.0, 0.1, 0.0): rho = -1.18582e-01 (Natario formula -1.18582e-01); expansion-free check; NEC min -5.460e-01; WEC min -2.717e+01
+x,y,z = (0.1, 1.0, 0.0): rho = -3.45309e-02 (Natario formula -3.45309e-02); expansion-free check; NEC min -1.311e+00; WEC min -6.519e+01
+x,y,z = (-0.7, 0.6, 0.3): rho = -1.00514e-01 (Natario formula -1.00514e-01); expansion-free check; NEC min -8.365e-01; WEC min -4.154e+01
+
+--- Morris-Thorne b = r0^2/r, r0 = 1 ---
+r = 1.2: rho = -1.91882e-02 (analytic -1.91882e-02); p_r = -1.91882e-02 (analytic -1.91882e-02); rho+p_r = -3.8376e-02 (analytic -3.8376e-02); NEC min -3.8374e-02
+r = 2.0: rho = -2.48680e-03 (analytic -2.48680e-03); p_r = -2.48680e-03 (analytic -2.48680e-03); rho+p_r = -4.9736e-03 (analytic -4.9736e-03); NEC min -4.9725e-03

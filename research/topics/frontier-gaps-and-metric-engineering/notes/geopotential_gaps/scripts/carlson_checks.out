@@ -1,0 +1,70 @@
+/home/dan/code/FusionVault/quantum-gravimeter/research/topics/frontier-gaps-and-metric-engineering/notes/geopotential_gaps/scripts/carlson_checks.py:229: IntegrationWarning: Extremely bad integrand behavior occurs at some points of the
+  integration interval.
+  return integrate.quad(f_regular, 0, phi, weight='cauchy', wvar=theta0, epsabs=0, epsrel=1e-13, limit=500)[0]
+=== Carlson (1995) section 3 check values, principal values ===
+R_C(1/4,-2) = ln2/3    ours 0.231049060186648  table 0.23104906018665  rel 7.0e-15  exact 0.2310490601866484 rel 1.1e-16
+R_J(2,3,4,-0.5)        ours 0.247238197030516  table 0.24723819703052  rel 1.7e-14
+R_J(2,3,4,-5)          ours -0.127112300429639  table -0.12711230042964  rel 7.0e-15
+R_J(2,3,4,-0.5): Carlson2.23a 0.2472381970305157 DLMF19.20.14 0.2472381970305157 scipy 0.2472381970305156 quadPV 0.2472381970305157  max rel spread 4.4e-16
+R_J(2,3,4,-5.0): Carlson2.23a -0.1271123004296391 DLMF19.20.14 -0.1271123004296391 scipy -0.1271123004296391 quadPV -0.1271123004296391  max rel spread 2.2e-16
+R_J(0.5,1,7,-3.0): Carlson2.23a -0.2705214048267066 DLMF19.20.14 -0.2705214048267067 scipy -0.2705214048267066 quadPV -0.2705214048267067  max rel spread 2.2e-16
+R_J(0.1,1,2,-0.7): Carlson2.23a -1.0259151181279285 DLMF19.20.14 -1.0259151181279282 scipy -1.0259151181279285 quadPV -1.0259151181279291  max rel spread 6.7e-16
+R_C(0.25,-2.0) ours 0.2310490601866484 scipy 0.2310490601866484
+R_C(1.0,-1.0) ours 0.6232252401402305 scipy 0.6232252401402306
+R_C(3.0,-0.1) ours 1.3642312206308562 scipy 1.3642312206308562
+R_C(0.0,-2.0) ours 0.0000000000000000 scipy 0.0000000000000000
+  quadPV at the root and at Carlson -1.2552: 0.0 -0.0005011287328577294  ours at -1.2552: -0.0005011287328578712
+R_J(2,3,4,p) = 0 at p = -1.2521959347 (Carlson: approximately -1.2552)
+  p = -1.252197187: ours -2.093308e-07 scipy -2.093308e-07 rel diff 5.2e-11
+  p = -1.250000000: ours 3.676673e-04 scipy 3.676673e-04 rel diff 2.6e-13
+  p = -1.300000000: ours -7.728897e-03 scipy -7.728897e-03 rel diff 1.1e-14
+DLMF 19.20.8 R_J(0,y,y,-q) = -3pi/(2 sqrt(y)(y+q)): -0.6664324407237551 -0.6664324407237548
+DLMF 19.20.8 R_J(x,y,y,p) = 3(R_C(x,y)-R_C(x,p))/(p-y), x=1,y=2,p=-3: -0.3064470547382526 -0.30644705473825246
+
+=== Incomplete Legendre integrals through Carlson ===
+A&S Table 17.5 F(phi\alpha), m = sin^2 alpha:
+  F(30°\45°) ours 0.5356227328  A&S 0.53562273  diff 2.8e-09  scipy 0.535622732805403
+  F(30°\60°) ours 0.5422291098  A&S 0.54222911  diff -2.0e-10  scipy 0.542229109803553
+  F(30°\90°) ours 0.5493061443  A&S 0.54930614  diff 4.3e-09  scipy 0.549306144334055
+  F(20°\40°) ours 0.3519886880  A&S 0.35198869  diff -2.0e-09  scipy 0.351988688038497
+A&S Table 17.6 E(phi\alpha):
+  E(30°\45°) ours 0.5120493224  A&S 0.51204932  diff 2.4e-09  scipy 0.512049322350427  19.25.10-vs-19.25.9 0.0e+00
+  E(30°\60°) ours 0.5060920725  A&S 0.50609207  diff 2.5e-09  scipy 0.506092072465726  19.25.10-vs-19.25.9 1.1e-16
+  E(90°\45°) ours 1.3506438810  A&S 1.35064388  diff 1.0e-09  scipy 1.350643881047676  19.25.10-vs-19.25.9 -4.4e-16
+  E(70°\60°) ours 1.0266368882  A&S 1.02663689  diff -1.8e-09  scipy 1.026636888153505  19.25.10-vs-19.25.9 0.0e+00
+  E(75°\85°) ours 0.9699221180  A&S 0.96992212  diff -2.0e-09  scipy 0.969922117991945  19.25.10-vs-19.25.9 -3.3e-16
+  E(80°\88°) ours 0.9856891540  A&S 0.98568915  diff 4.0e-09  scipy 0.985689154038781  19.25.10-vs-19.25.9 1.1e-16
+  E(85°\88°) ours 0.9974839204  A&S 0.99748392  diff 4.3e-10  scipy 0.997483920430353  19.25.10-vs-19.25.9 1.0e-15
+A&S Table 17.9 Pi(n; phi\alpha):
+  Pi(0.5;60°\45°) ours 1.3821803578  A&S 1.38218  diff 3.6e-07  quad 1.382180357781
+  Pi(0.3;75°\60°) ours 1.9387866260  A&S 1.93879  diff -3.4e-06  quad 1.938786625963
+  Pi(0.6;45°\30°) ours 0.9152712367  A&S 0.91527  diff 1.2e-06  quad 0.915271236710
+  Pi(0.5;90°\45°) ours 2.7012877621  A&S 2.70129  diff -2.2e-06  quad 2.701287762095
+  Pi(0.1;90°\0°) ours 1.6557647110  A&S 1.65576  diff 4.7e-06  quad 1.655764710966
+  Pi(0.0;75°\90°) ours 2.0275894218  A&S 2.02759  diff -5.8e-07  quad 2.027589421800
+Exact identities (DLMF 19.6, 19.2.10):
+  F(phi,1) = gd^-1(phi) = atanh(sin phi): 0.765350458597683 0.7653504585976829
+  E(phi,1) = sin phi: 0.644217687237691 0.644217687237691
+  F(phi,0) = phi; E(phi,0) = phi: 1.3000000000000003 1.3000000000000003
+  Pi(phi,1,0) = tan phi (DLMF 19.6.11): 1.9647596572486532 1.9647596572486523
+  Pi(phi,n,0) = R_C(c-1, c-n) (DLMF 19.6.12), n=3, phi=1.1 (PV): 0.2664131153293964 0.2664131153293964
+  19.2.10 F(1pi+0.4) ours 4.558330198359872 vs 2jK+F 4.558330198359872 scipy 4.558330198359872
+  19.2.10 E(1pi+0.4) ours 2.875988888398726 vs 2jE+E 2.875988888398727 scipy 2.875988888398727
+  19.2.10 F(2pi+-0.3) ours 7.998269944416980 vs 2jK+F 7.998269944416980 scipy 7.998269944416980
+  19.2.10 E(2pi+-0.3) ours 4.669805217281493 vs 2jE+E 4.669805217281493 scipy 4.669805217281493
+  19.2.10 F(-1pi+1.0) ours -3.021558898889602 vs 2jK+F -3.021558898889602 scipy -3.021558898889602
+  19.2.10 E(-1pi+1.0) ours -1.588272650382393 vs 2jE+E -1.588272650382393 scipy -1.588272650382393
+  F, E odd in phi: 0.0 0.0
+  m>1 F: ours 0.570176528700536  19.7.4 0.570176528700535  scipy nan
+  m>1 E: ours 0.444842124053142  19.7.4 0.444842124053142  scipy nan
+  m>1 beyond asin(1/sqrt m) (complex): nan nan
+  m=-3.0: F rel 2.2e-16  E rel 0.0e+00
+  m=-50.0: F rel 2.2e-16  E rel 2.2e-16
+Pi with n > 1 (principal value) vs QUADPACK Cauchy weight and DLMF 19.25.16 / 19.6.5:
+  Pi(2.0;1.2|0.5) ours 0.253604270701507 quadPV 0.253604270701486 DLMF19.25.16 0.253604270701506 rel 8.3e-14 2.9e-15
+  Pi(4.0;0.9|0.3) ours 0.259293626045840 quadPV 0.259293626045847 DLMF19.25.16 0.259293626045840 rel 2.8e-14 4.4e-16
+  Pi(1.5;1.4|0.9) ours -0.973823998688881 quadPV -0.636760539078721 DLMF19.25.16 -0.973823998688881 rel 5.3e-01 4.4e-16
+  Pi(10.0;0.5|0.2) ours 0.233655250908165 quadPV 0.233655250908165 DLMF19.25.16 0.233655250908165 rel 3.1e-15 3.3e-16
+  complete Pi(2.0|0.5) ours -0.313544683465184  DLMF19.6.5 K - Pi(m/n) -0.313544683465184
+  complete Pi(5.0|0.9) ours -0.346655296948390  DLMF19.6.5 K - Pi(m/n) -0.346655296948390
+  periodicity with n>1: Pi(2; pi+0.3|0.5) -0.3047503617883782  2Pi(2|0.5)+Pi(2;0.3|0.5) -0.304750361788378

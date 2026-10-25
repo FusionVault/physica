@@ -1,0 +1,18 @@
+I=45 D= 0  floor 0.094
+   clean: plain 0.0103, pseudoI Ia=45 0.0103, pseudoI Ia=55 0.146, pseudoI Ia=65 0.232, wiener* 0.0103, eqs* 0.00122
+   noisy: plain 0.139, pseudoI Ia=45 0.139, pseudoI Ia=55 0.189, pseudoI Ia=65 0.257, wiener* 0.138, eqs* 0.081
+I=20 D= 0  floor 0.068
+   clean: plain 0.0243, pseudoI Ia=30 0.248, pseudoI Ia=40 0.372, pseudoI Ia=47.5 0.43, wiener* 0.0227, eqs* 0.0197
+   noisy: plain 0.261, pseudoI Ia=30 0.296, pseudoI Ia=40 0.392, pseudoI Ia=47.5 0.444, wiener* 0.235, eqs* 0.151
+I=10 D= 0  floor 0.070
+   clean: plain 0.0922, pseudoI Ia=20 0.29, pseudoI Ia=30 0.41, pseudoI Ia=62.5 0.564, wiener* 0.0692, eqs* 0.0164
+   noisy: plain 0.838, pseudoI Ia=20 0.403, pseudoI Ia=30 0.443, pseudoI Ia=62.5 0.571, wiener* 0.38, eqs* 0.264
+I=10 D=30  floor 0.070
+   clean: plain 0.0952, pseudoI Ia=20 0.305, pseudoI Ia=30 0.418, pseudoI Ia=62.5 0.566, wiener* 0.0952, eqs* 0.0106
+   noisy: plain 0.682, pseudoI Ia=20 0.395, pseudoI Ia=30 0.443, pseudoI Ia=62.5 0.571, wiener* 0.384, eqs* 0.246
+I= 5 D= 0  floor 0.076
+   clean: plain 0.361, pseudoI Ia=15 0.301, pseudoI Ia=25 0.414, pseudoI Ia=70 0.593, wiener* 0.141, eqs* 0.00574
+   noisy: plain 3.14, pseudoI Ia=15 0.582, pseudoI Ia=25 0.473, pseudoI Ia=70 0.599, wiener* 0.424, eqs* 0.32
+I= 2 D= 0  floor 0.077
+   clean: plain 2.24, pseudoI Ia=12 0.294, pseudoI Ia=22 0.405, pseudoI Ia=75 0.603, wiener* 0.183, eqs* 0.00196
+   noisy: plain 17.8, pseudoI Ia=12 0.841, pseudoI Ia=22 0.498, pseudoI Ia=75 0.608, wiener* 0.433, eqs* 0.336

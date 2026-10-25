@@ -1,0 +1,6 @@
+meanR_origin : delta from -0.07077 at (a,i)=(0.999999, 0.5) to +0.00000 at (0.0, 0.5)
+medianR      : delta from -0.07077 at (a,i)=(0.999999, 0.5) to +0.00000 at (0.0, 0.5)
+areal        : delta from -0.07077 at (a,i)=(0.999999, 0.5) to -0.00000 at (0.0, 0.5)
+halfwidth    : delta from -0.13374 at (a,i)=(0.999999, 90) to +0.00000 at (0.0, 0.5)
+halfheight   : delta from -0.07076 at (a,i)=(0.999999, 0.5) to +0.00000 at (0.0, 0.5)
+pole-on a=1: r = 2.414213562373096  radius sqrt(8r^3/(r^2-1)) = 4.828427124746191  2(1+sqrt2) = 4.82842712474619  delta = -0.07076876658843223

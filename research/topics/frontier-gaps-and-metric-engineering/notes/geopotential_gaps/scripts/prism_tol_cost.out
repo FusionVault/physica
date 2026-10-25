@@ -1,0 +1,9 @@
+plate 100x100x1, 0.3 above the face: tol 1e-14: max rel err 1.0e-14, 34031 kernel evaluations
+plate 100x100x1, 0.3 above the face: tol 1e-13: max rel err 2.4e-14, 8 kernel evaluations
+plate 100x100x1, 0.3 above the face: tol 1e-12: max rel err 2.4e-14, 8 kernel evaluations
+needle 1x1x1e4, 2 from the side: tol 1e-14: max rel err 4.8e-15, 6386 kernel evaluations
+needle 1x1x1e4, 2 from the side: tol 1e-13: max rel err 1.9e-14, 2753 kernel evaluations
+needle 1x1x1e4, 2 from the side: tol 1e-12: max rel err 9.8e-14, 2270 kernel evaluations
+needle 1x1x100, 0.3 from the side: tol 1e-14: max rel err 1.4e-15, 3419 kernel evaluations
+needle 1x1x100, 0.3 from the side: tol 1e-13: max rel err 3.6e-15, 1123 kernel evaluations
+needle 1x1x100, 0.3 from the side: tol 1e-12: max rel err 9.3e-15, 8 kernel evaluations

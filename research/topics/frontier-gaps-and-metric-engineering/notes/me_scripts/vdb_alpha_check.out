@@ -1,0 +1,8 @@
+alpha=1e+17 n=60: T00 min -141.9/Dt^2 at w=0.4781; max|R1212| at w=0.4763, r_c=Dt/39.00; E-/(alpha Dt)=-7.571, E+/(alpha Dt)=27.51
+alpha=1e+17 n=80: T00 min -175.9/Dt^2 at w=0.5758; max|R1212| at w=0.5742, r_c=Dt/43.39; E-/(alpha Dt)=-10.25, E+/(alpha Dt)=36.13
+alpha=1e+17 n=100: T00 min -221.7/Dt^2 at w=0.6434; max|R1212| at w=0.6420, r_c=Dt/48.67; E-/(alpha Dt)=-12.93, E+/(alpha Dt)=44.76
+alpha=1e+34 n=60: T00 min -556.7/Dt^2 at w=0.2448; max|R1212| at w=0.2438, r_c=Dt/77.10; E-/(alpha Dt)=-7.571, E+/(alpha Dt)=27.51
+alpha=1e+34 n=80: T00 min -492/Dt^2 at w=0.3490; max|R1212| at w=0.3480, r_c=Dt/72.46; E-/(alpha Dt)=-10.25, E+/(alpha Dt)=36.13
+alpha=1e+34 n=100: T00 min -506.4/Dt^2 at w=0.4313; max|R1212| at w=0.4304, r_c=Dt/73.49; E-/(alpha Dt)=-12.93, E+/(alpha Dt)=44.76
+Dt=1e-15 m: |T00| = 2.37e+59 kg/m^3, QI allows 1.18e+26 kg/m^3 -> ratio 2e+33 (violated)
+Dt=1e-32 m: |T00| = 6.63e+93 kg/m^3, QI allows 9.21e+94 kg/m^3 -> ratio 0.0719 (satisfied)

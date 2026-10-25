@@ -1,0 +1,16 @@
+polar cap: trace 42.228978 (Shannon 42.228978); lambda_42 0.5792; >1/2: 42; lambda_1..3 [1.         0.99999997 0.99999997]
+rotated cap, 24 nodes per panel: max |lambda - polar| 3.94e-03; trace error -2.84e-14
+rotated cap, 48 nodes per panel: max |lambda - polar| 7.67e-15; trace error -1.63e-13
+rotated cap, 96 nodes per panel: max |lambda - polar| 8.88e-15; trace error 1.35e-13
+box: D00 0.033379954912677 vs A/4pi 0.033379954912677; trace/(13^2 A/4pi) - 1 = -7.8e-16
+triangle: D00*4pi 0.2601573187 vs area 0.2601573187; trace/(13^2 A/4pi) - 1 = 7.9e-13
+basin average of Pbar_20 over the 40 deg cap: 1.512553001033004 vs closed form 1.512553001033005
+Gaussian r1/2=200 km: 2pi W_0 = 1.000; recursion vs integral max |dW|/W_0 to l=120: 4.4e-10; first l off by >1e-3 W_0: None
+Gaussian r1/2=500 km: 2pi W_0 = 1.000; recursion vs integral max |dW|/W_0 to l=120: 4.0e-03; first l off by >1e-3 W_0: 118
+  Greenland       0.44%: (L+1)^2 A/4pi = 0.22, 0.74, 1.59, 2.75  printed [0, 1, 2, 3]
+  Australia       1.50%: (L+1)^2 A/4pi = 0.73, 2.54, 5.42, 9.38  printed [1, 3, 5, 9]
+  South America   3.50%: (L+1)^2 A/4pi = 1.72, 5.92, 12.63, 21.88  printed [2, 6, 13, 22]
+  North America   3.98%: (L+1)^2 A/4pi = 1.95, 6.73, 14.37, 24.88  printed [2, 7, 14, 25]
+  Africa          5.78%: (L+1)^2 A/4pi = 2.83, 9.77, 20.87, 36.12  printed [3, 10, 21, 36]
+  Eurasia         9.98%: (L+1)^2 A/4pi = 4.89, 16.87, 36.03, 62.38  printed [5, 17, 36, 62]
+Harig & Simons (2012): N = 20 at L = 60 needs A/4pi in [0.524, 0.551] %

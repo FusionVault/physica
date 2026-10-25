@@ -1,0 +1,92 @@
+== 1. PN expansions (U = M/r isotropic, U_A = M/R areal)
+PV: -g00 = 1 -2.000000U +2.000000U^2 -1.333333U^3;  g_ij = 1 +2.000000U +2.000000U^2 +1.333333U^3
+GR: -g00 = 1 -2.000000U +2.000000U^2 -1.500000U^3;  g_ij = 1 +2.000000U +1.500000U^2 +0.500000U^3
+2PN parameter δ (g_ij = 1+2γU+(3/2)δU^2): PV 4/3, GR 1;  β = γ = 1 both
+PV areal: -g_tt - (1-2U_A) ≈ +1.30e-09U_A^2 -0.333334U_A^3 -0.666627U_A^4 -1.35273U_A^5
+  -> κ1 = 0, κ2 = 0.166667 (exact 1/6), κ3 = -0.333313
+Psaltis 2020 truncated-2PN shadow 3√3(1+ζ/9) with ζ=κ2=1/6: 5.2924 (1.85% larger)  vs exact 2e = 5.4366 (4.627% larger)
+
+== 2. Light bending
+GR: α = 4.00000000x + 11.780972x^2 + 42.6667x^3 + 170.09x^4  (c2/π = 3.750000)
+PV: α = 4.00000000x + 12.566371x^2 + 48.0000x^3 + 201.06x^4  (c2/π = 4.000000)
+GR exact series values: 15π/4 = 11.780972, 128/3 = 42.6667, 3465π/64 = 170.09; PV 4π = 12.566371
+Sun limb: 1PN 4x = 1.751190 arcsec; GR 2PN = 10.947 µas; PV 2PN = 11.677 µas; PV−GR = 0.730 µas (= 1/15 = 6.67% of the 2PN term)
+LATOR (proposed): 2PN term to ~2e-3 -> PV/GR separation 33σ if that accuracy is reached
+
+== 3. Strong deflection (Bozza 2002 formulas)
+GR: ā = 1.0000000000, b̄ = -0.4002300398 (Bozza: 1, −0.4002; exact ln[216(7−4√3)]−π = -0.4002300398), u_m = 5.196152, b_R = 0.949603 (Bozza 0.9496)
+PV: ā = 1.0000000000, b̄ = -0.4658175637, u_m = 5.436564 (2e = 5.436564), b_R = 0.89997820, β_m = 1.086161 (e(1−1/e)^2 = 1.086161)
+   PV b̄ closed part: −π + b_R + ln[2(e−1)^2] with ln[2(e−1)^2] = 1.77579689
+GR: α+ln(ε) at ε=1e-6: -0.40022500; extrapolated b̄ = -0.40023006 (Bozza formula -0.40023004)
+PV: α+ln(ε) at ε=1e-6: -0.46581174; extrapolated b̄ = -0.46581758 (Bozza formula -0.46581756)
+GR: (b_4π−b_c)/(b_5π−b_c) = 23.140939  (e^π = 23.140693);  b(α=2π)/b_c − 1 = 1.256310e-03; b(α=3π)/b_c − 1 = 5.409356e-05
+PV: (b_4π−b_c)/(b_5π−b_c) = 23.140960  (e^π = 23.140693);  b(α=2π)/b_c − 1 = 1.176843e-03; b(α=3π)/b_c − 1 = 5.066037e-05
+Sgr A* VLTI θ_g=5.1243 µas GR: shadow diameter 53.254 µas, θ∞=26.627 µas, s=33.323 nas, r=6.8219 mag
+Sgr A* VLTI θ_g=5.1243 µas PV: shadow diameter 55.718 µas, θ∞=27.859 µas, s=32.652 nas, r=6.8219 mag
+Sgr A* Keck θ_g=4.9148 µas GR: shadow diameter 51.076 µas, θ∞=25.538 µas, s=31.961 nas, r=6.8219 mag
+Sgr A* Keck θ_g=4.9148 µas PV: shadow diameter 53.439 µas, θ∞=26.720 µas, s=31.317 nas, r=6.8219 mag
+
+== 4. Shadow size vs EHT
+δ_PV = 2e/√27 − 1 = 0.046267; Kerr range −0.075..0 (EHT); MT wormhole Φ=−M/R (EHT's example): r_sh = e = 2.7183, δ = -0.4769
+eht-imaging VLTI GRMHD (fiducial)      δ=-0.08+0.09/−0.09: PV at 1.40σ, Schwarzschild at 0.89σ, Gaussian likelihood ratio GR:PV = 1.80
+eht-imaging Keck GRMHD (fiducial)      δ=-0.04+0.09/−0.10: PV at 0.96σ, Schwarzschild at 0.44σ, Gaussian likelihood ratio GR:PV = 1.43
+eht-imaging VLTI an.Kerr               δ=-0.05+0.09/−0.11: PV at 1.07σ, Schwarzschild at 0.56σ, Gaussian likelihood ratio GR:PV = 1.52
+eht-imaging Keck an.Kerr               δ=-0.02+0.11/−0.11: PV at 0.60σ, Schwarzschild at 0.18σ, Gaussian likelihood ratio GR:PV = 1.18
+eht-imaging VLTI an.non-Kerr           δ=-0.07+0.10/−0.09: PV at 1.16σ, Schwarzschild at 0.70σ, Gaussian likelihood ratio GR:PV = 1.54
+eht-imaging Keck an.non-Kerr           δ=-0.02+0.10/−0.09: PV at 0.66σ, Schwarzschild at 0.20σ, Gaussian likelihood ratio GR:PV = 1.22
+SMILI VLTI GRMHD                       δ=-0.10+0.12/−0.10: PV at 1.22σ, Schwarzschild at 0.83σ, Gaussian likelihood ratio GR:PV = 1.49
+SMILI Keck GRMHD                       δ=-0.06+0.13/−0.10: PV at 0.82σ, Schwarzschild at 0.46σ, Gaussian likelihood ratio GR:PV = 1.26
+DIFMAP VLTI GRMHD                      δ=-0.12+0.10/−0.08: PV at 1.66σ, Schwarzschild at 1.20σ, Gaussian likelihood ratio GR:PV = 1.94
+DIFMAP Keck GRMHD                      δ=-0.08+0.09/−0.09: PV at 1.40σ, Schwarzschild at 0.89σ, Gaussian likelihood ratio GR:PV = 1.80
+mG-ring VLTI GRMHD                     δ=-0.17+0.11/−0.10: PV at 1.97σ, Schwarzschild at 1.55σ, Gaussian likelihood ratio GR:PV = 2.09
+mG-ring Keck GRMHD                     δ=-0.13+0.11/−0.11: PV at 1.60σ, Schwarzschild at 1.18σ, Gaussian likelihood ratio GR:PV = 1.80
+M87* 2017 stellar-dynamics prior       δ=-0.01+0.17/−0.17: PV at 0.33σ, Schwarzschild at 0.06σ, Gaussian likelihood ratio GR:PV = 1.05
+Separation PV−Schwarzschild in units of the fiducial σ=0.09: 0.51σ; σ needed for 3σ: 0.0154; for 5σ: 0.0093
+
+== 5. Circular orbits
+PV ISCO r=5.236068 (areal 6.337940): MΩ = 0.0633326, E = 0.9452132, efficiency 1−E = 5.4787%, L = 3.523216
+GR ISCO r=6.000000 (areal 6.000000): MΩ = 0.0680414, E = 0.9428090, efficiency 1−E = 5.7191%, L = 3.464102
+Ω_ISCO PV/GR − 1 = -6.920%  (Makukov & Mychelkin 2018 quote 0.0633326 and 6.92%)
+f_GW(ISCO)=Ω/π for 10 M_sun: GR 439.7 Hz, PV 409.3 Hz
+PV ISCO static: 1+z = 1.21044
+GR ISCO static: 1+z = 1.22474
+PV photon sphere static: 1+z = 1.64872
+GR photon sphere static: 1+z = 1.73205
+GR: K = Ω_φ/Ω_r = 1 + 3x + 13.5000x^2 + 67.52x^3 ...   (GR exact (1−6x)^(−1/2): 27/2, 135/2)
+PV: K = Ω_φ/Ω_r = 1 + 3x + 14.5000x^2 + 76.53x^3 ...   (GR exact (1−6x)^(−1/2): 27/2, 135/2)
+GR: x=0.14286: K=2.64575, x=0.10000: K=1.58114, x=0.05000: K=1.19523; GR check (1−6x)^−1/2 at x=1/10: 1.58114
+PV: x=0.14182: K=3.00000, x=0.09965: K=1.61645, x=0.04996: K=1.19927
+GR: photon orbit λ = 0.192450/M, Ω_c = 0.192450/M, γ = λπ/Ω_c = 3.141593 (π = 3.141593); eikonal l=2,n=0: Mω ≈ 0.4811 − 0.0962i
+PV: photon orbit λ = 0.183940/M, Ω_c = 0.183940/M, γ = λπ/Ω_c = 3.141593 (π = 3.141593); eikonal l=2,n=0: Mω ≈ 0.4598 − 0.0920i
+
+== 6. S2 periapsis advance per orbit, same E and L in both metrics
+S2: p = 5327.8 M; Δφ_GR = 3.543627e-03 rad = 12.182 arcmin; Δφ_PV = 3.543895e-03; PV−GR = 2.679e-07 rad = 7.56e-05 of the total; 1PN 6π/p = 3.537971e-03
+   measured f_SP = 1.10 ± 0.19 -> σ(Δφ) ≈ 6.72e-04 rad; PV−GR is 4.0e-04 σ
+
+== 7. Shapiro delay at 2PN
+Sun b =  1.0 R_sun: ΔT|b = 16.422 ps (π/2 M²/b = 16.422); Δα = 3.5389e-12 (π/4 M²/b² = 3.5382e-12); fixed endpoints ΔT = 8.209 ps (π/4 M²/b = 8.211 ps)
+Sun b =  2.0 R_sun: ΔT|b = 8.211 ps (π/2 M²/b = 8.211); Δα = 8.8507e-13 (π/4 M²/b² = 8.8456e-13); fixed endpoints ΔT = 4.103 ps (π/4 M²/b = 4.105 ps)
+Sun b = 10.0 R_sun: ΔT|b = 1.642 ps (π/2 M²/b = 1.642); Δα = 3.5083e-14 (π/4 M²/b² = 3.5382e-14); fixed endpoints ΔT = 0.828 ps (π/4 M²/b = 0.821 ps)
+Cassini geometry b = 1.6 R_sun: fixed-endpoint ΔT = 5.132 ps one way; Doppler-equivalent δγ = (π/8)M/b = 5.21e-07; deflection-equivalent δγ at the limb (π/8)M/R_sun = 8.34e-07
+   GR Shapiro one-way at the limb ≈ 2M(1+γ)ln(4 r_E r_p/b²)/c: for r_E = 1 AU, r_p = 10 AU, 284.3 µs
+
+== 8. Static redshift at the same areal radius R (GM/c^2R = U_A)
+U_A = 0.00071: z_GR = 7.150519e-04, z_PV = 7.150520e-04, PV−GR = 6.096e-11 (U_A^3/6 = 6.074e-11)
+U_A = 0.10000: z_GR = 1.180340e-01, z_PV = 1.183256e-01, PV−GR = 2.916e-04 (U_A^3/6 = 1.667e-04)
+U_A = 0.17200: z_GR = 2.346620e-01, z_PV = 2.371177e-01, PV−GR = 2.456e-03 (U_A^3/6 = 8.481e-04)
+U_A = 0.25000: z_GR = 4.142136e-01, z_PV = 4.296118e-01, PV−GR = 1.540e-02 (U_A^3/6 = 2.604e-03)
+U_A = 0.30000: z_GR = 5.811388e-01, z_PV = 6.313408e-01, PV−GR = 5.020e-02 (U_A^3/6 = 4.500e-03)
+
+== 9. Binary pulsar: PV/GR radiated power, Ibison (astro-ph/0302273) eq 65
+circular: e = 0.0: P_PV/P_GR = 0.66667
+PSR B1913+16: e = 0.617134: P_PV/P_GR = 0.67321; measured 0.9983 ± 1.6e-03 -> PV off by 203σ
+PSR J0737-3039A/B: e = 0.0878: P_PV/P_GR = 0.66693; measured 1.0 ± 6.6e-05 -> PV off by 5022σ
+eq 64 check: f(1,0.6171) = 11.853275, Peters–Mathews = 11.853275; f(−1/3,e)/f(1,e) at e=0.6171: 0.67321
+
+== 10. Test-field ringing (fixed metric, 'inverse Cowling'); time-domain + fit
+GR s=2 l=2: Mω ≈ 0.3734 − 0.0892i (window 55–110: 0.3711 − 0.0888i); V peak 0.15129 at r = 3.2771; local maxima of V: 1
+PV s=2 l=2: Mω ≈ 0.3444 − 0.0852i (window 55–110: 0.3372 − 0.0852i); V peak 0.13188 at r = 2.4365; local maxima of V: 1
+GR s=0 l=2: Mω ≈ 0.4834 − 0.0968i (window 55–110: 0.4782 − 0.0974i); V peak 0.24712 at r = 2.9496; local maxima of V: 1
+PV s=0 l=2: Mω ≈ 0.4638 − 0.0924i (window 55–110: 0.4568 − 0.0923i); V peak 0.22869 at r = 1.9278; local maxima of V: 1
+GR s=1 l=1: Mω ≈ 0.2480 − 0.0913i (window 55–110: 0.2443 − 0.0939i); V peak 0.07407 at r = 3.0021; local maxima of V: 1
+PV s=1 l=1: Mω ≈ 0.2362 − 0.0857i (window 55–110: 0.2271 − 0.0838i); V peak 0.06767 at r = 2.0000; local maxima of V: 1

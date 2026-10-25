@@ -1,0 +1,7 @@
+# Third-party papers and data the researchers downloaded to read. Kept locally so the check
+# scripts can be re-run; not redistributed (cite the papers instead).
+dl_*/
+*_sources/
+*_downloads/
+geopotential_gaps/downloads/
+llc_gaps/dl_*/

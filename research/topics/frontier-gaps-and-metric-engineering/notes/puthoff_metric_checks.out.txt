@@ -1,0 +1,89 @@
+/home/dan/code/FusionVault/quantum-gravimeter/research_notes/Frontier gaps and metric engineering/puthoff_metric_checks.py:87: IntegrationWarning: The occurrence of roundoff error is detected, which prevents 
+  the requested tolerance from being achieved.  The error may be 
+  underestimated.
+  val, _ = quad(f, 0, 1, epsabs=1e-15, epsrel=1e-14, limit=200)
+
+== A. Eq.(4)/(5): Schwarzschild and Reissner-Nordstrom in harmonic radial coordinate r = R - m
+r=   1.5: g00 eq4-Schw +8.3e-17  grr -1.8e-15  R^2 -8.9e-16  eq5-RN +1.1e-16
+r=   3.0: g00 eq4-Schw +1.1e-16  grr -4.4e-16  R^2 +0.0e+00  eq5-RN +1.1e-16
+r=  10.0: g00 eq4-Schw +0.0e+00  grr +0.0e+00  R^2 +1.4e-14  eq5-RN +0.0e+00
+r= 100.0: g00 eq4-Schw +0.0e+00  grr +0.0e+00  R^2 +0.0e+00  eq5-RN +0.0e+00
+
+== B. Table 1 with the PV metric g00 = 1/K, g11 = -K (Puthoff 2002 eq. 19)
+K=4          dt x2 omega x0.5 E x0.5 dr x0.5 vL/c 0.25 n 4 m x8  == PV-2002 eqs 7-13: True
+K=1          dt x1 omega x1 E x1 dr x1 vL/c 1 n 1 m x1  == PV-2002 eqs 7-13: True
+K=0.5        dt x0.7071 omega x1.414 E x1.414 dr x1.414 vL/c 2 n 0.5 m x0.3536  == PV-2002 eqs 7-13: True
+K=0.05       dt x0.2236 omega x4.472 E x4.472 dr x4.472 vL/c 20 n 0.05 m x0.01118  == PV-2002 eqs 7-13: True
+g00=0.7, g11=-1.6: d2L/dv2 = 1.912366  vs  -g11/sqrt(g00) = 1.912366
+g00=1.3, g11=-0.8: d2L/dv2 = 0.701646  vs  -g11/sqrt(g00) = 0.701646
+
+== C. Taylor coefficients in x = GM/(r c^2), isotropic coordinates
+g00                    GR [ 1.  -2.   2.  -1.5  1. ]  PV [ 1.       -2.        2.       -1.333333  0.666667]
+-gii                   GR [1.     2.     1.5    0.5    0.0625]  PV [1.       2.       2.       1.333333 0.666667]
+n = sqrt(-gii/g00)     GR [1.   2.   1.75 1.   0.5 ]  PV [1.       2.       2.       1.333333 0.666667]
+mass -gii/sqrt(g00)    GR [1.     3.     4.     3.25   1.9375]  PV [1.    3.    4.5   4.5   3.375]
+clock sqrt(g00)        GR [ 1.    -1.     0.5   -0.25   0.125]  PV [ 1.       -1.        0.5      -0.166667  0.041667]
+=> PPN beta = gamma = 1 in both; first difference: -gii at x^2 (GR 3/2, PV 2), g00 at x^3 (GR -3/2, PV -4/3)
+
+== D. Deflection by an isotropic index n(u), u = M/r; alpha = 2 int_0^u0 b du/sqrt(n^2 - b^2 u^2) - pi
+GR: c2 = 11.781079 (15pi/4 = 11.780972, 4pi = 12.566371); c3 = 42.646 given exact c2 (128/3 = 42.667)
+PV: c2 = 12.566501 (15pi/4 = 11.780972, 4pi = 12.566371); c3 = 47.972 given exact c2 (128/3 = 42.667)
+Epstein-Shapiro-type check: c2 = pi(2 + 2gamma - beta + 3 delta/4) with delta = (2/3)*(x^2 coeff of -gii) (my check, not from a source): GR 11.780972, PV 12.566371
+Solar limb: first order 1.7512 arcsec; PV-GR second-order difference 0.730 microarcsec
+
+== E. Strong field (geometric units M = 1)
+critical impact parameter: PV 2e = 5.43656, GR 3sqrt3 = 5.19615; PV shadow deviation delta = +0.0463
+PV areal radius r e^(1/r) minimum at r = 1.0: e*M = 2.71828 M -> 4013.9 m for 1 Msun (no horizon; Boonserm et al. 2018)
+PV photon sphere: isotropic r = 2M, areal 3.2974 M; GR areal 3M
+GM/(R c^2) = 2.12e-06: sqrt(g00) GR 0.9999978800, PV 0.9999978800, PV/GR - 1 = +0.00e+00 (series -y^3/6 = -1.59e-18)
+GM/(R c^2) = 0.1723: sqrt(g00) GR 0.8095677859, PV 0.8079493148, PV/GR - 1 = -2.00e-03 (series -y^3/6 = -8.53e-04)
+
+== F. PV charged solution (Puthoff 2002 eq. 65; JBIS 2002 eq. B6) and K < 1
+a=1.0, b=0.5: ODE (64b) residual -2.7e-10; weak-field g00 vs eq.(70) -2.0e-09 (O(x^3) = 1e-09)
+a=1.0, b=2.0: ODE (64b) residual +1.3e-10; weak-field g00 vs eq.(70) -1.2e-08 (O(x^3) = 1e-09)
+b/a = 2: sqrtK -> 0 (g00 = 1/K -> infinity; areal radius r sqrt(K) -> 0) at isotropic r = 0.8270 a
+   K < 1 (g00 > 1) inside r = 1.6540 a (areal = isotropic there); GR RN: g00 > 1 inside areal R = b^2/(2a) = 2.000 a, singular at R = 0
+b > a  <=>  Q/M > sqrt(4 pi eps0 G) = 8.6175e-11 C/kg (gem::extremal_charge_to_mass)
+RN g00 > 1 for areal R < k Q^2/(2 M c^2): electron 1.4090e-15 m = r_e/2 (r_e = 2.8179e-15 m)
+craft M = 1e4 kg: K < 1 out to 10 m needs k Q^2/(2 r) = M c^2 -> Q = 1.414e+06 C, E(10 m) = 1.271e+14 V/m; Schwinger field 1.323e+18 V/m
+   but the metric change there is only |g00 - 1| ~ 2GM/(rc^2) = 1.49e-24
+
+== G. Negative mass needed for a static region of areal radius R = 10 m with redshift factor sqrt(g00) > 1
+optical-clock detectable, g00-1 = 1e-18                 GR |M| = 6.733e+09 kg (3.39e-21 Msun), PV |M| = 6.733e+09 kg; mean |rho c^2| = 1.44e+23 J/m3; entry needs gamma_inf >= 1; surface repulsion 4.49e-03 m/s2
+1 ppm clock speed-up                                    GR |M| = 1.347e+22 kg (6.77e-09 Msun), PV |M| = 1.347e+22 kg; mean |rho c^2| = 2.89e+35 J/m3; entry needs gamma_inf >= 1; surface repulsion 8.99e+09 m/s2
+plants age 10% faster (sqrt g00 = 1.1)                  GR |M| = 1.414e+27 kg (7.11e-04 Msun), PV |M| = 1.412e+27 kg; mean |rho c^2| = 3.03e+40 J/m3; entry needs gamma_inf >= 1.1; surface repulsion 8.58e+14 m/s2
+'20 min vs a few (5) min' (sqrt g00 = 4)                GR |M| = 1.010e+29 kg (5.08e-02 Msun), PV |M| = 7.467e+28 kg; mean |rho c^2| = 2.17e+42 J/m3; entry needs gamma_inf >= 4; surface repulsion 1.69e+16 m/s2
+'20 min vs a few (3) min' (sqrt g00 = 6.67)             GR |M| = 2.925e+29 kg (1.47e-01 Msun), PV |M| = 1.703e+29 kg; mean |rho c^2| = 6.28e+42 J/m3; entry needs gamma_inf >= 6.66667; surface repulsion 2.93e+16 m/s2
+300 K Wien peak 9.66 um -> 550 nm (sqrt g00 = 17.6)     GR |M| = 2.070e+30 kg (1.04e+00 Msun), PV |M| = 6.777e+29 kg; mean |rho c^2| = 4.44e+43 J/m3; entry needs gamma_inf >= 17.5623; surface repulsion 7.87e+16 m/s2
+20 kHz sound -> 20 Hz (sqrt g00 = 1000)                 GR |M| = 6.733e+33 kg (3.39e+03 Msun), PV |M| = 9.302e+31 kg; mean |rho c^2| = 1.44e+47 J/m3; entry needs gamma_inf >= 1000; surface repulsion 4.49e+18 m/s2
+(Casimir energy density at 1 um: 4.33e-04 J/m3; nuclear matter ~2.3e17 kg/m3 -> 2.1e+34 J/m3)
+Section 3.1 example (10 s -> 5 s, g00 = 0.25): GR areal R = 8/3 GM/c^2 = 2.6667 ; PV isotropic r = 2/ln4 = 1.4427 , areal 2.8854 GM/c^2
+monopole: g00 shift 1e-18 at R = 10 m implies exterior gravity c^2 d/(2R) = 4.49e-03 m/s2; confined (zero net mass) needs a +/- mass double layer of dipole density d c^2/(8 pi G) = 5.36e+07 kg/m
+monopole: g00 shift 1e-06 at R = 10 m implies exterior gravity c^2 d/(2R) = 4.49e+09 m/s2; confined (zero net mass) needs a +/- mass double layer of dipole density d c^2/(8 pi G) = 5.36e+19 kg/m
+a 1e-8 m/s2 (1 microGal) gravimeter at 10 m resolves a monopole g00 shift of 2gR/c^2 = 2.2e-24
+Weak-field scale: u = delta c^4/(4 pi G L^2) for central |g00-1| = delta, uniform sphere L: delta=1, L=10 m -> 9.63e+40 J/m3; c^4/G = 1.2103e+44 J/m
+
+== H. Levi-Civita effect in PV (Puthoff, Davis & Maccone eqs 6, 8, 13, 15, B-2)
+B-2: c^2/sqrt(4 pi G/mu0) = 3.4789e+18 T m (paper: 3.484e18)
+B = 1 T over L = 1 m: K(0) - 1 = 1.033e-38; extra light transit time 4.594e-47 s
+B = 45 T over L = 1 m: K(0) - 1 = 2.092e-35; extra light transit time 9.302e-44 s
+B = 1e+09 T over L = 10000 m: K(0) - 1 = 1.033e-12; extra light transit time 4.594e-17 s
+E = 3e+06 V/m over L = 1 m: K(0) - 1 = 1.034e-42
+E = 1.32e+18 V/m over L = 1 m: K(0) - 1 = 2.012e-19
+Sign: K > 1 (light slower) -- EM energy gravitates like mass; it cannot make K < 1.
+
+== I. Alcubierre total energy, Pfenning & Ford eq. (28), R = 100 m, wall Delta = 100 v L_P (eq. 23)
+E = -5.156e+35 m = -3.190e+70 L_P = -6.943e+62 kg = -6.943e+65 g (P&F: -6.2e70 L_P ~ -6.2e65 g)
+Delta = 1 m: -0.564 Msun (P&F: 'a quarter of a solar mass')
+
+== J. Small checks
+Levi-Civita B-2 with c = 3e8: 3.4837e+18 T m (paper 3.484e18)
+gamma_inf >= 1.1: v >= 0.416598 c
+gamma_inf >= 4.0: v >= 0.968246 c
+gamma_inf >= 6.666666666666667: v >= 0.988686 c
+gamma_inf >= 17.5623: v >= 0.998378 c
+gamma_inf >= 1000.0: v >= 0.999999 c
+needed mean |rho c^2| for a 1e-18 shift at 10 m over Casimir |u| at 1 um: 3.32e+26
+GP-B frame dragging: 37.2/7.2 = 5.17 sigma from zero
+Sun surface redshift -GM/(R c^2) = -2.1225e-06; Pound-Rebka g h/c^2 (g = 9.81, h = 22.5 m) = 2.4559e-15
+negative-mass lensing for the 1 ppm craft (|M| = 1.347e22 kg) at b = 10 m: 0.83 arcsec (away from the craft)

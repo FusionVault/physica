@@ -1,0 +1,31 @@
+cube
+  gap  0.01 from surface: new V 2e-16 g 3e-16 T 2e-16 (<= 8 evals); whole-box corner sums at last point 3e-16
+  gap  0.30 from surface: new V 4e-16 g 1e-15 T 4e-16 (<= 8 evals); whole-box corner sums at last point 4e-16
+  gap  2.00 from surface: new V 9e-15 g 3e-14 T 8e-15 (<= 8 evals); whole-box corner sums at last point 1e-14
+    1.5 R_B from centre: new V 1e-15 g 3e-15 T 1e-15 (<= 8 evals)
+    3.0 R_B from centre: new V 7e-15 g 2e-14 T 7e-15 (<= 8 evals)
+   10.0 R_B from centre: new V 2e-16 g 2e-16 T 2e-16 (<= 216 evals)
+  100.0 R_B from centre: new V 1e-16 g 3e-16 T 4e-16 (<= 64 evals)
+needle 1x1x100
+  gap  0.01 from surface: new V 6e-16 g 1e-15 T 4e-16 (<= 2923 evals); whole-box corner sums at last point 2e-14
+  gap  0.30 from surface: new V 7e-16 g 4e-15 T 4e-16 (<= 3339 evals); whole-box corner sums at last point 3e-14
+  gap  2.00 from surface: new V 2e-15 g 8e-15 T 3e-15 (<= 3688 evals); whole-box corner sums at last point 6e-14
+    1.5 R_B from centre: new V 3e-16 g 8e-16 T 5e-15 (<= 352 evals)
+    3.0 R_B from centre: new V 2e-16 g 7e-16 T 8e-15 (<= 108 evals)
+   10.0 R_B from centre: new V 2e-16 g 3e-16 T 4e-16 (<= 63 evals)
+  100.0 R_B from centre: new V 0e+00 g 2e-16 T 4e-16 (<= 16 evals)
+plate 100x100x1
+  gap  0.01 from surface: new V 3e-16 g 4e-15 T 2e-14 (<= 40054 evals); whole-box corner sums at last point 2e-14
+  gap  0.30 from surface: new V 2e-15 g 3e-15 T 2e-14 (<= 43054 evals); whole-box corner sums at last point 4e-14
+  gap  2.00 from surface: new V 7e-16 g 5e-15 T 1e-14 (<= 46010 evals); whole-box corner sums at last point 2e-14
+    1.5 R_B from centre: new V 3e-16 g 3e-16 T 1e-15 (<= 2275 evals)
+    3.0 R_B from centre: new V 6e-16 g 4e-16 T 3e-15 (<= 363 evals)
+   10.0 R_B from centre: new V 2e-16 g 3e-16 T 6e-16 (<= 108 evals)
+  100.0 R_B from centre: new V 3e-16 g 3e-16 T 4e-16 (<= 32 evals)
+needle 1x1x1e4
+  gap  0.30 from surface: new V 2e-16 g 2e-15 T 3e-16 (<= 5599 evals); whole-box corner sums at last point 9e-13
+  gap  2.00 from surface: new V 2e-16 g 5e-15 T 2e-15 (<= 6291 evals); whole-box corner sums at last point 1e-11
+    1.5 R_B from centre: new V 7e-16 g 8e-16 T 2e-15 (<= 88 evals)
+    3.0 R_B from centre: new V 3e-16 g 3e-16 T 4e-16 (<= 48 evals)
+   10.0 R_B from centre: new V 2e-16 g 4e-16 T 2e-16 (<= 28 evals)
+  100.0 R_B from centre: new V 2e-16 g 1e-16 T 2e-16 (<= 16 evals)

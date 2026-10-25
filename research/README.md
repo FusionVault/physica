@@ -29,6 +29,7 @@ The figures and analysis outputs are in [`figures/`](../figures), made by the
 | Plasmoids and fusion | [Pinches confine; bremsstrahlung still beats boron](topics/plasmoids-and-fusion/report.md) | Z-pinches, the plasma focus, plasmoids and reconnection, aneutronic fusion and direct conversion |
 | Magnetics and MHD | [One harmonic engine joins gravity and magnetism](topics/magnetics-and-mhd/report.md) | Geomagnetic main-field models on the gravity engine, MHD, magnets and devices, space weather, gravity–magnetism links and claims, and the practical uses of every crate |
 | Cross-domain frontiers | [Shared kernels, not a new crate, unify physica](topics/cross-domain-frontiers/report.md) | 2022–2026 papers and patents in plasma, magnetics, gravity and light: 42 testable additions in six phases, the shared potential-field core, ten defects in the published crates, and patent verdicts |
+| Frontier gaps and metric engineering | [Pulsars exclude Puthoff's theory, not his metric](topics/frontier-gaps-and-metric-engineering/report.md) | The Phase 1 and Phase 3 gaps with methods and test values; Puthoff's 2010 metric-engineering paper audited claim by claim; every test of the polarizable-vacuum metric, strong field included; the warp-drive and wormhole literature since 1994; eleven defects in the shipped crates |
 
 ## Tests
 

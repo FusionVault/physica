@@ -1,0 +1,147 @@
+=== 1. Alcubierre 1994 / Pfenning & Ford 1997 / Lobo & Visser 2004 ===
+PF Eq.28, R=100 m, Delta=100 v lP (kg, per v)               6.943e+62  vs published  6.2e+62 [PF text '6.2e65 g']  ratio 1.12  OK
+  same, in Planck lengths (per v)                           3.19e+70  vs published  6.2e+70 [PF text '6.2e70 L_Planck']  ratio 0.515  MISMATCH
+  same / Milky Way 2e45 g = 2e42 kg                         3.471e+20  vs published  3e+20 [PF text '3e20 M_galaxy']  ratio 1.16  OK
+PF Eq.28, R=100 m, Delta=1 m (solar masses)                 0.5643  vs published  0.25 [PF text 'a quarter']  ratio 2.26  MISMATCH
+  tanh wall sigma=2: exact/PF Eq.28 (same Delta)            0.6667
+  tanh wall sigma=2: exact/(v^2 R^2 sigma/36)               1
+  tanh wall sigma=2: Lobo-Visser 'v^2 R^2 sigma' / exact    36
+  tanh wall sigma=20: exact/PF Eq.28 (same Delta)           0.6667
+  tanh wall sigma=20: exact/(v^2 R^2 sigma/36)              1
+  tanh wall sigma=20: Lobo-Visser 'v^2 R^2 sigma' / exact   36
+  tanh wall sigma=200: exact/PF Eq.28 (same Delta)          0.6667
+  tanh wall sigma=200: exact/(v^2 R^2 sigma/36)             1
+  tanh wall sigma=200: Lobo-Visser 'v^2 R^2 sigma' / exact  36
+min over sigma of int r^2 f'^2 dr / R  (tanh, R=1)          0.6675
+  at sigma*R =                                              1.229
+Bobrick-Martire optimum f=min(r0/r,1): int r^2 f'^2 / r0    1
+  tanh minimum / BM optimum (BM claim: 'about a factor of 3')  0.6675
+  tanh at sigma*R=8 (Alcubierre's plotted example) / BM optimum  2.68
+
+=== 2. White 2011 (WFM101) / 2013 (WFM102) / White-Juday interferometer ===
+Alpha Centauri 4.37 ly at 10c (years)                       0.437  vs published  0.43 [WFM101 '0.43 years']  ratio 1.02  OK
+WFM101 boost 1.0000001 needs v_s (units of c)               0.0299
+  Alcubierre negative mass for that 1 cm bubble (kg)       -3.434e+20
+  as energy (J)                                            -3.086e+37
+  phase shift of 1e-7 over 1 cm at 633 nm (rad, single pass)  0.009926
+WFM102 R=5 m v=10: tanh minimum over all walls (kg)         3.745e+28
+  chart dU/dt=0 curve at shell fraction 1 (read off slide 16)  1e+20
+  PF Eq.28 at Delta = 1e-5 R (kg)                           5.611e+33
+  chart dU/dt=0 curve at fraction 1e-5 (read off slide 16)  1.5e+27
+Lee-Cleaver u_E for 100 kV over 0.1 m (J/m^3)               4.427  vs published  4.4 [arXiv:1407.7772 Eq.1]  ratio 1.01  OK
+  8 pi G u/c^4 (m^-2)                                       9.194e-43  vs published  9.2e-43 [Eq.2]  ratio 0.999  OK
+  R_S of that field energy in a 0.1 m-radius sphere (m)     3.065e-46  vs published  1.92e-23 [text]  ratio 1.6e-23
+  R_S if the field filled a 0.1 m x 10 m cylinder (m)       2.298e-44  vs published  1.92e-23 [text]  ratio 1.2e-21
+  dimensionless metric perturbation 2GM/(c^2 r), sphere     3.065e-45
+
+=== 3. White et al. 2021 EPJC 81:677 (Casimir 'warp bubble') ===
+E = sqrt(hbar c pi^2/(1080 eps0 d^4)) at d = 4 um (V/m)     357
+  times d/2 (V)  [paper '~0.7 mV']                          0.000714  vs published  0.0007 [EPJC Sec.1 via Springer HTML]  ratio 1.02  OK
+  times d   (V)                                             0.001428
+Casimir |u| between ideal plates 4 um apart (J/m^3)         1.693e-06
+  eps0 E^2/2 / |u|  (shows the 1080 = 3 x 360 split)        0.3333
+Alcubierre peak |rho| for R=0.5 um, wall 0.5 um, v=c (J/m^3)  5.168e+54
+  speed whose peak |rho| equals the 4 um Casimir |u| (units of c)  5.724e-31
+  that speed in m/s                                         1.716e-22
+
+=== 4. Van Den Broeck 1999 ===
+E_IV = (1/12)((R+D/2)^2/D + D/12), D=100 lP (kg)            6.249e+29  vs published  6.3e+29 [gr-qc/9905084 Sec.3]  ratio 0.992  OK
+inner pocket diameter 2 alpha Rt (m)                        200  vs published  200 ['200 m']  ratio 1  OK
+T^00 changes sign at w =                                    0.9812  vs published  0.981 [VdB]  ratio 1  OK
+T^00 most negative at w =                                   0.5758  vs published  0.349 [VdB]  ratio 1.65  MISMATCH
+  its value x Dt^2                                         -175.9  vs published -490 [VdB]  ratio 0.359  MISMATCH
+  B there                                                   1.396
+E_II,- (kg)                                                -1.38e+30  vs published -1.4e+30 [VdB]  ratio 0.986  OK
+E_II,+ (kg)                                                 4.865e+30  vs published  4.9e+30 [VdB]  ratio 0.993  OK
+max |R_1212| at w =                                         0.5742  vs published  0.348 [VdB]  ratio 1.65  MISMATCH
+r_c,min / Dt = 1/sqrt|R_1212|                               0.02305  vs published  0.01379 [VdB 'Dt/72.5']  ratio 1.67  MISMATCH
+r_c,min (m) with Dt = 1e-15 m                               2.305e-17  vs published  1.4e-34 [VdB]  ratio 1.65e+17
+  Dt implied by the paper's r_c,min = 1.4e-34 m             1.015e-32
+QI RHS 3 hbar/(32 pi^2 c tau0^4), tau0 = 0.1 r_c (kg/m^3)   8.698e+94  vs published  9.2e+94 [VdB]  ratio 0.945  OK
+QI LHS 4.9e2/Dt^2 x c^2/G with Dt = 1e-15 m (kg/m^3)        6.598e+59  vs published  6.6e+93 [VdB]  ratio 1e-34
+QI LHS with Dt = 1e-32 m (kg/m^3)                           6.598e+93  vs published  6.6e+93 [VdB]  ratio 1  OK
+
+=== 5. Natario 2002 zero-expansion drive (f: 0 inside -> 1/2 outside) ===
+Natario R=100 sigma=2.0: E (M_sun, v=1)                    -3011
+  SSV vorticity identity -(1/32pi) int w^2 / direct         1
+  Natario / Alcubierre (same R, sigma)                      8002
+  E / (v^2 R^4 sigma^3)                                    -0.005557
+Natario R=100 sigma=20.0: E (M_sun, v=1)                   -3.01e+06
+  SSV vorticity identity -(1/32pi) int w^2 / direct         1
+  Natario / Alcubierre (same R, sigma)                      8e+05
+  E / (v^2 R^4 sigma^3)                                    -0.005556
+Natario R=10 sigma=2.0: E (M_sun, v=1)                     -0.3085
+  SSV vorticity identity -(1/32pi) int w^2 / direct         1
+  Natario / Alcubierre (same R, sigma)                      81.92
+  E / (v^2 R^4 sigma^3)                                    -0.005694
+
+=== 6. Krasnikov tube (Everett & Roman 1997) ===
+T_tt end cap, n=10, delta=0.01 (x eps^2): Eq.T vs ER fit   -0.04222  vs published -0.04217 [ER Eq.Tttji]  ratio 1  OK
+T_tt end cap, n=100, delta=0.01 (x eps^2): Eq.T vs ER fit  -0.04167  vs published -0.04162 [ER Eq.Tttji]  ratio 1  OK
+T_tt end cap, n=10, delta=1.0 (x eps^2): Eq.T vs ER fit    -0.01451  vs published -0.01449 [ER Eq.Tttji]  ratio 1  OK
+T_tt end cap, n=3, delta=0.5 (x eps^2): Eq.T vs ER fit     -0.0272  vs published -0.02717 [ER Eq.Tttji]  ratio 1  OK
+T_tt x 8 pi eps^2 at n=1000, delta->0                      -1.056  vs published -1 [ER '~ -1/(8 pi eps^2)']  ratio 1.06  OK
+QI: eps <~ lP/sigma^2 at sigma=0.01 (m)                     1.616e-31  vs published  1e-31 [ER '1e4 lP ~ 1e-31 m']  ratio 1.62  OK
+tube energy alpha rho D/eps, 1 m x 1 m, eps=100 lP (Planck masses / alpha)  3.828e+67  vs published  1e+68 [ER]  ratio 0.383
+  with the 1/4 the formula T V actually gives (/alpha)      9.57e+66  vs published  1e+68 [ER]  ratio 0.0957
+  ER's rounded version in grams (/alpha)                    8.332e+62  vs published  1e+63 [ER '1e63 g']  ratio 0.833
+  galaxies for alpha=0.01, D = 4e16 m (M_gal = 1e12 Msun)   1.676e+32  vs published  1e+32 [ER '1e32 M_galaxy']  ratio 1.68
+  eta for QI-safe tube, tau0 = eps = 1 cm: lP^2 eps^2/tau0^4  2.612e-66  vs published  1e-66 [ER]  ratio 2.61
+
+=== 7. 'Positive-energy' solitons ===
+Lentz R^2/w c^2/G for R=100, w=1 (M_sun)                    6.772
+  C implied by '(few)x1e-1 M_sun' (taking 0.3)              0.0443
+Fell-Heisenberg E_sun = M_sun c^2 (J)                       1.787e+47  vs published  1.78e+47 [FH Sec.Numerics]  ratio 1  OK
+  E_total/E_sun (paper: 'four orders of magnitude smaller')  0.0005176
+  E_total as mass (kg)                                      1.029e+27
+  rho_max 3.2e26 kg/m^3 / nuclear density 2.3e17            1.391e+09
+
+=== 8. Wormholes: Morris-Thorne, Visser, Ford-Roman 1996 ===
+MT throat tension c^4/(8 pi G b0^2), b0 = 10 m (Pa)         4.815e+40  vs published  4.82e+40 [library test]  ratio 0.999  OK
+Visser cube edge tension c^4/(8G) (J/m)                     1.513e+43  vs published  1.513e+43 [library test]  ratio 1  OK
+  12 edges of a 1 m cube as mass (kg)                       2.02e+27
+thin-shell sigma, a = 1 m, M = 0 (J/m^2)                   -1.926e+43
+  total shell mass 4 pi a^2 sigma/c^2 (kg)                 -2.693e+27
+  same for a = 1 m around M = 0.1 a c^2/G (kg)             -2.409e+27
+FR b=r0^2/r: r0 <= sqrt(3/(4pi)) lP/f^2 at f=0.01 (m)       7.897e-32  vs published  1e-31 [FR '1e4 lP = 1e-31 m']  ratio 0.79  OK
+  FR's approximation lP/(2 f^2) (m)                         8.081e-32
+FR absurdly benign band a0, r0 = 1 m (m)                    1.461e-21  vs published  1e-21 [FR '1e14 lP ~ 1e-21 m']  ratio 1.46  OK
+  r0 = 1 ly (m)                                             3.09e-16  vs published  2e-16 [FR '2e19 lP ~ 0.2 fm']  ratio 1.54
+  r0 = 1e5 ly (m)                                           1.434e-14  vs published  1e-14 [FR '1e21 lP ~ 1e-14 m']  ratio 1.43  OK
+  FR's (r0/(8 f^4 lP))^(1/3) lP, r0 = 1 m (m)               1.484e-21
+fields N for r0 = 1 m: (2 f^2 r0/lP)^2                      1.531e+62  vs published  1e+62 [FR '1e62 fields']  ratio 1.53  OK
+
+=== 9. Maldacena & Milekhin 2021 'humanly traversable' ===
+r_e from 20 g tidal limit, 0.5 m body (m)                   1.514e+07  vs published  1.5e+07 [MM Eq.remin]  ratio 1.01  OK
+  as light time (s)                                         0.05049  vs published  0.05 [MM]  ratio 1.01  OK
+c2 = 4 pi R5 r_e/(lP^2 sqrt(log))                           7.081e+72  vs published  7e+72 [MM Eq.Params]  ratio 1.01  OK
+ell = (4/pi)(r_e^2/R5) sqrt(log) (ly)                       3171  vs published  3000 [MM]  ratio 1.06  MISMATCH
+gamma = ell/r_e                                             1.982e+12  vs published  2e+12 [MM]  ratio 0.991  OK
+E_bin = -(pi^2/16) R5^2 c^2/(G r_e log) (kg)               -5.19e+09  vs published -5e+09 [MM]  ratio 1.04  OK
+proper traversal time pi r_e/c (s)                          0.1586
+mass of extremal BH with r_e = R5: r_e c^2/G (kg)           6.733e+22  vs published  1e+23 [MM '~1e23 kg']  ratio 0.673
+mass of the human-sized mouth: r_e c^2/G (M_sun)            1.025e+04
+
+=== 10. Quantum inequalities (Ford-Roman; Fewster-Eveson) ===
+FE bound (1/16pi^2) int f''^2, Lorentzian weight, tau0=1    0.001336  vs published  0.009499 [FR C]  ratio 0.141  MISMATCH
+FE bound, Gaussian weight exp(-t^2)/sqrt(pi), tau0=1        0.004749  vs published  0.004749 [this check]  ratio 1  OK
+Lorentzian QI at tau0 = 1 ns (J/m^3)                       -3.718e-26  vs published -3.72e-26 [library test]  ratio 0.999  OK
+
+=== 11. Warp Factory Alcubierre test case (Helmerich et al. 2024 Fig.) ===
+peak |T00| v=0.1, R=300, sigma=0.015 (J/m^3)                6.775e+35  vs published  2.7e+36 [WF Fig. colour bar ~ -2.7e36]  ratio 0.251
+  ring at r (m)                                             300
+  total Eulerian energy (kg)                               -5.133e+26
+Fuchs shell M/M_J                                           2.365  vs published  2.365 [Fuchs 2024]  ratio 1  OK
+  2GM/(c^2 R2), R2 = 20 m                                   0.3334
+
+=== 12. Extra closed forms used in the notes ===
+PF wall bound (3/4) sqrt(3/pi) v/alpha^2 at alpha=0.1 (Planck lengths, per v)  73.29  vs published  100 [PF Eq. wall_thickness '1e2 v L_P']  ratio 0.733
+Capacitance bound (v^2/12) r0 c^2/G, r0 = 100 m, v = 1 (kg)  1.122e+28
+  in M_sun                                                  0.005643
+  in Jupiter masses                                         5.912
+tanh thin-wall (v^2/36) R^2 sigma c^2/G, R=100, sigma=2 (M_sun)  0.3762
+Natario thin-wall (v^2/180) R^4 sigma^3 c^2/G, R=100, sigma=2 (M_sun)  3010
+Fewster-Roman 2005: r0 <~ 1e5 lP/sqrt(1-b0'), 1-b0' = 1e-30 (m)  1.616e-15  vs published  1e-15 [FR05 '1e20 lP ~ 1 fermi']  ratio 1.62  OK
+WFM101 '10c' = boost 100 x 0.1c: bubble v_s in White's own formula  200
+  energy ratio to a v_s = 1 bubble of the same shape (v_s^2)  4e+04
+Alcubierre rho at (0, R, 0), v=1, sigma R = 8 (geometric, exact -1/(2 pi)) -0.1592  vs published -0.1592 [f'(R) = -sigma/2]  ratio 1  OK

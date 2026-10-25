@@ -1,0 +1,31 @@
+DUR2020 header: R=71492000.0 m GM=1.2669e+17 m^3/s^2 (+-8.4e+09, 3 sigma) degree=12 order=2 normalisation flag=0 (0 = unnormalised)
+  J2 = +14696.5735000e-6 +- 0.0017e-6 (3 sigma)
+  J3 = -0.0450000e-6 +- 0.0033e-6 (3 sigma)
+  J4 = -586.6085000e-6 +- 0.0024e-6 (3 sigma)
+  J5 = -0.0723000e-6 +- 0.0042e-6 (3 sigma)
+  J6 = +34.2007000e-6 +- 0.0067e-6 (3 sigma)
+  J7 = +0.1200000e-6 +- 0.0120e-6 (3 sigma)
+  J8 = -2.4220000e-6 +- 0.0210e-6 (3 sigma)
+  J9 = -0.1130000e-6 +- 0.0360e-6 (3 sigma)
+  J10 = +0.1810000e-6 +- 0.0650e-6 (3 sigma)
+  J11 = +0.0160000e-6 +- 0.1110e-6 (3 sigma)
+  J12 = +0.0620000e-6 +- 0.1900e-6 (3 sigma)
+  J2 without the 6.72e-8 permanent tide: 14696.5063e-6; normalised C20bar = -J2/sqrt5 = -6.5725074765e-03
+
+monopole at the limb 4GM/(c^2 R) = 7.886632e-08 rad = 16267.3 uas  (Crosta & Mignard Table 1: 16280)
+J2 at the limb, z perpendicular to the ray: 239.07 uas (Table 1: 239)
+Crosta Table 2 parameters: monopole 16316 uas, quadrupole 240.4 uas
+
+== J2-only field: Born integral vs Crosta & Mignard, b = R, various orientations
+  equatorial ray (t.z=0, n.z=0): |alpha|=16506.4211 uas; quad Born 239.07426 uas, Crosta 239.07426; |dQ| = 4GM J2 R^2 sin^2/(c^2 b^3) = 239.07426 (b/R=1.0000, sin^2=1.000); |Born-Crosta|/|quad| = 1.9e-12
+  ray over the pole (n || z): |alpha|=16028.2726 uas; quad Born 239.07426 uas, Crosta 239.07426; |dQ| = 4GM J2 R^2 sin^2/(c^2 b^3) = 239.07426 (b/R=1.0000, sin^2=1.000); |Born-Crosta|/|quad| = 1.8e-12
+  ray along the spin axis (t || z): |alpha|=16267.3469 uas; quad Born 0.00000 uas, Crosta 0.00000; |dQ| = 4GM J2 R^2 sin^2/(c^2 b^3) = 0.00000 (b/R=1.0000, sin^2=0.000); |Born-Crosta|/|quad| = 2.2e+09
+  tilted 30 deg, closest point at 45 deg lat: |alpha|=17423.1701 uas; quad Born 219.06954 uas, Crosta 219.06954; |dQ| = 4GM J2 R^2 sin^2/(c^2 b^3) = 219.06954 (b/R=0.9354, sin^2=0.750); |Born-Crosta|/|quad| = 2.1e-12
+
+== full DUR2020 zonal field, equatorial ray at b = R and b = 2R: Born vs exact series
+  b=1.0R: Born in-plane 16516.561365 uas, series 16516.561365; Born z +0.004495 uas, series +0.004495
+     terms (uas): J2 239.0743, -J4 9.5426, +J6 0.5564, -J8 0.0394
+  b=2.0R: Born in-plane 8163.860339 uas, series 8163.860339; Born z -0.000018 uas, series -0.000018
+     terms (uas): J2 29.8843, -J4 0.2982, +J6 0.0043, -J8 0.0001
+
+2nd-order monopole (15 pi/4)(GM/c^2R)^2 at the limb = 0.001 uas

@@ -1,0 +1,50 @@
+/home/dan/code/FusionVault/quantum-gravimeter/research/topics/frontier-gaps-and-metric-engineering/notes/llc_gaps/scripts/nfw_and_analogies.py:102: IntegrationWarning: The algorithm does not converge.  Roundoff error is detected
+  in the extrapolation table.  It is assumed that the requested tolerance
+  cannot be achieved, and that the returned result (if full_output = 1) is 
+  the best which can be obtained.
+  return quad(f, 0, 1, points=pts, epsabs=0, epsrel=1e-12, limit=400)[0]
+== delta_c(c) = (200/3) c^3/(ln(1+c) - c/(1+c))  (Wright & Brainerd Eq. 2)
+  c=4.0: delta_c = 5271.147547
+  c=5.0: delta_c = 8694.810191
+  c=10.0: delta_c = 44778.661516
+== concentration-mass relations (M in h^-1 Msun)
+  M=1e+12 z=0.0: Duffy c200 = 6.05233  Dutton c200 = 8.03526  Dutton cvir = 10.59254
+  M=1e+12 z=0.5: Duffy c200 = 5.00218  Dutton c200 = 6.52935  Dutton cvir = 7.66427
+  M=1e+12 z=1.0: Duffy c200 = 4.36957  Dutton c200 = 5.34233  Dutton cvir = 5.95677
+  M=2e+12 z=0.0: Duffy c200 = 5.71000  Dutton c200 = 7.49197  Dutton cvir = 9.90376
+  M=2e+12 z=0.5: Duffy c200 = 4.71925  Dutton c200 = 6.14298  Dutton cvir = 7.22576
+  M=2e+12 z=1.0: Duffy c200 = 4.12242  Dutton c200 = 5.07170  Dutton cvir = 5.66286
+  M=1e+14 z=0.0: Duffy c200 = 4.11076  Dutton c200 = 5.04661  Dutton cvir = 6.77642
+  M=1e+14 z=0.5: Duffy c200 = 3.39750  Dutton c200 = 4.35381  Dutton cvir = 5.18168
+  M=1e+14 z=1.0: Duffy c200 = 2.96783  Dutton c200 = 3.78208  Dutton cvir = 4.25609
+  M=1e+15 z=0.0: Duffy c200 = 3.38784  Dutton c200 = 3.99945  Dutton cvir = 5.42001
+  M=1e+15 z=0.5: Duffy c200 = 2.80001  Dutton c200 = 3.55525  Dutton cvir = 4.26060
+  M=1e+15 z=1.0: Duffy c200 = 2.44590  Dutton c200 = 3.18222  Dutton cvir = 3.59758
+== an NFW halo in Planck18: M200 = 1e14 Msun/h at z_d = 0.3, source at z_s = 1.0
+  rho_c(z_d) = 1.180190e-26 kg/m^3, r200 = 1003.8849 kpc, c200 = 4.6457, delta_c = 7361.493, r_s = 216.089 kpc
+  mass identity M(<r200)/M200 - 1 = -8.8e-15
+  Sigma_crit = 5.749602 kg/m^2 = 2753.170 Msun/pc^2; kappa_s = 2 r_s delta_c rho_c/Sigma_crit = 0.20151
+
+== 41j one lensing constant
+  kappa M_sun = 8.143853 mas
+  light_bending(M_sun, 1 AU)/(kappa M_sun) - 1 = 2.907140e-08; (15 pi/16) GM/(c^2 AU) = 2.907140e-08
+  solar limb: kappa M_sun AU/R_sun = 1.75119 arcsec (Crosta & Mignard Table 1: 1.75")
+  theta_E = 0.552625 mas; sqrt(kappa M pi_rel) = 0.552625 mas; ratio-1 = -1.1e-16
+  mass in the ring: pi (theta_E D_l)^2 Sigma_crit / M - 1 = -1.1e-16
+
+== Earth's quadrupole deflection (Crosta & Mignard Table 1: Earth 574 uas, Q 0.6 uas)
+  J2 = 1.082635903e-03; monopole at the limb 573.70 uas; quadrupole 0.6211 uas
+
+== finite-source B0 as the in-plane potential of a uniform disc (unit mass, unit radius, G = 1)
+  z=0.25: B0(z) = 0.492093478236; z * <1/d>_disc (ring-kernel integral) = 0.492093478234
+  z=0.5: B0(z) = 0.934215457668; z * <1/d>_disc (ring-kernel integral) = 0.934215457669
+  z=2.0: B0(z) = 1.034631618445; z * <1/d>_disc (ring-kernel integral) = 1.034631618445
+  z=5.0: B0(z) = 1.005076601846; z * <1/d>_disc (ring-kernel integral) = 1.005076601846
+  rim: B0(1) = 4/pi = 1.273239544735163 (the rim potential of a uniform disc 4GM/(pi a)); centre: B0(z)/z -> 2 (2GM/a)
+
+== 41i one horizon temperature
+  Hawking T(1 Msun) = 6.170260e-08 K; T*M = hbar c^3/(8 pi G k_B) = 6.170260e-08 K Msun
+  Unruh: 1 K needs a = 2.466083e+20 m/s^2
+  Gibbons-Hawking at the Planck18 H0 = 67.66: 2.665597e-30 K
+  first law: c^2/(dS/dM) / T_H - 1 = -6.8e-12
+  T_H(M) / T_U(c^4/(4GM)) - 1 = 0.0e+00

@@ -1,0 +1,13 @@
+cube mesh (12 faces), distance in circumradii; analytic = crate edge/face sums
+    2: analytic 8e-16  GJ3 2e-06  GJ4 7e-08  GJ5 2e-09  GJ6 4e-11  GJ8 3e-13
+    5: analytic 7e-15  GJ3 6e-09  GJ4 2e-11  GJ5 6e-14  GJ6 7e-16  GJ8 4e-16
+   10: analytic 6e-14  GJ3 9e-11  GJ4 5e-14  GJ5 4e-16  GJ6 4e-16  GJ8 4e-16
+   20: analytic 7e-13  GJ3 1e-12  GJ4 4e-16  GJ5 3e-16  GJ6 2e-16  GJ8 2e-16
+   50: analytic 5e-12  GJ3 6e-15  GJ4 4e-16  GJ5 4e-16  GJ6 2e-16  GJ8 2e-16
+Eros (14744 faces), distance in max radii from the vertex centroid
+    2: analytic 1e-14  GJ3 4e-08  GJ4 7e-10  GJ5 8e-12  GJ6 5e-14  GJ8 4e-16
+    5: analytic 2e-13  GJ3 2e-10  GJ4 3e-13  GJ5 4e-16  GJ6 7e-16  GJ8 7e-16
+   10: analytic 8e-13  GJ3 2e-12  GJ4 7e-16  GJ5 0e+00  GJ6 7e-16  GJ8 7e-16
+   20: analytic 5e-11  GJ3 4e-14  GJ4 0e+00  GJ5 0e+00  GJ6 7e-16  GJ8 7e-16
+   50: analytic 2e-10  GJ3 2e-16  GJ4 2e-16  GJ5 1e-16  GJ6 4e-16  GJ8 4e-16
+  200: analytic 3e-08  GJ3 2e-16  GJ4 2e-16  GJ5 1e-16  GJ6 4e-16  GJ8 4e-16

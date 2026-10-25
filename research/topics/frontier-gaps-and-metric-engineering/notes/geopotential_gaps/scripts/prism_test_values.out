@@ -1,0 +1,12 @@
+needle 1x1x100 at [300.0, 400.0, 1200.0]: V = 7.6952599930725910e-02 (8 vs 10 pt rel 4e-16); crate today rel 1e-14
+   grad V = [-1.3687958249365563e-05, -1.8250610999154124e-05, -5.4670865023521322e-05] (spread 6e-16; crate today 1e-13)
+   T_zz = 7.0929393171032028e-08, T_xy = 9.7553576758747929e-09 (spread 4e-16; crate today 6e-13)
+   monopole+quadrupole 7.6952587949409235e-02, rel residual 1.6e-07 (O((h/R)^4) = 2.2e-06)
+needle 1x1x100 at [30.0, 40.0, 120.0]: V = 7.9989392258983916e-01 (8 vs 10 pt rel 7e-16); crate today rel 8e-12
+   grad V = [-1.7475322889634304e-03, -2.3300430521503370e-03, -5.9813860121975910e-03] (spread 3e-16; crate today 4e-11)
+   T_zz = 7.9410558597455347e-05, T_xy = 1.7803965137863311e-05 (spread 6e-16; crate today 1e-11)
+   monopole+quadrupole 7.9874179556307290e-01, rel residual 1.4e-03 (O((h/R)^4) = 2.2e-02)
+plate 100x100x1 at [120.0, -90.0, 300.0]: V = 2.9660346942256535e+01 (8 vs 10 pt rel 4e-16); crate today rel 4e-12
+   grad V = [-3.0763825064585165e-02, 2.3071490847281481e-02, -7.8619525049547487e-02] (spread 3e-16; crate today 1e-11)
+   T_zz = 3.6670482722705658e-04, T_xy = -7.0133912185296821e-05 (spread 4e-16; crate today 5e-12)
+   monopole+quadrupole 2.9659662805232610e+01, rel residual 2.3e-05 (O((h/R)^4) = 4.9e-04)

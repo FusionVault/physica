@@ -1,0 +1,29 @@
+mesh check, cube: closed and consistent, volume +1 (outward)
+mesh check, inverted cube: closed and consistent, volume -1 (INWARD: flip all faces)
+mesh check, one face flipped: 3 directed edges used twice: inconsistent orientation or non-manifold
+mesh check, one face missing: 3 edges without a partner: the mesh is open
+inverted cube negates V: -2.2699873661706285 -2.2699873661706285  trace inside 12.566370614359172 (+4pi when inverted)
+one flipped face, V error at an inside point: -0.13706780451887002
+
+polyhedral-gravity-model cube [-1,1]^3 reference rows (G = 6.67430e-11, rho = 1):
+  [-5, -5, -5]: polyhedron G*V 6.165627236000088e-11  prism 6.165627236000387e-11  file 6.165627236000170e-11  rel 1.3e-14; g [4.11088282e-12 4.11088282e-12 4.11088282e-12]  file [4.11088282102974e-12, 4.11088282102974e-12, 4.11088282102974e-12]
+  [-5, -4.5, -5]: polyhedron G*V 6.370687277671122e-11  prism 6.370687277670877e-11  file 6.370687277671110e-11  rel 1.8e-15; g [4.5349185e-12 4.0812915e-12 4.5349185e-12]  file [4.53491850099316e-12, 4.08129150394744e-12, 4.53491850099315e-12]
+
+Far field, cube mesh: max rel error over 6 directions (reference: prism split GL)
+      3 sizes: crate ln 1.3e-14  log1p 1.0e-14  tet GL n=4 2.3e-07  tet GJ n=4 3.5e-08
+     10 sizes: crate ln 3.0e-13  log1p 1.1e-13  tet GL n=4 5.2e-11  tet GJ n=4 1.5e-12
+     30 sizes: crate ln 9.1e-12  log1p 8.0e-13  tet GL n=4 3.4e-14  tet GJ n=4 1.7e-15
+    100 sizes: crate ln 2.2e-10  log1p 1.4e-11  tet GL n=4 1.3e-15  tet GJ n=4 2.6e-15
+    300 sizes: crate ln 7.6e-09  log1p 5.3e-10  tet GL n=4 1.9e-15  tet GJ n=4 3.0e-15
+   1000 sizes: crate ln 2.7e-07  log1p 1.6e-08  tet GL n=4 1.1e-15  tet GJ n=4 1.4e-15
+
+Eros mesh: 24235 vertices listed, 7374 used, 14744 faces
+  mesh check: closed and consistent, volume +0.291330570919549 (outward)
+  max radius from vertex centroid 0.827787
+  trace at the vertex centroid -12.566370614359005 (-4pi = -12.566370614359172)
+      2 radii: crate ln 3.5e-12  log1p 3.4e-12  tet GJ n=4 2.2e-07  tet GJ n=6 1.2e-10
+     10 radii: crate ln 8.0e-11  log1p 5.5e-11  tet GJ n=4 2.3e-13  tet GJ n=6 2.2e-13
+     30 radii: crate ln 5.9e-10  log1p 1.1e-09  tet GJ n=4 2.1e-13  tet GJ n=6 2.3e-13
+    100 radii: crate ln 8.3e-09  log1p 1.5e-08  tet GJ n=4 1.2e-13  tet GJ n=6 2.4e-13
+   1000 radii: crate ln 3.2e-06  log1p 1.0e-06  tet GJ n=4 1.8e-13  tet GJ n=6 2.1e-13
+  Eros at 3 radii, V by analytic / tet GJ n=8 / n=10: 0.11662113557517628 0.11662113557518658 0.11662113557518652

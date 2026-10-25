@@ -1,0 +1,23 @@
+crate check: upward 30 m 6.924e-04 (crate 6.9e-4); RTP I=45 0.0114 (crate 0.011)
+
+padding: rms relative error on the original 128x128 grid
+  up 30 m, dipole 50 m deep (decays in grid)
+    none 6.92e-04; zero25 1.72e-03; edge25 3.92e-04; symmetric25 1.49e-03; reflect25 1.65e-03; edge25+taper 1.85e-04; symm25+taper 3.33e-04; zero50 1.63e-03; edge50 5.69e-04; symmetric50 6.89e-04; reflect50 2.77e-03; edge50+taper 2.47e-04; symm50+taper 1.24e-03; zero100 1.58e-03; edge100 6.58e-04; symmetric100 6.89e-04; reflect100 7.41e-04; edge100+taper 4.34e-04; symm100+taper 8.02e-04
+  up 30 m, dipole 300 m deep (edges carry signal)
+    none 1.79e-02; zero25 1.58e-02; edge25 1.74e-03; symmetric25 2.53e-03; reflect25 2.75e-03; edge25+taper 4.81e-03; symm25+taper 4.61e-03; zero50 1.39e-02; edge50 1.95e-03; symmetric50 1.79e-02; reflect50 1.94e-02; edge50+taper 1.09e-03; symm50+taper 2.78e-03; zero100 1.30e-02; edge100 3.27e-03; symmetric100 1.79e-02; reflect100 1.84e-02; edge100+taper 1.38e-03; symm100+taper 8.58e-03
+  up 30 m, dipole 100 m deep at 1/8 from an edge
+    none 2.80e-02; zero25 1.63e-02; edge25 2.34e-03; symmetric25 3.46e-02; reflect25 4.08e-02; edge25+taper 1.93e-03; symm25+taper 2.30e-02; zero50 1.60e-02; edge50 3.47e-03; symmetric50 3.45e-02; reflect50 4.11e-02; edge50+taper 1.82e-03; symm50+taper 3.04e-02; zero100 1.59e-02; edge100 3.95e-03; symmetric100 3.46e-02; reflect100 4.09e-02; edge100+taper 2.84e-03; symm100+taper 3.30e-02
+  RTP I=45, dipole 300 m deep
+    none 3.30e-01; zero25 1.75e-01; edge25 8.15e-02; symmetric25 9.85e-02; reflect25 1.03e-01; edge25+taper 1.15e-01; symm25+taper 1.05e-01; zero50 1.38e-01; edge50 4.25e-02; symmetric50 2.67e-01; reflect50 2.80e-01; edge50+taper 4.23e-02; symm50+taper 9.17e-02; zero100 1.17e-01; edge100 1.18e-01; symmetric100 2.69e-01; reflect100 2.75e-01; edge100+taper 5.33e-02; symm100+taper 2.15e-01
+
+RTP of a dipole 50 m deep, induced, rms relative error against the true pole anomaly
+  I=45 D= 0: clean: plain 0.0114, pseudo-I(Ia=45) 0.0114, Wiener best 0.0114 (eps=1.0e-08) | 1% noise: plain 0.293, pseudo-I(Ia=45) 0.293, Wiener best 0.28 (eps=3.2e-02)
+  I=20 D= 0: clean: plain 0.0169, pseudo-I(Ia=47.5) 0.432, Wiener best 0.0169 (eps=1.0e-08) | 1% noise: plain 0.502, pseudo-I(Ia=47.5) 0.476, Wiener best 0.399 (eps=1.8e-02)
+  I=10 D= 0: clean: plain 0.0546, pseudo-I(Ia=62.5) 0.566, Wiener best 0.0545 (eps=1.0e-05) | 1% noise: plain 1.42, pseudo-I(Ia=62.5) 0.593, Wiener best 0.526 (eps=1.8e-02)
+  I=10 D=30: clean: plain 0.0247, pseudo-I(Ia=62.5) 0.565, Wiener best 0.0247 (eps=1.0e-08) | 1% noise: plain 1.62, pseudo-I(Ia=62.5) 0.591, Wiener best 0.519 (eps=3.2e-02)
+  I= 5 D= 0: clean: plain 0.217, pseudo-I(Ia=70) 0.595, Wiener best 0.175 (eps=5.6e-05) | 1% noise: plain 4.08, pseudo-I(Ia=70) 0.618, Wiener best 0.55 (eps=3.2e-02)
+
+RTE (Seequent REDE, Ia = 20 deg default) against the true equator anomaly
+  I=10: RTE(Ia) 0.0492; exact ratio Theta_eq^2/Theta_f^2 0.00966
+  I=20: RTE(Ia) 0.01; exact ratio Theta_eq^2/Theta_f^2 0.01
+  I=45: RTE(Ia) 0.0107; exact ratio Theta_eq^2/Theta_f^2 0.0107
