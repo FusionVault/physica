@@ -64,7 +64,7 @@ pub fn love_numbers(nmax: usize) -> Option<Vec<f64>> {
 pub fn gaussian_weights(radius: f64, earth_radius: f64, nmax: usize) -> Vec<f64> {
     let b = core::f64::consts::LN_2 / (1.0 - (radius / earth_radius).cos());
     let top = ((nmax + 1) * (nmax + 1)) as f64;
-    if !(b < 1e6 * top) {
+    if b >= 1e6 * top {
         // Also radius 0, where b is infinite and every weight is 1.
         return (0..=nmax).map(|n| (-((n * (n + 1)) as f64) / (2.0 * b)).exp()).collect();
     }
