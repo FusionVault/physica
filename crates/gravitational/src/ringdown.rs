@@ -6,10 +6,14 @@
 //! `Q = πfτ = q₁ + q₂(1 − j)^q₃`. The fits cover `l = 2, 3, 4`, every `m` (positive co-rotating)
 //! and the overtones `n = 0, 1, 2`, for `0 ≤ j ≤ 0.99`.
 //!
-//! Accuracy, checked here against the paper's own Tables II–IV at all eleven tabulated spins:
-//! every frequency fit stays within the maximum error the paper states (at most 4%), and so do
-//! 52 of the 63 quality-factor fits. The other eleven, `(2, −1, 1)` and ten `l = 4` modes, miss
-//! their stated maxima by up to 3.3%, worst at `j = 0`.
+//! Accuracy, from an exact Leaver solver on a 0.05 spin grid up to 0.99 (the frontier-gaps
+//! research) and tested here against the paper's Tables II–IV at all eleven tabulated spins:
+//! every frequency fit stays within the maximum error the paper states (at most 4%). So do the
+//! quality factors, with two exceptions. Nine `l = 4`, `m = 0–2` fits exceed their printed
+//! maxima by exactly 2.00 or 3.00 points (0.26 printed for 2.26, 0.12 for 3.11), a leading digit
+//! lost from Table X's error column; their true maxima are 2.26–3.53%. Four fits genuinely
+//! miss: `(2, −1, 1)` 3.22% against 0.67, `(3, 3, 0)` 0.59 against 0.42, `(4, 4, 1)` 1.02 against
+//! 0.77 and `(4, 4, 2)` 1.09 against 0.10.
 //!
 //! ```
 //! use gravitational::ringdown::{damping_time, frequency, qnm};
@@ -120,7 +124,10 @@ mod tests {
     use super::*;
     use metrology::SOLAR_MASS;
 
-    /// Tables II–IV: one line per `(l, n, j)`, then `Mω_R,Mω_I` for `m = l` down to `−l`.
+    /// Tables II–IV: one line per `(l, n, j)`, then `Mω_R,Mω_I` for `m = l` down to `−l`. Two
+    /// misprints are corrected against the exact solver: Table II's `(2, −2, 0)` at `j = 0.6`
+    /// (printed .0890, exact 0.0888917) and Table IV's `(4, 2, 0)` at `j = 0` (printed .0941,
+    /// exact 0.0941640, as the other eight `m` print).
     const TABLES: &str = "\
 2 0 0.0 0.3737,0.089 0.3737,0.089 0.3737,0.089 0.3737,0.089 0.3737,0.089
 2 0 0.1 0.387,0.0887 0.3804,0.0888 0.374,0.0889 0.3678,0.089 0.3618,0.0891
@@ -128,7 +135,7 @@ mod tests {
 2 0 0.3 0.4195,0.0877 0.3973,0.088 0.377,0.0884 0.3584,0.0888 0.3413,0.0892
 2 0 0.4 0.4398,0.0869 0.408,0.0873 0.3797,0.0878 0.3546,0.0885 0.3325,0.0891
 2 0 0.5 0.4641,0.0856 0.4206,0.0862 0.3833,0.0871 0.3515,0.0881 0.3243,0.089
-2 0 0.6 0.494,0.0838 0.436,0.0846 0.3881,0.086 0.3489,0.0876 0.3168,0.089
+2 0 0.6 0.494,0.0838 0.436,0.0846 0.3881,0.086 0.3489,0.0876 0.3168,0.0889
 2 0 0.7 0.5326,0.0808 0.4551,0.0821 0.3941,0.0845 0.3469,0.0869 0.3098,0.0887
 2 0 0.8 0.586,0.0756 0.4802,0.078 0.4019,0.0822 0.3454,0.086 0.3033,0.0885
 2 0 0.9 0.6716,0.0649 0.5163,0.0698 0.412,0.0785 0.3444,0.0849 0.2972,0.0883
@@ -188,7 +195,7 @@ mod tests {
 3 2 0.8 0.9096,0.3874 0.7884,0.3988 0.6844,0.4177 0.5984,0.4391 0.5272,0.4581 0.4667,0.473 0.4136,0.4839
 3 2 0.9 1.0383,0.3282 0.8622,0.3449 0.7177,0.3806 0.6106,0.4197 0.5282,0.4492 0.46,0.4696 0.4011,0.4834
 3 2 0.98 1.2592,0.1935 0.9605,0.2181 0.7349,0.3224 0.6176,0.3976 0.5286,0.4403 0.455,0.4665 0.3916,0.4828
-4 0 0.0 0.8092,0.0942 0.8092,0.0942 0.8092,0.0941 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942
+4 0 0.0 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942 0.8092,0.0942
 4 0 0.1 0.8387,0.094 0.8313,0.094 0.824,0.094 0.8168,0.0941 0.8098,0.0941 0.8028,0.0941 0.796,0.0942 0.7893,0.0942 0.7826,0.0942
 4 0 0.2 0.8717,0.0935 0.856,0.0936 0.8407,0.0937 0.8259,0.0938 0.8116,0.0939 0.7977,0.094 0.7842,0.0941 0.7712,0.0941 0.7585,0.0942
 4 0 0.3 0.9092,0.0929 0.8839,0.093 0.8597,0.0932 0.8366,0.0934 0.8146,0.0935 0.7937,0.0937 0.7737,0.0938 0.7546,0.094 0.7365,0.0941
@@ -222,8 +229,14 @@ mod tests {
 4 2 0.9 1.4061,0.3313 1.2236,0.3428 1.0667,0.3665 0.9402,0.3972 0.8404,0.4247 0.7591,0.4455 0.6904,0.4602 0.631,0.4701 0.5786,0.4764
 4 2 0.98 1.6913,0.1942 1.3871,0.2096 1.1283,0.273 0.9655,0.3535 0.852,0.4037 0.7619,0.4352 0.6868,0.4552 0.6225,0.4678 0.5664,0.4752";
 
-    /// The modes whose quality-factor fit misses the maximum error the paper states.
-    const Q_WORSE: [(u32, i32, u32); 11] = [(2, -1, 1), (4, 0, 0), (4, 0, 1), (4, 0, 2), (4, 1, 0), (4, 1, 1), (4, 1, 2), (4, 2, 0), (4, 2, 1), (4, 2, 2), (4, 4, 2)];
+    /// The true maximum Q errors (%) where they exceed the printed ones, from the exact solver:
+    /// nine `l = 4` rows that lost a leading digit, and four genuine misses. `(3, 3, 0)` and
+    /// `(4, 4, 1)` peak between the tabulated spins, so the tables alone would not show them.
+    const Q_TRUE: [((u32, i32, u32), f64); 13] = [
+        ((4, 2, 0), 2.97), ((4, 2, 1), 3.11), ((4, 2, 2), 3.31), ((4, 1, 0), 2.81), ((4, 1, 1), 2.91),
+        ((4, 1, 2), 3.53), ((4, 0, 0), 2.26), ((4, 0, 1), 2.26), ((4, 0, 2), 2.60),
+        ((2, -1, 1), 3.22), ((3, 3, 0), 0.59), ((4, 4, 1), 1.02), ((4, 4, 2), 1.09),
+    ];
 
     #[test]
     fn every_fit_against_the_tables() {
@@ -240,15 +253,17 @@ mod tests {
                 // The tables round to four decimals, which allows 5×10⁻⁵ in each part.
                 let (f_round, q_round) = (5e-5 / wr, 5e-5 / wr + 5e-5 / wi);
                 assert!((f / wr - 1.0).abs() <= f_error / 100.0 + f_round, "F({l},{m},{n}) at j = {j}");
-                let q_tol = if Q_WORSE.contains(&(l, m, n)) { 0.034 } else { q_error / 100.0 };
+                let q_tol = Q_TRUE.iter().find(|row| row.0 == (l, m, n)).map_or(*q_error, |row| row.1) / 100.0;
                 assert!((q / (wr / (2.0 * wi)) - 1.0).abs() <= q_tol + q_round, "Q({l},{m},{n}) at j = {j}");
                 checked += 1;
             }
         }
         assert_eq!(checked, 693);
-        // The paper's maxima really are missed by those eleven: (4, 2, 0) at j = 0 is 2.9% off.
+        // The lost digit: (4, 2, 0) at j = 0 is 2.8% off, against a printed maximum of 0.97%
+        // and a true one of 2.97%.
         let (_, q) = qnm(4, 2, 0, 0.0).unwrap();
-        assert!((q / (0.8092 / (2.0 * 0.0941)) - 1.0).abs() > 0.028);
+        let off = (q / (0.8092 / (2.0 * 0.0942)) - 1.0).abs();
+        assert!(off > 0.0097 + 0.01 && off < 0.0297, "{off}");
         assert!(qnm(5, 5, 0, 0.5).is_none());
     }
 

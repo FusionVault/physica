@@ -90,7 +90,7 @@ one new shared piece, a flat-ΛCDM distance integral. TDCOSMO 2025 has moved the
   the Shapiro delay Δt = ((1+γ)/c³)∫U dl; for a point mass α = 2(1+γ)GM/(c²b). For a ray in the
   equator of an oblate body with its axis perpendicular to the ray, U = GM/r + GMJ₂R²/(2r³) gives
   α = (4GM/c²b)(1 + J₂R²/b²). Recomputed: a numerical Born integral matches this to 10⁻⁶; Jupiter's
-  J₂ (Juno, J₂ = 14 696.5×10⁻⁶ at R = 71 492 km — [Iess et al. 2018, Nature 555, 220](https://doi.org/10.1038/nature25776))
+  J₂ (Juno, J₂ = 14 696.5×10⁻⁶ at R = 71 492 km; corrected 2026-10-25: Iess et al. give 14 696.572, and 14 696.5063 is Durante 2020 without its permanent tide — [Iess et al. 2018, Nature 555, 220](https://doi.org/10.1038/nature25776))
   adds 239 µas at the limb to the 16.27 mas monopole; Earth's J₂ adds 0.62 µas to 0.574 mas.
   Full-precision Gaia data were forecast to reach γ to ~10⁻⁶ using Jupiter — [Crosta & Mignard 2006,
   arXiv:astro-ph/0512359](https://arxiv.org/abs/astro-ph/0512359). Crate: `gravitics::spacetime`

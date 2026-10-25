@@ -1,5 +1,7 @@
 # Fringe gravity's sums reproduce, its physics never does
 
+> **Correction (2026-10-25).** The [frontier-gaps and metric-engineering report](../frontier-gaps-and-metric-engineering/report.md) corrects this report's Puthoff section. Puthoff's PV *theory* was excluded in 2003: it radiates 2/3 of general relativity's binary-pulsar power, 203σ from Hulse–Taylor ([Ibison 2003](https://arxiv.org/abs/astro-ph/0302273)). Only the exponential *geometry* remains an alternative, 1–2σ from the EHT's Sgr A* shadow. Black-hole observations are therefore not the decisive test. The table row below should read "PV theory excluded; exponential geometry speculative" (that report's R3).
+
 Almost every headline number in the fringe gravity literature can be reproduced from its authors' own formulas, usually to within a few percent. Almost every claim then fails at one identifiable physics step, by a margin that can be computed. Li and Baker's high-frequency gravitational-wave (HFGW) detector arithmetic matches its published values to 0–4%. But its claimed 3×10³ s integration time ignores the shot noise of the reference beam. The homodyne quantum limit needs **4×10¹⁷–3×10¹⁸ s, a factor of 10¹⁴–10¹⁵**, which the 2008 JASON panel called "more than 20 orders of magnitude" too optimistic in its own framing **[refuted]**. The other headline claims fail the same way:
 
 - Baker's generator fluxes need a beam whose solid angle is **3×10¹¹ times** smaller than diffraction allows.
@@ -335,7 +337,7 @@ Pfenning and Ford's quantum-inequality bound reproduces to about 10%: 6.9×10⁶
 | DIRD 21 Shannon | 1.9×10⁶ bps | no: 2.82×10⁶ | — | ln vs log₂ | refuted (arithmetic) |
 | DIRD 18 squeezing | −2.23×10⁻²² J/m³ | 13% off | Ford: −1.8×10⁻⁷⁰ | 48 orders | contested |
 | DIRD 24 zero-point density | 10¹¹³ J/m³ | between conventions | observed 5.7×10⁻¹⁰ | 10¹²¹–10¹²⁴ | mainstream (Λ problem); devices refuted |
-| Puthoff polarisable vacuum | 1.75″, 43″/cy | yes | GR equal at 1PN; 4π vs 15π/4 at 2PN | 0.73 µas | contested (alternative theory) |
+| Puthoff polarisable vacuum | 1.75″, 43″/cy | yes | GR equal at 1PN; 4π vs 15π/4 at 2PN | 0.73 µas | theory excluded by binary-pulsar radiation; exponential geometry speculative (corrected 2026-10-25) |
 | Pfenning–Ford warp bound | 6.2×10⁶² v kg | 6.9×10⁶² (10%) | — | — | mainstream |
 
 ## Conclusion

@@ -19,7 +19,7 @@ use core::f64::consts::PI;
 
 use metrology::{AU, C, G};
 
-/// `κ = 4G/(c² AU)` (rad/kg), so that a lens of mass `M` has `θ_E = κMπ_rel`: the deflection of
+/// `κ = 4G/(c² AU)` (rad/kg), so that a lens of mass `M` has `θ_E² = κMπ_rel`: the deflection of
 /// light grazing a mass at 1 AU, per unit mass. 8.144 mas per solar mass.
 pub const KAPPA: f64 = 4.0 * G / (C * C * AU);
 
@@ -88,11 +88,11 @@ pub struct Hubble {
     pub source: &'static str,
 }
 
-/// Time-delay `H₀` in flat ΛCDM, oldest first. TDCOSMO 2025 reanalyses the same six lenses with
-/// new kinematics and calls its earlier kinematics superseded.
+/// Time-delay `H₀` in flat ΛCDM, oldest first. TDCOSMO 2025 adds DES J0408 and WGD 2038 to the six
+/// H0LiCOW lenses, with new kinematics, and calls its earlier kinematics superseded.
 pub const H0_REGISTRY: [Hubble; 2] = [
     Hubble { name: "H0LiCOW (six lenses)", value: (73.3, 1.7, 1.8), assumption: Assumption::Assertive, data: "lenses only", source: "https://arxiv.org/abs/1907.04869" },
-    Hubble { name: "TDCOSMO 2025 (the same six, new kinematics)", value: (71.6, 3.9, 3.3), assumption: Assumption::Conservative, data: "lenses with Pantheon+ supernovae", source: "https://arxiv.org/abs/2506.03023" },
+    Hubble { name: "TDCOSMO 2025 (eight lenses, new kinematics)", value: (71.6, 3.9, 3.3), assumption: Assumption::Conservative, data: "lenses with Pantheon+ supernovae", source: "https://arxiv.org/abs/2506.03023" },
 ];
 
 #[cfg(test)]

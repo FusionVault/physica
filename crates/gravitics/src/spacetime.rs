@@ -3,9 +3,15 @@
 //!
 //! The formulas are standard general relativity and quantum field theory. A warp bubble needs a
 //! large mass of negative energy, while quantum field theory allows negative energy only in tiny
-//! amounts for short times (the quantum inequalities). Puthoff's polarizable-vacuum metric is a
-//! genuine alternative: it matches general relativity at first order and differs at second order,
-//! by 0.73 µas for light grazing the Sun, so it is testable in principle.
+//! amounts for short times (the quantum inequalities).
+//!
+//! Puthoff's polarizable vacuum (PV) is two things, and they fare differently. Its static
+//! geometry, the exponential metric `K = exp(2GM/rc²)`, matches general relativity at first
+//! order and differs at second (0.73 µas for light grazing the Sun) and in the strong field,
+//! where its shadow is 4.6% larger, 1–2σ from the EHT's Sgr A* results: **speculative**. Its
+//! dynamics, Puthoff's scalar theory, radiates only 2/3 of general relativity's power from a
+//! binary ([`pv_radiated_power_ratio`]), about 200σ from the Hulse–Taylor pulsar: **excluded**
+//! ([Ibison 2003](https://arxiv.org/abs/astro-ph/0302273)).
 //!
 //! ```
 //! use gravitics::spacetime::alcubierre_energy;
@@ -20,12 +26,14 @@ use core::f64::consts::PI;
 use metrology::{C, G, HBAR, K_B};
 
 /// Total energy of an Alcubierre warp bubble of `radius` (m) and wall thickness `wall` (m) moving
-/// at `speed` (in units of c), as a mass (kg): `−(v²/12)(R²/Δ)·c²/G`
-/// ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026), Eq. 28). Negative. (Their text's
-/// worked numbers, "6.2×10⁶⁵ g" and "a quarter of a solar mass", disagree with their Eq. 28,
-/// which gives 6.9×10⁶² kg and 0.56 solar masses for the same inputs.)
+/// at `speed` (in units of c), as a mass (kg), for Pfenning & Ford's linear wall:
+/// `−(v²/12)(R²/Δ + Δ/12)·c²/G` ([Pfenning & Ford 1997](https://arxiv.org/abs/gr-qc/9702026),
+/// Eq. 28). Negative. (Their text's worked numbers, "6.2×10⁶⁵ g" and "a quarter of a solar mass",
+/// disagree with their Eq. 28, which gives 6.9×10⁶² kg and 0.56 solar masses for the same
+/// inputs.) Alcubierre's own tanh wall of steepness σ costs exactly `−(v²/36)R²σ·c²/G` for
+/// `σR ≫ 1`, 2/3 of this with `Δ ≈ 2/σ`; Lobo & Visser's estimate `−v²R²σ` is 36 times that.
 pub fn alcubierre_energy(radius: f64, wall: f64, speed: f64) -> f64 {
-    -speed * speed / 12.0 * radius * radius / wall * C * C / G
+    -speed * speed / 12.0 * (radius * radius / wall + wall / 12.0) * C * C / G
 }
 
 /// Forward's "antigravity" in general relativity: the acceleration `4Gm a_f/(c²r)` (m/s²) induced
@@ -118,7 +126,9 @@ pub enum Metric {
     /// Schwarzschild.
     GeneralRelativity,
     /// Puthoff's polarizable vacuum, `K = exp(2GM/rc²)`
-    /// ([Puthoff 2002](https://arxiv.org/abs/gr-qc/9909037)).
+    /// ([Puthoff 2002](https://arxiv.org/abs/gr-qc/9909037)): the exponential geometry,
+    /// **speculative**. The PV theory that produces it is excluded by binary-pulsar radiation
+    /// ([`pv_radiated_power_ratio`]).
     PolarizableVacuum,
 }
 
@@ -132,6 +142,25 @@ pub fn light_bending(mass: f64, b: f64, metric: Metric) -> f64 {
         Metric::PolarizableVacuum => 4.0 * PI,
     };
     4.0 * x + second * x * x
+}
+
+/// The orbital decay of a binary of eccentricity `e` in Puthoff's PV theory, as a fraction of
+/// general relativity's: `½(51e⁴ + 396e² + 128)/(37e⁴ + 292e² + 96)`, exactly 2/3 for a circular
+/// orbit ([Ibison 2003](https://arxiv.org/abs/astro-ph/0302273), Eq. 65). Its scalar waves carry
+/// a third less power than GR's tensor waves, and the binary pulsars agree with GR, so the PV
+/// theory is excluded; the exponential geometry it produces is a separate question.
+///
+/// ```
+/// use gravitics::spacetime::pv_radiated_power_ratio;
+///
+/// // Hulse–Taylor, e = 0.6171340: the observed decay is 0.9983 ± 0.0016 of GR's (Weisberg &
+/// // Huang 2016), while PV predicts 0.6732, about 200σ away.
+/// let pv = pv_radiated_power_ratio(0.6171340);
+/// assert!((pv - 0.67321).abs() < 1e-5 && (0.9983 - pv) / 0.0016 > 200.0);
+/// ```
+pub fn pv_radiated_power_ratio(e: f64) -> f64 {
+    let e2 = e * e;
+    0.5 * (51.0 * e2 * e2 + 396.0 * e2 + 128.0) / (37.0 * e2 * e2 + 292.0 * e2 + 96.0)
 }
 
 /// The exact deflection (rad) of light passing a `mass` (kg) at impact parameter `b` (m), at any
@@ -249,7 +278,9 @@ pub fn multipole_deflection(field: &geopotential::Coefficients, point: [f64; 3],
 
 /// The angular diameter (rad) of the shadow of a non-spinning black hole of mass `mass` (kg) at
 /// distance `distance` (m): `6√3 GM/(c²D)`, the critical impact parameter `3√3 GM/c²` seen from
-/// `D`. Spin and inclination make a Kerr shadow smaller, by up to about 7.5%
+/// `D`. Spin and inclination make a Kerr shadow smaller: its mean, median and area-equivalent
+/// radii by at most `2(1 + √2)/(3√3) − 1` = −7.08% (`a = 1` seen from the pole, see
+/// [`kerr_pole_on_shadow`]), its horizontal width by up to 13.4%. The EHT quotes about 7.5%
 /// ([EHT Sgr A* Paper VI](https://arxiv.org/abs/2311.09484)).
 pub fn shadow_diameter(mass: f64, distance: f64) -> f64 {
     6.0 * 3f64.sqrt() * G * mass / (C * C * distance)
@@ -257,7 +288,8 @@ pub fn shadow_diameter(mass: f64, distance: f64) -> f64 {
 
 /// The fractional deviation `δ = d_sh/(6√3 θ_g) − 1` of a shadow of angular diameter `diameter`
 /// from a Schwarzschild black hole of angular gravitational radius `theta_g = GM/(c²D)` (both in
-/// the same angular unit), as the EHT defines it. Kerr black holes give `δ` from about −0.075 to 0.
+/// the same angular unit), as the EHT defines it. For the mean radius a Kerr black hole gives `δ`
+/// from exactly −0.0708 to 0; the EHT uses −0.075 as its published Kerr bound.
 pub fn shadow_deviation(diameter: f64, theta_g: f64) -> f64 {
     diameter / (6.0 * 3f64.sqrt() * theta_g) - 1.0
 }
@@ -457,12 +489,25 @@ mod tests {
         assert!(exact_deflection(m, critical * rg * (1.0 + 1e-6), Metric::PolarizableVacuum).unwrap() > 10.0);
         let gr = exact_deflection(m, 10.0 * rg, Metric::GeneralRelativity).unwrap();
         assert!(exact_deflection(m, 10.0 * rg, Metric::PolarizableVacuum).unwrap() > gr);
+        // Against an independent Python quadrature (the frontier-gaps research's PV notes): at
+        // b = 6M, 10M and b_c(1 + 10⁻³), both metrics.
+        let at = |b: f64, metric| exact_deflection(m, b * rg, metric).unwrap();
+        for (b, gr, pv) in [(6.0, 1.719388310, 1.999746113), (10.0, 0.590395788, 0.610437437)] {
+            assert!((at(b, Metric::GeneralRelativity) - gr).abs() < 1e-9 && (at(b, Metric::PolarizableVacuum) - pv).abs() < 1e-9, "b = {b}");
+        }
+        assert!((at(27f64.sqrt() * 1.001, Metric::GeneralRelativity) - 6.5106448).abs() < 1e-7);
+        assert!((at(critical * 1.001, Metric::PolarizableVacuum) - 6.4454619).abs() < 1e-7);
+        // Bozza's strong-field offset for PV, b̄ = −0.46581756 (two methods in the notes agree to
+        // 2×10⁻⁸), against GR's −0.40023: α + ln ε at ε = 10⁻⁶.
+        let eps = 1e-6;
+        assert!((at(critical * (1.0 + eps), Metric::PolarizableVacuum) + eps.ln() + 0.46581756).abs() < 1e-5);
     }
 
     #[test]
     fn jupiters_oblateness_in_the_deflection() {
         // Jupiter: the IAU 2015 nominal GM and equatorial radius, and Juno's J₂ = 14696.572×10⁻⁶
-        // (Iess et al. 2018, as tabulated in arXiv:2310.02834).
+        // ± 0.014 (Iess et al. 2018, Nature 555, 220, Table 1). Durante et al. 2020's PDS product
+        // gives 14696.5735 including a 6.72×10⁻⁸ permanent tide; 14696.5063 is that without it.
         let (gm, radius, j2) = (1.266_865_3e17, 7.1492e7, 14_696.572e-6);
         let mut jupiter = geopotential::Coefficients::zeros(gm, radius, 2);
         jupiter.set(0, 0, 1.0, 0.0);

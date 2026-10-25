@@ -1,5 +1,15 @@
 # Gravity DIRDs (AAWSAP, 2010–2011) and the physics that has tested or extended them
 
+> **Corrections (2026-10-25)**, from the [frontier-gaps and metric-engineering report](../../frontier-gaps-and-metric-engineering/report.md), items R1–R8:
+> - DIRD 15's eq. 6 is the *local* light speed, always c; only eqs 7–8 are the coordinate speed.
+> - Puthoff 2002's perihelion formula is his eq. (40), not (39).
+> - The decisive test of Puthoff's PV *theory* was published in 2003: it radiates 2/3 of GR's binary-pulsar power, 203σ from Hulse–Taylor ([Ibison 2003](https://arxiv.org/abs/astro-ph/0302273)). Only the exponential geometry is speculative (1–2σ from the EHT).
+> - "Do not implement Table 1" is too broad: its mass row and its engineered column (a negative-mass exterior) are worth code.
+> - Lobo & Visser's −v²R²σ, which DIRD 13 copies, is an estimate 36 times the exact Alcubierre tanh-wall energy.
+> - Van Den Broeck's quantum-inequality check fails by 2×10³³ with his printed α = 10¹⁷ and Δ̃ = 10⁻¹⁵ m; his numbers follow from α = 10³⁴ and Δ̃ = 10⁻³² m.
+> - Lentz's C is about 0.044, his text is linear in v_s where his formula is quadratic, and his positivity is disputed as a sign error (Celmaster & Rubin 2025, preprint).
+> - Fell & Heisenberg's ratio is 5.2×10⁻⁴: 3.3 orders, not four.
+
 Scope note: only public material was used. The core DIRD PDFs were read from The Black Vault's copies of the DIA FOIA release; the OCR text layer was supplemented by reading equation pages as images. Numbers marked **[checked]** were recomputed with `dirds_checks.py` (same folder; pure Python, `python3 -I dirds_checks.py`).
 
 Labels used throughout: **[GR]** = mainstream general relativity or QFT, peer reviewed and accepted; **[SPEC]** = peer-reviewed or mathematically valid but physically speculative or disputed; **[FRINGE]** = unreplicated, contradicted or outside mainstream physics.
