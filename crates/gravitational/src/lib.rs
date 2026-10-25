@@ -7,6 +7,7 @@ pub mod energy;
 pub mod hf;
 pub mod inspiral;
 pub mod laboratory;
+pub mod lensing;
 pub mod memory;
 pub mod propagation;
 pub mod quanta;
