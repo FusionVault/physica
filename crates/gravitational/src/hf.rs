@@ -79,7 +79,9 @@ pub fn superradiance_frequency(mass_ev: f64) -> f64 {
 
 /// Plasma frequency `(1/2π)√(n_e e²/(ε₀m_e))` (Hz) of electron density `n_e` (m⁻³): 8.98 kHz at
 /// 1 cm⁻³. A wave below it cannot convert to a propagating photon, so Gertsenshtein conversion in
-/// the interstellar medium (≈ 0.03 cm⁻³, 1.56 kHz) is closed to the LIGO band.
+/// the interstellar medium (≈ 0.03 cm⁻³, 1.56 kHz) is closed to the LIGO band. The same `ω_p`
+/// gives `magnetics::mhd::inertial_length` (`c/ω_p`); that crate cannot depend on this one, so each
+/// writes the line, and `physica`'s analogies test that the two agree.
 pub fn plasma_frequency(n_e: f64) -> f64 {
     (n_e * E_CHARGE * E_CHARGE / (EPS_0 * M_E)).sqrt() / (2.0 * PI)
 }
