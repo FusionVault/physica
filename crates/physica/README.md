@@ -63,8 +63,8 @@ assert!((frame_dragging / analogue - 2.0).abs() < 1e-12);
 | [`metrology`](https://crates.io/crates/metrology) | The physical constants every crate shares |
 | [`geopotential`](https://crates.io/crates/geopotential) | Earth's gravity field from spherical harmonics, the `.gfc` reader, the shared `Field` trait |
 | [`gravimetry`](https://crates.io/crates/gravimetry) | Gravity missions and quantum sensors, GRACE processing, earthquake gravity, local forward models, atmospheric waves |
-| [`gravitational`](https://crates.io/crates/gravitational) | Gravitational waves from nanohertz to terahertz: detectors, inspirals, energy, propagation, gravitons, backgrounds |
-| [`gravitics`](https://crates.io/crates/gravitics) | Frontier gravity computed against general relativity and experiment, the Schwinger limit, gravity's anomalies, gravitoelectromagnetism |
+| [`gravitational`](https://crates.io/crates/gravitational) | Gravitational waves from nanohertz to terahertz: detectors, inspirals, ringdown and remnants, energy, propagation, gravitons, backgrounds, lensing and cosmological distances |
+| [`gravitics`](https://crates.io/crates/gravitics) | Frontier gravity computed against general relativity and experiment, light in strong gravity, the Schwinger limit, gravity's anomalies, gravitoelectromagnetism |
 | [`magnetics`](https://crates.io/crates/magnetics) | Earth's magnetic field, magnetohydrodynamics, magnets, space weather |
 | [`plasmoid`](https://crates.io/crates/plasmoid) | Fusion reactivities and Lawson, pinches, plasmoids, aneutronic power, tokamak limits |
 | `analogies` | The cross-domain identities, as doc tests |

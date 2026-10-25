@@ -2,9 +2,10 @@
 
 Gravitational waves from nanohertz to terahertz, in one place: what they carry, how they travel,
 how sensitive every kind of detector is, and how far a detector can see. Strain conventions,
-noise curves, inspirals and binary pulsars, memory, the graviton's mass and number, stochastic
-backgrounds, high-frequency limits, and the gravity of lab sources, each tested against published
-numbers. Pure Rust, SI units.
+noise curves, inspirals and binary pulsars, the black hole a merger leaves and how it rings,
+neutron-star tides, memory, the graviton's mass and number, stochastic backgrounds,
+high-frequency limits, lensing and cosmological distances, and the gravity of lab sources, each
+tested against published numbers. Pure Rust, SI units.
 
 ## Install
 

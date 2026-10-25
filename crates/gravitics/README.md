@@ -8,6 +8,10 @@ whole parallel track of physics, and gravity's open anomalies, three ways:
 - **The standard prediction,** from general relativity or standard physics, for the same setup.
 - **What experiments measured.**
 
+It also carries the general-relativity side that light near strong gravity needs: exact light
+deflection at any field strength, deflection by a body's whole multipole field, and black-hole
+shadows.
+
 Use it to explore a proposal, to design an experiment that could test one, or to see how large
 an effect must be before an instrument can see it.
 

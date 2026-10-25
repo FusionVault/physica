@@ -1,7 +1,7 @@
 [package]
 name = "gravitics"
 version = "0.5.2"
-description = "Gravitics: gravity control, exotic propulsion and gravity's open anomalies, each proposal's own model (Li–Baker, Pais, Tajmar, Podkletnov, EmDrive, Mach-effect and ion-wind thrusters, warp drives, the polarizable vacuum, MOND) next to general relativity and the measurements; plus the Schwinger limit, the scatter of G, short-range forces and tabletop quantum gravity."
+description = "Gravitics: gravity control, exotic propulsion and gravity's open anomalies, each proposal's own model (Li–Baker, Pais, Tajmar, Podkletnov, EmDrive, Mach-effect and ion-wind thrusters, warp drives, the polarizable vacuum, MOND) next to general relativity and the measurements; plus light in strong gravity (exact and multipole deflection, black-hole shadows), the Schwinger limit, the scatter of G, short-range forces and tabletop quantum gravity."
 keywords = ["gravity", "physics", "general-relativity", "propulsion", "gravitational-waves"]
 categories = ["science"]
 edition.workspace = true
