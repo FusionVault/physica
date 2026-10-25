@@ -155,7 +155,7 @@ def born_deflection(gm, j2, r_eq, b, gamma=1.0, n=4000):
     return (1 + gamma) / C**2 * simpson(dudb, -pi / 2 + 1e-9, pi / 2 - 1e-9, n)
 
 
-J2_JUP = 14_696.5063e-6   # Juno, Iess et al. 2018 (R = 71 492 km)
+J2_JUP = 14_696.5063e-6   # Durante et al. 2020's 14696.5735 without its 6.72e-8 permanent tide; Iess et al. 2018 give 14696.572 (corrected 2026-10-25)
 d_num = born_deflection(GM_JUP, J2_JUP, R_JUP, R_JUP)
 d_ana = 4 * GM_JUP / (C**2 * R_JUP) * (1 + J2_JUP)
 check("Jupiter limb deflection with J2, numerical Born integral vs 4GM/(c²b)(1+J2 R²/b²)", d_num, d_ana, rel=1e-6)
