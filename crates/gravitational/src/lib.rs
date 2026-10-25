@@ -13,6 +13,7 @@ pub mod remnant;
 pub mod ringdown;
 pub mod sgwb;
 pub mod strain;
+pub mod tides;
 pub mod ultralight;
 
 /// Hubble constant for h = 1 (100 km s⁻¹ Mpc⁻¹), s⁻¹. Multiply by the dimensionless h.
