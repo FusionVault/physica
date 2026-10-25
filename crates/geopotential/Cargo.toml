@@ -1,6 +1,6 @@
 [package]
 name = "geopotential"
-version = "0.3.1"
+version = "0.3.2"
 description = "Earth's gravity field from spherical harmonics: read ICGEM .gfc models, then compute gravity, geoid, gradients and water height at a point or on a map, stable to degree 2700."
 keywords = ["geodesy", "gravity", "spherical-harmonics", "geoid", "icgem"]
 categories = ["science::geo", "mathematics"]

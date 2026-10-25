@@ -1,6 +1,6 @@
 [package]
 name = "metrology"
-version = "0.2.1"
+version = "0.2.2"
 description = "The physical constants the physica crates share: CODATA 2018 fundamental constants, standard gravity, and the astronomical units of mass, distance and time."
 keywords = ["constants", "physics", "codata", "si", "units"]
 categories = ["science"]
