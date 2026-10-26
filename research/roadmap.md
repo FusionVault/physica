@@ -167,20 +167,39 @@ build order in [#10](https://github.com/FusionVault/physica/issues/10):
 | [#8](https://github.com/FusionVault/physica/issues/8) | Verify before coding |
 | [#9](https://github.com/FusionVault/physica/issues/9) | Deferred items and what would bring them in |
 
+## Phase G: the topological-monopole talk — researched 2026-10-26
+
+Bob Greenyer's TeslaTech 2026 talk, the user's slide of nine names and the user's own audit:
+[`topics/topological-monopoles-and-transmutation/report.md`](topics/topological-monopoles-and-transmutation/report.md),
+with seven notes and seven passing check scripts. Every claim is computed both ways and labelled.
+Tracked in the [Topological monopole talk milestone](https://github.com/FusionVault/physica/milestone/2):
+[#27](https://github.com/FusionVault/physica/issues/27) `metrology` first, then [#24](https://github.com/FusionVault/physica/issues/24) `magnetics::monopole` (a new module, the user's
+decision) and [#22](https://github.com/FusionVault/physica/issues/22) `plasmoid::nuclear`; [#20](https://github.com/FusionVault/physica/issues/20), [#21](https://github.com/FusionVault/physica/issues/21), [#23](https://github.com/FusionVault/physica/issues/23),
+[#25](https://github.com/FusionVault/physica/issues/25) and [#26](https://github.com/FusionVault/physica/issues/26) by area; [#28](https://github.com/FusionVault/physica/issues/28), the one example and claim registry, last.
+
+## One build order (2026-10-26)
+
+Every report, review and PR was swept against the crates and the issues on 2026-10-26. What no
+issue tracked is now in the [Research backlog milestone](https://github.com/FusionVault/physica/milestone/3)
+([#29](https://github.com/FusionVault/physica/issues/29)–[#41](https://github.com/FusionVault/physica/issues/41)), and the build order for all open work, across the three milestones,
+is [#10](https://github.com/FusionVault/physica/issues/10). Issues carry `P1`–`P3`, `crate: …`, `claims`, `blocked`, `on hold` and `tracking` labels.
+
 ## Open
 
 - **Retired crates:** `satgrav`, `gravity-field` and `gravity-claims` are deleted; `gwsens` was
   yanked by the user on 2026-10-24 (deletion was blocked because `gravitics` 0.1.0 and 0.2.0
   depend on it).
-- **Decision for the user:** whether to download IGRF-14's coefficient file and EGM96 for the
-  IGRF and geoid examples.
-- **On hold at the user's request:** `magnetics::{devices, astro, frontier}`. The specification
-  is in [`topics/magnetics-and-mhd/report.md`](topics/magnetics-and-mhd/report.md), lines 181–211
-  (formulas, test vectors, labels) and 275–278 (worked examples), with the research behind it in
-  that topic's `notes/` and its check scripts.
+- **Decisions for the user** ([#30](https://github.com/FusionVault/physica/issues/30)): whether to download IGRF-14's coefficient file and
+  EGM96 for the IGRF and geoid examples; whether the retired `gravity-field` readers come back
+  ([#35](https://github.com/FusionVault/physica/issues/35)).
+- **On hold at the user's request:** `magnetics::{devices, astro, frontier}`, every specified
+  calculator listed in [#42](https://github.com/FusionVault/physica/issues/42). The specification is in
+  [`topics/magnetics-and-mhd/report.md`](topics/magnetics-and-mhd/report.md). Its monopole rows
+  moved to `magnetics::monopole` ([#24](https://github.com/FusionVault/physica/issues/24)).
 
 ## Later
 
-- `geo5d`: the relativity and PPN calculators (a proposed session).
-- The "Verify before coding" items in the gravity-anomalies and magnetics reports.
-- W1 scoring when COST-G's December 2026 fields appear (about March 2027).
+- W5's pre-registration is time-critical ([#29](https://github.com/FusionVault/physica/issues/29)).
+- The PPN calculators, once planned for `geo5d`, are now `gravitational::ppn` ([#32](https://github.com/FusionVault/physica/issues/32)).
+- The "verify before coding" items of every report are on [#8](https://github.com/FusionVault/physica/issues/8).
+- W1 scoring when COST-G's December 2026 fields appear, about March 2027 ([#41](https://github.com/FusionVault/physica/issues/41)).
