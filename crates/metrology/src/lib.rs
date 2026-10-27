@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+pub mod decay;
+
 // Exact SI defining constants (2019).
 
 /// Speed of light in vacuum, m/s (exact).
@@ -41,10 +43,23 @@ pub const M_H: f64 = 1.007_825_032_23 * AMU;
 pub const EINSTEIN_KAPPA: f64 = 8.0 * core::f64::consts::PI * G / (C * C * C * C);
 /// Bohr magneton `eħ/2m_e`, J/T.
 pub const MU_B: f64 = 9.274_010_078_3e-24;
+/// Nuclear magneton `eħ/2m_p`, J/T.
+pub const MU_N: f64 = 5.050_783_746_1e-27;
 /// Proton gyromagnetic ratio, s⁻¹ T⁻¹ (γ_p/2π = 42.577 MHz/T, the MRI Larmor frequency).
 pub const GAMMA_P: f64 = 2.675_221_874_4e8;
 /// Planck length `√(ħG/c³)`, m.
 pub const PLANCK_LENGTH: f64 = 1.616_255e-35;
+
+// Flux quanta (exact, from h and e).
+
+/// Superconducting flux quantum `h/2e`, Wb: the flux a Cooper-pair loop holds per quantum, and
+/// the period of the Aharonov–Bohm phase for paired charges.
+pub const FLUX_QUANTUM: f64 = H / (2.0 * E_CHARGE);
+/// Josephson constant `2e/h`, Hz/V: a junction at voltage V oscillates at K_J·V (483.6 MHz/µV).
+pub const JOSEPHSON_CONSTANT: f64 = 2.0 * E_CHARGE / H;
+/// The flux `h/e = 2Φ₀` of one Dirac magnetic monopole, Wb: μ₀ times the Dirac charge
+/// `g_D = h/(μ₀e)`, so the monopole's field μ₀g_D/(4πr²) is fixed by h and e alone.
+pub const DIRAC_FLUX: f64 = H / E_CHARGE;
 
 // Energy units.
 
@@ -52,6 +67,12 @@ pub const PLANCK_LENGTH: f64 = 1.616_255e-35;
 pub const EV: f64 = E_CHARGE;
 /// One kiloelectronvolt, J.
 pub const KEV: f64 = 1e3 * E_CHARGE;
+
+// Molecular binding.
+
+/// Dissociation energy D₀ of the water dimer, the energy of one hydrogen bond, J/mol:
+/// 1105 ± 10 cm⁻¹ = 13.22 kJ/mol ([Rocher-Casterline et al. 2011](https://doi.org/10.1063/1.3598339)).
+pub const WATER_DIMER_D0: f64 = 1105e2 * H * C * N_A;
 
 // Earth and astronomy.
 
@@ -124,6 +145,12 @@ mod tests {
         assert!((PLANCK_LENGTH / (HBAR * G / C.powi(3)).sqrt() - 1.0).abs() < 1e-5);
         assert!((SOLAR_MASS / 1.988_4e30 - 1.0).abs() < 1e-4);
         assert!((MU_B / (E_CHARGE * HBAR / (2.0 * M_E)) - 1.0).abs() < 1e-9);
+        assert!((MU_N / (E_CHARGE * HBAR / (2.0 * M_P)) - 1.0).abs() < 1e-9);
+        assert!((FLUX_QUANTUM / 2.067_833_848e-15 - 1.0).abs() < 1e-9);
+        assert!((JOSEPHSON_CONSTANT / 483_597.848_4e9 - 1.0).abs() < 1e-9);
+        assert!((DIRAC_FLUX / (2.0 * FLUX_QUANTUM) - 1.0).abs() < 1e-15);
+        assert!((DIRAC_FLUX / (MU_0 * 3.291e-9) - 1.0).abs() < 1e-3); // μ₀ × the Dirac charge
+        assert!((WATER_DIMER_D0 / 13.22e3 - 1.0).abs() < 1e-3);
         assert!((EINSTEIN_KAPPA / 2.076_647e-43 - 1.0).abs() < 1e-6);
         assert!((PARSEC / (AU * 648_000.0 / core::f64::consts::PI) - 1.0).abs() < 1e-12);
         assert!((L_G - W0_IAU / (C * C)).abs() < 1e-19 && (W0_IAU - W0_IHRS - 2.6).abs() < 1e-8);
