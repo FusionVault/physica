@@ -1,6 +1,6 @@
 [package]
 name = "magnetics"
-version = "0.1.4"
+version = "0.1.5"
 description = "Magnetism and magnetohydrodynamics: Earth's main field from WMM2025 or any Gauss-coefficient model, evaluated with geopotential's spherical-harmonic engine."
 keywords = ["geomagnetism", "magnetic-field", "wmm", "mhd", "physics"]
 categories = ["science::geo", "science"]
@@ -12,7 +12,7 @@ repository.workspace = true
 
 [dependencies]
 geopotential = { path = "../geopotential", version = "0.3.3" }
-metrology = { path = "../metrology", version = "0.2.4" }
+metrology = { path = "../metrology", version = "0.2.5" }
 
 [lints]
 workspace = true
