@@ -47,7 +47,8 @@ version to pin the constants, which is what reproducing a published number needs
 ## How it is checked
 
 A test checks that the derived constants agree with each other: `ħ = h/2π`, `R = N_A k_B`,
-`μ₀ε₀c² = 1`, `α = e²/4πε₀ħc`, the Planck length, the solar mass, both magnetons, and the flux
+`μ₀ε₀c² = 1`, `α = e²/4πε₀ħc` (ħ and R are the 2019 SI's exact `h/2π` and `N_A k_B`, not CODATA's
+truncated digits), the Planck length, the solar mass, both magnetons, and the flux
 quanta (`h/e = 2Φ₀`, and μ₀ times the Dirac charge 3.291×10⁻⁹ A m). The decay tests reproduce
 radium's 0.988 Ci per gram, ⁶⁰Co's 7.2×10⁻⁴ step after a two-day stop, and ⁷Be's 0.83%
 half-life shift in C₆₀.
