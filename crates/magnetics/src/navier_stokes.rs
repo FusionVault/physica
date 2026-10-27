@@ -1,12 +1,20 @@
-//! Incompressible Navier–Stokes on the flat torus, and the analytic pieces of OpenAI's preprint
-//! *Velocity-Field Detection of Computation in Forced Navier–Stokes Flows* (27 September 2026).
+//! Incompressible Navier–Stokes and MHD on the flat torus, and the analytic pieces of OpenAI's
+//! preprint *Velocity-Field Detection of Computation in Forced Navier–Stokes Flows* (27 September
+//! 2026).
 //!
 //! The equations are `∂ₜu + (u·∇)u = −∇p + ν∆u + f` with `∇·u = 0`, on the torus of period `L`
-//! in two or three dimensions ([`Torus`]). The solvers are pseudo-spectral. Derivatives come from
-//! [`geopotential::fft::fftn`] and products are taken on the grid. The 2/3 rule removes aliasing,
-//! and the Leray projection `û − k(k·û)/|k|²` takes the place of the pressure. Time steps are
-//! fourth-order Runge–Kutta in the integrating factor `e^(ν|k|²t)`, which carries diffusion
-//! exactly. Norms and inner products are box averages, the paper's normalised measure.
+//! in two or three dimensions ([`Torus`]), and with a magnetic field, incompressible resistive
+//! MHD ([`Torus::mhd`]) and the kinematic induction equation ([`Torus::induction`]). The solvers
+//! are pseudo-spectral. Derivatives come from [`geopotential::fft::fftn`] and products are taken
+//! on the grid. The 2/3 rule removes aliasing, and the Leray projection `û − k(k·û)/|k|²` takes
+//! the place of the pressure. What the solvers evolve is therefore the Galerkin truncation: the
+//! PDE's exact properties (positivity, maximum principles) hold for it only to the truncation
+//! error, while its quadratic invariants are exact. Time steps are fourth-order exponential time
+//! differencing (ETDRK4), which carries diffusion exactly and a constant forcing too, so a
+//! steadily forced state stays put. Diagnostics on fields given on the grid ([`Torus::advect`],
+//! [`Torus::residual`], [`Torus::forcing`], [`Torus::pressure`]) take their products on a grid
+//! twice as fine, so they are alias-free for any field below the Nyquist mode. Norms and inner
+//! products are box averages, the paper's normalised measure.
 //!
 //! The preprint's device (its §2, eqs. 5–6) is this. Take a divergence-free planar field
 //! `a(t, Y)` and a scalar `w(t, Y)`. The z-independent velocity `U = (a, w)` is divergence-free,
@@ -44,8 +52,16 @@
 //! Taylor & Green, [Proc. R. Soc. A 158, 499 (1937)](https://doi.org/10.1098/rspa.1937.0013);
 //! Dombre et al., [J. Fluid Mech. 167, 353 (1986)](https://doi.org/10.1017/S0022112086002859)
 //! (ABC flows). The numerics: Orszag, [J. Atmos. Sci. 28, 1074 (1971)](https://doi.org/10.1175/1520-0469(1971)028%3C1074:OTEOAI%3E2.0.CO;2)
-//! (the 2/3 rule); Kassam & Trefethen, [SIAM J. Sci. Comput. 26, 1214 (2005)](https://doi.org/10.1137/S1064827502410633)
-//! (integrating-factor Runge–Kutta).
+//! (the 2/3 rule); Cox & Matthews, [J. Comput. Phys. 176, 430 (2002)](https://doi.org/10.1006/jcph.2002.6995)
+//! (ETDRK4); Kassam & Trefethen, [SIAM J. Sci. Comput. 26, 1214 (2005)](https://doi.org/10.1137/S1064827502410633)
+//! (its coefficients' cancellation, avoided here by series); Bernstein's inequality for the
+//! gradient bound. MHD: Walén's exact Alfvén waves (Walén 1944, Ark. Mat. Astron. Fys. 30A, 15);
+//! Biskamp, *Magnetohydrodynamic Turbulence* (Cambridge, 2003) for the ideal invariants; the
+//! Orszag–Tang vortex against Rosenberg, Pouquet & Mininni, [New J. Phys. 9, 304 (2007)](https://doi.org/10.1088/1367-2630/9/8/304),
+//! Fig. 8; the ABC dynamo's first window, Galloway & Frisch, [Geophys. Astrophys. Fluid Dyn. 36, 53 (1986)](https://doi.org/10.1080/03091928608208797),
+//! and its complex leading eigenvalue, Bouya & Dormy, [Phys. Fluids 25, 037103 (2013)](https://doi.org/10.1063/1.4795546).
+//! The reference values are recomputed, by an independent solver, in
+//! `research/topics/navier-stokes-computation/notes/mhd_benchmarks.md`.
 
 use core::f64::consts::PI;
 
@@ -191,6 +207,10 @@ pub struct Torus<const D: usize> {
 /// A spectrum's real and imaginary parts.
 type Spectrum = (Vec<f64>, Vec<f64>);
 
+/// A weighted transport term `c(w·g)` for [`combine`]: the weight, the vector field `w` and the
+/// gradient `g` of one component.
+type Transport<'a, V, const D: usize> = (f64, &'a [V], &'a [Vec<f64>; D]);
+
 impl<const D: usize> Torus<D> {
     /// The number of grid points.
     pub fn size(&self) -> usize {
@@ -244,10 +264,19 @@ impl<const D: usize> Torus<D> {
         out
     }
 
-    /// `u·∇v`, derivatives spectral and the product on the grid.
+    /// `u·∇v`, derivatives spectral and the product taken on a grid twice as fine, then cut
+    /// back: exactly the true product's modes `2|m| < n`, with no aliasing, for fields below the
+    /// Nyquist mode. (A product on this grid would fold modes above `n/2` back onto kept ones.)
     pub fn advect(&self, u: &[Vec<f64>; D], v: &[f64]) -> Vec<f64> {
-        let grad = self.gradient(v);
-        (0..self.size()).map(|i| (0..D).map(|a| u[a][i] * grad[a][i]).sum()).collect()
+        let fine = Torus { n: self.n.map(|n| 2 * n), length: self.length };
+        let s = self.forward(v);
+        let mut product = vec![0.0; fine.size()];
+        for (a, ua) in u.iter().enumerate() {
+            let ua = fine.inverse(self.resample(&self.forward(ua), &fine));
+            let d = fine.inverse(self.resample(&self.derivative(&s, a), &fine));
+            product.iter_mut().zip(ua.iter().zip(d)).for_each(|(p, (x, y))| *p += x * y);
+        }
+        self.inverse(fine.resample(&fine.forward(&product), self))
     }
 
     /// `v` cut to the modes the 2/3 rule keeps (`3|m| < n` on every axis): the Galerkin
@@ -291,13 +320,7 @@ impl<const D: usize> Torus<D> {
     /// of `∆p = ∇·(f − (u·∇)u)`.
     pub fn pressure(&self, u: &[Vec<f64>; D], f: &[Vec<f64>; D]) -> Vec<f64> {
         let g: [Vec<f64>; D] = core::array::from_fn(|a| f[a].iter().zip(self.advect(u, &u[a])).map(|(x, c)| x - c).collect());
-        let (mut re, mut im) = self.forward(&self.divergence(&g));
-        for i in 0..re.len() {
-            let k2 = self.k2(i);
-            let scale = if k2 > 0.0 { -1.0 / k2 } else { 0.0 };
-            (re[i], im[i]) = (scale * re[i], scale * im[i]);
-        }
-        self.inverse((re, im))
+        self.inverse_laplacian(&self.divergence(&g))
     }
 
     /// `‖∇u‖²`, the box average of `Σ(∂ᵦuₐ)²`.
@@ -305,16 +328,35 @@ impl<const D: usize> Torus<D> {
         u.iter().map(|ua| self.gradient(ua).iter().flatten().map(|x| x * x).sum::<f64>()).sum::<f64>() / self.size() as f64
     }
 
-    /// `‖∇u‖∞,op`, the largest operator (spectral) norm of the velocity gradient over the grid
-    /// points, the rate in the uniqueness estimate. Between the points it can be a little larger.
+    /// An upper bound on `‖∇u‖∞,op`, the largest operator (spectral) norm of the velocity
+    /// gradient anywhere, the rate in the uniqueness estimate; at most 8/7 of it. Each
+    /// `ξ·∇u η` is a trigonometric sum with frequencies along any segment below
+    /// `Σₐ kₐ|δₐ|`, so by Bernstein's inequality it falls by at most a fraction `θ²/2` between its
+    /// maximum and the nearest point of a grid refined `r`-fold, `θ = Σₐ πmₐ/(rnₐ)` with `mₐ`
+    /// the highest mode present. The bound is that grid's maximum over `1 − θ²/2`, with `r` the
+    /// least power of two giving `θ ≤ ½`. Modes below 10⁻¹³ of the largest count as absent.
     pub fn gradient_sup(&self, u: &[Vec<f64>; D]) -> f64 {
-        let grads: Vec<[Vec<f64>; D]> = u.iter().map(|ua| self.gradient(ua)).collect();
-        (0..self.size())
+        let spectra: Vec<Spectrum> = u.iter().map(|v| self.forward(v)).collect();
+        let size = |(re, im): &Spectrum, i: usize| re[i].hypot(im[i]);
+        let peak = spectra.iter().flat_map(|s| (0..self.size()).map(move |i| size(s, i))).fold(0.0, f64::max);
+        let mut top = [0usize; D];
+        for s in &spectra {
+            for i in (0..self.size()).filter(|&i| size(s, i) > 1e-13 * peak) {
+                let index = self.index(i);
+                (0..D).for_each(|a| top[a] = top[a].max(index[a].min(self.n[a] - index[a])));
+            }
+        }
+        let theta = |r: usize| (0..D).map(|a| PI * top[a] as f64 / (r * self.n[a]) as f64).sum::<f64>();
+        let r = (0..).map(|p| 1usize << p).find(|&r| theta(r) <= 0.5).expect("θ halves with each doubling");
+        let fine = Torus { n: self.n.map(|n| r * n), length: self.length };
+        let grads: Vec<[Vec<f64>; D]> = spectra.iter().map(|s| core::array::from_fn(|a| fine.inverse(self.resample(&self.derivative(s, a), &fine)))).collect();
+        let max = (0..fine.size())
             .map(|i| {
                 let jtj: Vec<f64> = (0..D * D).map(|rc| (0..D).map(|a| grads[a][rc / D][i] * grads[a][rc % D][i]).sum()).collect();
                 symmetric_eigen(&jtj, D).0.into_iter().fold(0f64, f64::max).sqrt()
             })
-            .fold(0.0, f64::max)
+            .fold(0.0, f64::max);
+        max / (1.0 - theta(r).powi(2) / 2.0)
     }
 
     /// The uniqueness estimate, eq. 7, for two solutions `u` and `v` under the same force. The
@@ -329,46 +371,36 @@ impl<const D: usize> Torus<D> {
         (-nu * de2 - self.inner(&stretch, &e), self.gradient_sup(u) * e2 - nu * de2)
     }
 
-    /// Incompressible Navier–Stokes from `u` at `t0` to `t1`, in `steps` integrating-factor
-    /// Runge–Kutta steps at kinematic viscosity `nu` (m²/s), under the force `force(t)` given on
+    /// Incompressible Navier–Stokes from `u` at `t0` to `t1`, in `steps` ETDRK4 steps at
+    /// kinematic viscosity `nu` (m²/s), under the force `force(t)` given on
     /// the grid. The data are first cut to the modes the 2/3 rule keeps (`3|m| < n` on every axis)
     /// and projected onto divergence-free fields. Each step then takes the projected, dealiased
     /// `f − (u·∇)u`. A force's gradient part is balanced by the pressure, which
-    /// [`pressure`](Self::pressure) returns. Diffusion is exact, so an explicit step need only
+    /// [`pressure`](Self::pressure) returns. The result is the Galerkin truncation, whose
+    /// properties hold to the truncation error. Diffusion is exact, so an explicit step need only
     /// resolve advection: `|u|·k_max·dt` below about 2.8.
     ///
     /// # Panics
     /// If `steps` is zero.
     pub fn navier_stokes(&self, u: &[Vec<f64>; D], nu: f64, (t0, t1): (f64, f64), steps: usize, force: impl Fn(f64) -> [Vec<f64>; D]) -> [Vec<f64>; D] {
-        let len = self.size();
         let mut start: Vec<Spectrum> = u.iter().map(|v| self.forward(v)).collect();
         self.leray(&mut start);
         let state = self.flatten(start);
         let tendency = |t: f64, s: &[f64]| {
-            let spectra: Vec<Spectrum> = (0..D).map(|c| (s[2 * c * len..(2 * c + 1) * len].to_vec(), s[(2 * c + 1) * len..(2 * c + 2) * len].to_vec())).collect();
-            let u: Vec<Vec<f64>> = spectra.iter().map(|sp| self.inverse(sp.clone())).collect();
+            let (u, grads) = self.fields_and_gradients(&self.unflatten(s));
             let f = force(t);
-            let mut rhs: Vec<Spectrum> = (0..D)
-                .map(|a| {
-                    let mut g = f[a].clone();
-                    for (b, ub) in u.iter().enumerate() {
-                        let d = self.inverse(self.derivative(&spectra[a], b));
-                        g.iter_mut().zip(ub.iter().zip(d)).for_each(|(gi, (x, y))| *gi -= x * y);
-                    }
-                    self.forward(&g)
-                })
-                .collect();
+            let mut rhs: Vec<Spectrum> = (0..D).map(|a| self.forward(&combine(&[(1.0, &f[a])], &[(-1.0, &u, &grads[a])]))).collect();
             self.leray(&mut rhs);
             self.flatten(rhs)
         };
-        let end = self.integrate(state, nu, (t0, t1), steps, tendency);
-        core::array::from_fn(|c| self.inverse((end[2 * c * len..(2 * c + 1) * len].to_vec(), end[(2 * c + 1) * len..(2 * c + 2) * len].to_vec())))
+        let end = self.integrate(state, &[nu; D], (t0, t1), steps, tendency);
+        let mut fields = self.unflatten(&end).into_iter().map(|s| self.inverse(s));
+        core::array::from_fn(|_| fields.next().expect("one spectrum per component"))
     }
 
     /// The advection–diffusion equation `∂ₜw + a·∇w = ν∆w + h` from `w` at `t0` to `t1`, with the
     /// velocity and source `fields(t) = (a, h)` given on the grid: Lemma 3.2's Galerkin scheme
-    /// `∂ₜw_J = ν∆w_J + P_J(−a·∇w_J + h)`, `P_J` the 2/3-rule cut, in `steps`
-    /// integrating-factor Runge–Kutta steps. `a` should be divergence-free and, with `h`, resolved
+    /// `∂ₜw_J = ν∆w_J + P_J(−a·∇w_J + h)`, `P_J` the 2/3-rule cut, in `steps` ETDRK4 steps. `a` should be divergence-free and, with `h`, resolved
     /// by the kept modes. Then the mean of `w` changes only by that of `h`. The PDE's maximum
     /// principle (`w ≥ 0` for non-negative data and source, a sup norm that never grows without a
     /// source, `‖w‖∞ ≤ A(t − t₀)` from zero under `|h| ≤ A`) holds to the truncation error.
@@ -376,20 +408,79 @@ impl<const D: usize> Torus<D> {
     /// # Panics
     /// If `steps` is zero.
     pub fn advection_diffusion(&self, w: &[f64], nu: f64, (t0, t1): (f64, f64), steps: usize, fields: impl Fn(f64) -> ([Vec<f64>; D], Vec<f64>)) -> Vec<f64> {
-        let len = self.size();
         let state = self.flatten(vec![self.forward(w)]);
         let tendency = |t: f64, s: &[f64]| {
-            let spectrum = (s[..len].to_vec(), s[len..].to_vec());
+            let spectra = self.unflatten(s);
+            let grad: [Vec<f64>; D] = core::array::from_fn(|a| self.inverse(self.derivative(&spectra[0], a)));
             let (a, h) = fields(t);
-            let mut g = h;
-            for (b, ab) in a.iter().enumerate() {
-                let d = self.inverse(self.derivative(&spectrum, b));
-                g.iter_mut().zip(ab.iter().zip(d)).for_each(|(gi, (x, y))| *gi -= x * y);
-            }
-            self.flatten(vec![self.forward(&g)])
+            self.flatten(vec![self.forward(&combine(&[(1.0, &h)], &[(-1.0, &a, &grad)]))])
         };
-        let end = self.integrate(state, nu, (t0, t1), steps, tendency);
-        self.inverse((end[..len].to_vec(), end[len..].to_vec()))
+        let end = self.integrate(state, &[nu], (t0, t1), steps, tendency);
+        self.inverse(self.unflatten(&end).remove(0))
+    }
+
+    /// Incompressible resistive MHD from `(u, b)` at `t0` to `t1`:
+    /// `∂ₜu + (u·∇)u = −∇P + (b·∇)b + ν∆u + f` and `∂ₜb + (u·∇)b = (b·∇)u + η∆b`, with
+    /// `∇·u = ∇·b = 0`, in `steps` ETDRK4 steps, `nu` the kinematic viscosity and `eta` the
+    /// magnetic diffusivity (m²/s; [`crate::mhd::magnetic_diffusivity`] gives it from the
+    /// conductivity). The field is in Alfvén units, `b = B/√(μ₀ρ)` (m/s, as
+    /// [`crate::mhd::alfven_speed`] gives its size), so that `(b·∇)b = J×B/ρ + ∇(b²/2)` and `P` is
+    /// the total pressure over the density. A uniform `B₀` is the mean of `b`. As in
+    /// [`navier_stokes`](Self::navier_stokes), the data are cut by the 2/3 rule and projected,
+    /// each tendency is dealiased and projected, and the result is the Galerkin truncation: its
+    /// properties hold to the truncation error. Alfvén waves travel at `|b|`, so an explicit step
+    /// needs `(|u| + |b|)·k_max·dt` below about 2.8. With `b = 0` it is exactly
+    /// [`navier_stokes`](Self::navier_stokes).
+    ///
+    /// # Panics
+    /// If `steps` is zero.
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    pub fn mhd(&self, u: &[Vec<f64>; D], b: &[Vec<f64>; D], nu: f64, eta: f64, (t0, t1): (f64, f64), steps: usize, force: impl Fn(f64) -> [Vec<f64>; D]) -> ([Vec<f64>; D], [Vec<f64>; D]) {
+        let mut start: Vec<Spectrum> = u.iter().chain(b).map(|v| self.forward(v)).collect();
+        self.leray(&mut start[..D]);
+        self.leray(&mut start[D..]);
+        let state = self.flatten(start);
+        let tendency = |t: f64, s: &[f64]| {
+            let (fields, grads) = self.fields_and_gradients(&self.unflatten(s));
+            let (u, b) = fields.split_at(D);
+            let f = force(t);
+            let mut rhs: Vec<Spectrum> = (0..D)
+                .map(|a| self.forward(&combine(&[(1.0, &f[a])], &[(-1.0, u, &grads[a]), (1.0, b, &grads[D + a])])))
+                .chain((0..D).map(|a| self.forward(&combine::<_, D>(&[], &[(1.0, b, &grads[a]), (-1.0, u, &grads[D + a])]))))
+                .collect();
+            self.leray(&mut rhs[..D]);
+            self.leray(&mut rhs[D..]);
+            self.flatten(rhs)
+        };
+        let diffusivity: Vec<f64> = [nu; D].into_iter().chain([eta; D]).collect();
+        let end = self.integrate(state, &diffusivity, (t0, t1), steps, tendency);
+        let mut fields = self.unflatten(&end).into_iter().map(|s| self.inverse(s));
+        let mut next = || fields.next().expect("one spectrum per component");
+        (core::array::from_fn(|_| next()), core::array::from_fn(|_| next()))
+    }
+
+    /// The kinematic induction equation `∂ₜb = ∇×(u×b) + η∆b = (b·∇)u − (u·∇)b + η∆b` from `b` at
+    /// `t0` to `t1`, for a divergence-free velocity `velocity(t)` given on the grid and resolved by
+    /// the kept modes: the field's growth or decay in a flow it does not act back on, the dynamo
+    /// problem. Steps and Galerkin truncation as in [`mhd`](Self::mhd).
+    ///
+    /// # Panics
+    /// If `steps` is zero.
+    pub fn induction(&self, b: &[Vec<f64>; D], eta: f64, (t0, t1): (f64, f64), steps: usize, velocity: impl Fn(f64) -> [Vec<f64>; D]) -> [Vec<f64>; D] {
+        let mut start: Vec<Spectrum> = b.iter().map(|v| self.forward(v)).collect();
+        self.leray(&mut start);
+        let state = self.flatten(start);
+        let tendency = |t: f64, s: &[f64]| {
+            let (b, grad_b) = self.fields_and_gradients(&self.unflatten(s));
+            let u = velocity(t);
+            let grad_u: Vec<[Vec<f64>; D]> = u.iter().map(|ua| self.gradient(ua)).collect();
+            let mut rhs: Vec<Spectrum> = (0..D).map(|a| self.forward(&combine::<_, D>(&[], &[(1.0, &b, &grad_u[a]), (-1.0, &u, &grad_b[a])]))).collect();
+            self.leray(&mut rhs);
+            self.flatten(rhs)
+        };
+        let end = self.integrate(state, &[eta; D], (t0, t1), steps, tendency);
+        let mut fields = self.unflatten(&end).into_iter().map(|s| self.inverse(s));
+        core::array::from_fn(|_| fields.next().expect("one spectrum per component"))
     }
 
     /// Grid point `i`'s index on each axis.
@@ -474,26 +565,115 @@ impl<const D: usize> Torus<D> {
         spectra.into_iter().flat_map(|(re, im)| re.into_iter().chain(im)).zip(mask.iter().cycle()).map(|(x, m)| x * m).collect()
     }
 
-    /// Fourth-order Runge–Kutta in the integrating factor `e^(ν|k|²t)` (Cox & Matthews' form, as
-    /// Kassam & Trefethen give it) for `ŝ′ = −ν|k|²ŝ + N(t, ŝ)` on flattened spectra.
-    fn integrate(&self, mut s: Vec<f64>, nu: f64, (t0, t1): (f64, f64), steps: usize, tendency: impl Fn(f64, &[f64]) -> Vec<f64>) -> Vec<f64> {
+    /// Spectra laid end to end by [`flatten`](Self::flatten), apart again.
+    fn unflatten(&self, s: &[f64]) -> Vec<Spectrum> {
+        s.chunks(2 * self.size()).map(|c| (c[..self.size()].to_vec(), c[self.size()..].to_vec())).collect()
+    }
+
+    /// The fields of `spectra` on the grid, and each one's gradient.
+    fn fields_and_gradients(&self, spectra: &[Spectrum]) -> (Vec<Vec<f64>>, Vec<[Vec<f64>; D]>) {
+        let fields = spectra.iter().map(|s| self.inverse(s.clone())).collect();
+        let grads = spectra.iter().map(|s| core::array::from_fn(|a| self.inverse(self.derivative(s, a)))).collect();
+        (fields, grads)
+    }
+
+    /// The spectrum of `v`, a field on this grid, on the grid `to` of the same period: every mode
+    /// with `2|m| < n` on both grids, the Nyquist modes dropped. Up, it is the trigonometric
+    /// interpolant; down, the cut to the coarse grid's modes.
+    fn resample(&self, (re, im): &Spectrum, to: &Torus<D>) -> Spectrum {
+        let scale = to.size() as f64 / self.size() as f64;
+        let mut out = (vec![0.0; to.size()], vec![0.0; to.size()]);
+        'mode: for i in 0..self.size() {
+            let (index, mut j) = (self.index(i), 0);
+            for (a, (&k, &n)) in index.iter().zip(&self.n).enumerate() {
+                let m = if 2 * k < n { k as isize } else { k as isize - n as isize };
+                if 2 * m.unsigned_abs() >= n.min(to.n[a]) {
+                    continue 'mode;
+                }
+                j = j * to.n[a] + m.rem_euclid(to.n[a] as isize) as usize;
+            }
+            (out.0[j], out.1[j]) = (scale * re[i], scale * im[i]);
+        }
+        out
+    }
+
+    /// The mean-zero solution of `∆φ = v`.
+    fn inverse_laplacian(&self, v: &[f64]) -> Vec<f64> {
+        let (mut re, mut im) = self.forward(v);
+        for i in 0..re.len() {
+            let k2 = self.k2(i);
+            let scale = if k2 > 0.0 { -1.0 / k2 } else { 0.0 };
+            (re[i], im[i]) = (scale * re[i], scale * im[i]);
+        }
+        self.inverse((re, im))
+    }
+
+    /// Cox & Matthews' fourth-order exponential time differencing (ETDRK4) for
+    /// `ŝ′ = −D|k|²ŝ + N(t, ŝ)` on flattened spectra, with one diffusivity `D` per spectrum. The
+    /// linear part is exact, and so is a constant `N`, so a steadily forced state stays put.
+    fn integrate(&self, mut s: Vec<f64>, diffusivity: &[f64], (t0, t1): (f64, f64), steps: usize, tendency: impl Fn(f64, &[f64]) -> Vec<f64>) -> Vec<f64> {
         assert!(steps > 0, "at least one step");
         let (len, dt) = (self.size(), (t1 - t0) / steps as f64);
-        let half: Vec<f64> = (0..len).map(|i| (-nu * self.k2(i) * dt / 2.0).exp()).collect();
-        let e = |i: usize| half[i % len];
+        assert_eq!(s.len(), 2 * len * diffusivity.len(), "one diffusivity per spectrum");
+        // Per entry: e^z, e^(z/2), (dt/2)φ₁(z/2) and dt·(f₁, f₂, f₃), z = −D|k|²dt.
+        let w: Vec<[f64; 6]> = (0..s.len())
+            .map(|i| {
+                let z = -diffusivity[i / (2 * len)] * self.k2(i % len) * dt;
+                let ([f1, f2, f3, _], half) = (etd_coefficients(z), etd_coefficients(z / 2.0)[3]);
+                [z.exp(), (z / 2.0).exp(), dt / 2.0 * half, dt * f1, dt * f2, dt * f3]
+            })
+            .collect();
         for step in 0..steps {
             let t = t0 + step as f64 * dt;
-            let k1 = tendency(t, &s);
-            let s2: Vec<f64> = (0..s.len()).map(|i| e(i) * (s[i] + 0.5 * dt * k1[i])).collect();
-            let k2 = tendency(t + 0.5 * dt, &s2);
-            let s3: Vec<f64> = (0..s.len()).map(|i| e(i) * s[i] + 0.5 * dt * k2[i]).collect();
-            let k3 = tendency(t + 0.5 * dt, &s3);
-            let s4: Vec<f64> = (0..s.len()).map(|i| e(i) * (e(i) * s[i] + dt * k3[i])).collect();
-            let k4 = tendency(t + dt, &s4);
-            s = (0..s.len()).map(|i| e(i) * e(i) * (s[i] + dt / 6.0 * k1[i]) + dt / 6.0 * (2.0 * e(i) * (k2[i] + k3[i]) + k4[i])).collect();
+            let n1 = tendency(t, &s);
+            let a: Vec<f64> = (0..s.len()).map(|i| w[i][1] * s[i] + w[i][2] * n1[i]).collect();
+            let n2 = tendency(t + 0.5 * dt, &a);
+            let b: Vec<f64> = (0..s.len()).map(|i| w[i][1] * s[i] + w[i][2] * n2[i]).collect();
+            let n3 = tendency(t + 0.5 * dt, &b);
+            let c: Vec<f64> = (0..s.len()).map(|i| w[i][1] * a[i] + w[i][2] * (2.0 * n3[i] - n1[i])).collect();
+            let n4 = tendency(t + dt, &c);
+            s = (0..s.len()).map(|i| w[i][0] * s[i] + w[i][3] * n1[i] + 2.0 * w[i][4] * (n2[i] + n3[i]) + w[i][5] * n4[i]).collect();
         }
         s
     }
+}
+
+/// `Σ cᵢvᵢ + Σ cⱼ(wⱼ·gⱼ)` pointwise on the grid: weighted fields plus weighted transport terms,
+/// each `w·g = Σₐ wₐgₐ` for a vector field `w` and the gradient `g` of one component.
+fn combine<V: AsRef<[f64]>, const D: usize>(fields: &[(f64, &Vec<f64>)], transports: &[Transport<'_, V, D>]) -> Vec<f64> {
+    let len = fields.first().map(|f| f.1.len()).unwrap_or_else(|| transports[0].2[0].len());
+    (0..len)
+        .map(|i| {
+            let plain: f64 = fields.iter().map(|(c, v)| c * v[i]).sum();
+            plain + transports.iter().map(|(c, w, g)| c * (0..D).map(|a| w[a].as_ref()[i] * g[a][i]).sum::<f64>()).sum::<f64>()
+        })
+        .collect()
+}
+
+/// ETDRK4's weights `[f₁, f₂, f₃, φ₁]` at `z ≤ 0`: `f₁ = (−4 − z + e^z(4 − 3z + z²))/z³`,
+/// `f₂ = (2 + z + e^z(z − 2))/z³`, `f₃ = (−4 − 3z − z² + e^z(4 − z))/z³` and `φ₁ = (e^z − 1)/z`.
+/// The closed forms cancel catastrophically near 0 (Kassam & Trefethen's point), so below
+/// `|z| = 2` they come from their series `Σ zʲ(j + 1)²/(j + 3)!`, `Σ zʲ(j + 1)/(j + 3)!`,
+/// `Σ zʲ(1 − j)/(j + 3)!` and `Σ zʲ/(j + 1)!`. Both branches hold to 6×10⁻¹⁶ of `φ₁` against
+/// 60-digit arithmetic for `−10⁴ ≤ z ≤ −10⁻⁸`.
+fn etd_coefficients(z: f64) -> [f64; 4] {
+    if z.abs() >= 2.0 {
+        let e = z.exp();
+        let z3 = z * z * z;
+        return [(-4.0 - z + e * (4.0 - 3.0 * z + z * z)) / z3, (2.0 + z + e * (z - 2.0)) / z3, (-4.0 - 3.0 * z - z * z + e * (4.0 - z)) / z3, z.exp_m1() / z];
+    }
+    let (mut out, mut power, mut fact3, mut fact1) = ([0.0; 4], 1.0, 6.0, 1.0);
+    for j in 0..40 {
+        let jf = j as f64;
+        out[0] += power * (jf + 1.0).powi(2) / fact3;
+        out[1] += power * (jf + 1.0) / fact3;
+        out[2] += power * (1.0 - jf) / fact3;
+        out[3] += power / fact1;
+        power *= z;
+        fact3 *= jf + 4.0;
+        fact1 *= jf + 2.0;
+    }
+    out
 }
 
 #[cfg(test)]
@@ -651,7 +831,7 @@ mod tests {
     fn taylor_green_decay() {
         // u = (sin x cos y, −cos x sin y) on the 2π torus (period 2π, not the paper's 1) decays
         // as e^(−2νt): its nonlinear term is a gradient, which the projection removes, and the
-        // integrating factor carries diffusion exactly. To 4×10⁻¹⁶ at 16², ν = 0.1, t = 2.
+        // exponential step carries diffusion exactly. To 4×10⁻¹⁶ at 16², ν = 0.1, t = 2.
         let torus = plane(16);
         let tg = |t: f64| {
             let decay = (-0.2 * t).exp();
@@ -679,14 +859,14 @@ mod tests {
         let torus = Torus { n: [8, 8, 8], length: TAU };
         let (u0, nu) = (abc(&torus), 0.2);
         let force = u0.clone().map(|c| c.iter().map(|x| nu * x).collect::<Vec<_>>());
-        // The integrating factor is fourth order, not exact, for the forced linear part, so the
-        // flow drifts by 2.7×10⁻⁹ at 20 steps and 16 times less at 40.
-        let drift = |steps| {
+        // ETDRK4 integrates a constant forcing exactly, so the flow stays put to round-off even
+        // in 5 steps of 1. (Fourth-order Runge–Kutta in the integrating factor drifted by
+        // 2.7×10⁻⁹ in 20 steps.)
+        for steps in [5, 20] {
             let steady = torus.navier_stokes(&u0, nu, (0.0, 5.0), steps, |_| force.clone());
-            (0..3).map(|a| max_diff(&steady[a], &u0[a])).fold(0.0, f64::max)
-        };
-        let (coarse, fine) = (drift(20), drift(40));
-        assert!(coarse < 3e-9 && (14.0..18.0).contains(&(coarse / fine)), "{coarse:e} {fine:e}");
+            let drift = (0..3).map(|a| max_diff(&steady[a], &u0[a])).fold(0.0, f64::max);
+            assert!(drift < 2e-15, "{steps} steps: {drift:e}");
+        }
         let free = torus.navier_stokes(&u0, nu, (0.0, 5.0), 20, |_| core::array::from_fn(|_| vec![0.0; 512]));
         assert!((0..3).all(|a| max_diff(&free[a], &u0[a].iter().map(|x| x * (-1.0f64).exp()).collect::<Vec<_>>()) < 1e-13));
         // Its pressure is −|u|²/2 less its mean.
@@ -765,13 +945,17 @@ mod tests {
         let (t2, nu) = (plane(16), 0.3);
         let t3 = Torus { n: [16, 16, 2], length: TAU };
         let up = |v: &[f64]| lift(v, 2);
-        // The scalar solver from w = 0 reproduces the manufactured w to 3×10⁻¹⁰ (time steps 0.02).
-        let w = t2.advection_diffusion(&vec![0.0; 256], nu, (0.0, 1.0), 50, |t| {
-            let (a, _, _, _, h) = manufactured(&t2, t, nu);
-            (a, h)
-        });
+        // The scalar solver from w = 0 reproduces the manufactured w to 4.1×10⁻¹⁰ in steps of
+        // 0.02, and 16 times better in steps of 0.01: the error is the stepper's fourth order.
+        let scalar = |steps| {
+            t2.advection_diffusion(&vec![0.0; 256], nu, (0.0, 1.0), steps, |t| {
+                let (a, _, _, _, h) = manufactured(&t2, t, nu);
+                (a, h)
+            })
+        };
         let (a, dadt, w_exact, dwdt, h) = manufactured(&t2, 1.0, nu);
-        assert!(max_diff(&w, &w_exact) < 4e-10, "{:e}", max_diff(&w, &w_exact));
+        let (coarse, fine) = (max_diff(&scalar(50), &w_exact), max_diff(&scalar(100), &w_exact));
+        assert!(coarse < 5e-10 && (14.0..18.0).contains(&(coarse / fine)), "{coarse:e} {fine:e}");
         // The full 3-D residual of U = (a, w), p = 0, under f = (F, h) is round-off, and so is the
         // pressure that the force and flow imply.
         let f = |a: &[Vec<f64>; 2], dadt: &[Vec<f64>; 2], h: &[f64]| {
@@ -783,12 +967,18 @@ mod tests {
         let (r, div) = t3.residual(&u3, &[up(&dadt[0]), up(&dadt[1]), up(&dwdt)], &vec![0.0; 512], &force, nu);
         assert!(r.iter().all(|c| max_abs(c) < 1e-13) && max_abs(&div) < 1e-14);
         assert!(max_abs(&t3.pressure(&u3, &force)) < 1e-14);
-        // And the 3-D solver itself, from rest, follows (a, w), to the same 3×10⁻¹⁰, with no pressure gradient to undo.
-        let u = t3.navier_stokes(&core::array::from_fn(|_| vec![0.0; 512]), nu, (0.0, 1.0), 50, |t| {
-            let (a, dadt, _, _, h) = manufactured(&t2, t, nu);
-            f(&a, &dadt, &h)
-        });
-        assert!((0..3).all(|c| max_diff(&u[c], &u3[c]) < 4e-10), "{:e}", max_diff(&u[2], &u3[2]));
+        // And the 3-D solver itself, from rest, follows (a, w) with no pressure gradient to undo:
+        // to 8.5×10⁻¹⁰ in steps of 0.02 (its w is carried by its own a, which has its own step
+        // error), and again 16 times better in steps of 0.01.
+        let full = |steps| {
+            let u = t3.navier_stokes(&core::array::from_fn(|_| vec![0.0; 512]), nu, (0.0, 1.0), steps, |t| {
+                let (a, dadt, _, _, h) = manufactured(&t2, t, nu);
+                f(&a, &dadt, &h)
+            });
+            (0..3).map(|c| max_diff(&u[c], &u3[c])).fold(0.0, f64::max)
+        };
+        let (coarse, fine) = (full(50), full(100));
+        assert!(coarse < 1e-9 && (14.0..18.0).contains(&(coarse / fine)), "{coarse:e} {fine:e}");
     }
 
     #[test]
@@ -867,5 +1057,364 @@ mod tests {
         let exact = solve(32, 80);
         let ratio = max_diff(&coarse, &exact) / max_diff(&fine, &exact);
         assert!((10.0..25.0).contains(&ratio), "{ratio}");
+    }
+    #[test]
+    fn etd_weights_against_60_digit_values() {
+        // [f₁, f₂, f₃, φ₁] from the closed forms in 60-digit arithmetic, on both sides of the
+        // series' hand-over at |z| = 2; at 0 they are 1/6 and 1.
+        assert_eq!(etd_coefficients(0.0), [1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0, 1.0]);
+        for (z, exact) in [
+            (-1e-3, [0.16650007497778274, 0.16658335832777876, 0.16666665833611052, 0.9995001666250083]),
+            (-1.0, [0.056964470628461425, 0.10363832351432696, 0.16060279414278839, 0.6321205588285577]),
+            (-1.999, [0.013189593548782956, 0.06769490085782291, 0.14851170036357098, 0.4324808973436456]),
+            (-2.0, [0.01316325433592779, 0.06766764161830635, 0.14849853757254047, 0.43233235838169365]),
+            (-30.0, [-0.0009629629629664079, 0.0010370370370371479, 0.03014814814814803, 0.03333333333333022]),
+        ] {
+            let got = etd_coefficients(z);
+            assert!((0..4).all(|k| (got[k] - exact[k]).abs() < 1e-15 * exact[3]), "{z}: {got:?}");
+            // A constant forcing is integrated exactly: f₁ + 4f₂ + f₃ = φ₁.
+            assert!((got[0] + 4.0 * got[1] + got[2] - got[3]).abs() < 2e-16 * exact[3] * 4.0);
+        }
+    }
+
+    #[test]
+    fn padded_advection_is_alias_free() {
+        // Fields filling the 8² grid's band (modes up to 3): u·∇v has modes up to 6, which a
+        // product on the grid folds back onto kept modes. The padded product equals the true
+        // product's 8² modes, here from a 32² grid that holds it exactly.
+        let (coarse, fine) = (plane(8), plane(32));
+        let u = |t: &Torus<2>| [t.sample(|[x, y]| (3.0 * y).sin() + (x + 2.0 * y).cos()), t.sample(|[x, y]| (3.0 * x).cos() - (2.0 * x - y).sin())];
+        let v = |t: &Torus<2>| t.sample(|[x, y]| (3.0 * x + y).sin() + (2.0 * y).cos());
+        let (uf, gf) = (u(&fine), fine.gradient(&v(&fine)));
+        let exact_fine: Vec<f64> = (0..fine.size()).map(|i| uf[0][i] * gf[0][i] + uf[1][i] * gf[1][i]).collect();
+        let exact = coarse.inverse(fine.resample(&fine.forward(&exact_fine), &coarse));
+        let (uc, vc) = (u(&coarse), v(&coarse));
+        assert!(max_diff(&coarse.advect(&uc, &vc), &exact) < 1e-14);
+        let g = coarse.gradient(&vc);
+        let naive: Vec<f64> = (0..coarse.size()).map(|i| uc[0][i] * g[0][i] + uc[1][i] * g[1][i]).collect();
+        assert!(max_diff(&naive, &exact) > 1.0, "the grid product aliases");
+    }
+
+    #[test]
+    fn gradient_sup_bounds_the_maximum_between_points() {
+        // u = (0, sin(3x + 0.3)) on 8²: ‖∇u‖ = 3|cos(3x + 0.3)| peaks at 3 between the points,
+        // where the grid sees only 3 cos 0.3 = 2.866. The bound lies in [3, 3·8/7].
+        let torus = plane(8);
+        let u = [vec![0.0; 64], torus.sample(|[x, _]| (3.0 * x + 0.3).sin())];
+        let on_grid = torus.gradient(&u[1])[0].iter().fold(0f64, |m, x| m.max(x.abs()));
+        let bound = torus.gradient_sup(&u);
+        assert!((on_grid - 3.0 * 0.3f64.cos()).abs() < 1e-14 && (3.0..=3.0 * 8.0 / 7.0).contains(&bound), "{on_grid} {bound}");
+        // And in three dimensions, u = (sin(2z + 0.4), 0, 0) on 8³: the bound is in [2, 2·8/7].
+        let t3 = Torus { n: [8, 8, 8], length: TAU };
+        let bound = t3.gradient_sup(&[t3.sample(|[_, _, z]| (2.0 * z + 0.4).sin()), vec![0.0; 512], vec![0.0; 512]]);
+        assert!((2.0..=2.0 * 8.0 / 7.0).contains(&bound), "{bound}");
+    }
+
+    /// `∇⊥ψ = (∂ᵧψ, −∂ₓψ)` on a 2-D grid: a divergence-free field from its stream function.
+    fn perp(torus: &Torus<2>, psi: &[f64]) -> [Vec<f64>; 2] {
+        let [gx, gy] = torus.gradient(psi);
+        [gy, gx.iter().map(|x| -x).collect()]
+    }
+
+    fn zero_force<const D: usize>(torus: &Torus<D>) -> impl Fn(f64) -> [Vec<f64>; D] + '_ {
+        |_| core::array::from_fn(|_| vec![0.0; torus.size()])
+    }
+
+    #[test]
+    fn mhd_without_a_field_is_navier_stokes() {
+        let torus = plane(16);
+        let u = perp(&torus, &torus.sample(|[x, y]| (x + 2.0 * y).sin() + 0.5 * (3.0 * x).cos() * y.sin()));
+        let zero = [vec![0.0; 256], vec![0.0; 256]];
+        let (um, bm) = torus.mhd(&u, &zero, 0.05, 0.1, (0.0, 1.0), 20, zero_force(&torus));
+        let un = torus.navier_stokes(&u, 0.05, (0.0, 1.0), 20, zero_force(&torus));
+        assert!((0..2).all(|a| max_diff(&um[a], &un[a]) == 0.0 && max_abs(&bm[a]) == 0.0));
+    }
+
+    #[test]
+    fn alfven_waves_of_any_amplitude() {
+        // About a uniform B₀, u = −b′ with ν = η is an exact nonlinear solution: the Elsasser
+        // field z⁺ = u + b = B₀ is uniform, so the nonlinear terms cancel, and z⁻ = u − b is
+        // carried along B₀ undistorted, each mode decaying as e^(−νk²t) (Walén). Here b′ is of
+        // order 4 against |B₀| = 1.1, far from linear.
+        let (torus, nu, b0) = (plane(16), 0.05, [1.0, 0.5]);
+        let psi = |t: f64| {
+            move |[x, y]: [f64; 2]| {
+                let (x, y) = (x - b0[0] * t, y - b0[1] * t);
+                0.8 * (-5.0 * nu * t).exp() * (x + 2.0 * y).sin() + 0.6 * (-10.0 * nu * t).exp() * (3.0 * x - y).cos()
+            }
+        };
+        let wave = |t: f64| perp(&torus, &torus.sample(psi(t)));
+        let b = |t: f64| wave(t).map(|c| c.iter().map(|x| x + 0.0).collect::<Vec<_>>());
+        let with_mean = |w: [Vec<f64>; 2]| [w[0].iter().map(|x| x + b0[0]).collect::<Vec<_>>(), w[1].iter().map(|x| x + b0[1]).collect()];
+        let u0 = wave(0.0).map(|c| c.iter().map(|x| -x).collect::<Vec<_>>());
+        let run = |steps| torus.mhd(&u0, &with_mean(b(0.0)), nu, nu, (0.0, 1.0), steps, zero_force(&torus));
+        let exact = with_mean(b(1.0));
+        let error = |steps| {
+            let (u, b) = run(steps);
+            // z⁺ = B₀ to round-off at every step count: the cancellation is exact.
+            assert!((0..2).all(|a| u[a].iter().zip(&b[a]).all(|(x, y)| (x + y - b0[a]).abs() < 1e-13)));
+            (0..2).map(|a| max_diff(&b[a], &exact[a])).fold(0.0, f64::max)
+        };
+        let (coarse, fine) = (error(50), error(100));
+        assert!(coarse < 1e-6 && (14.0..18.0).contains(&(coarse / fine)), "{coarse:e} {fine:e}");
+    }
+
+    #[test]
+    fn free_magnetic_decay() {
+        // With u = 0 and b = ∇⊥ψ, ψ a single-|k| shell (k² = 2), the Lorentz force is a gradient:
+        // the flow stays at rest and b decays as e^(−ηk²t), to round-off.
+        let (torus, eta) = (plane(16), 0.1);
+        let psi = torus.sample(|[x, y]| x.sin() * y.sin() + (x + y).cos());
+        let b0 = perp(&torus, &psi);
+        let zero = [vec![0.0; 256], vec![0.0; 256]];
+        let (u, b) = torus.mhd(&zero, &b0, 0.05, eta, (0.0, 2.0), 10, zero_force(&torus));
+        let decay = (-2.0 * eta * 2.0).exp();
+        assert!((0..2).all(|a| max_abs(&u[a]) < 1e-14 && max_diff(&b[a], &b0[a].iter().map(|x| x * decay).collect::<Vec<_>>()) < 1e-14));
+    }
+
+    #[test]
+    fn beltrami_pair_decays_in_place() {
+        // u = αA and b = βA with A the ABC flow (∇×A = A): the Lorentz and inertial forces are
+        // both gradients and ∇×(u×b) = 0, so with ν = η each decays as e^(−νt), to round-off.
+        let torus = Torus { n: [8, 8, 8], length: TAU };
+        let (a, nu) = (abc(&torus), 0.1);
+        let scaled = |c: f64| a.clone().map(|v| v.iter().map(|x| c * x).collect::<Vec<_>>());
+        let (u, b) = torus.mhd(&scaled(0.5), &scaled(0.8), nu, nu, (0.0, 3.0), 12, zero_force(&torus));
+        let decay = (-nu * 3.0f64).exp();
+        let (ue, be) = (scaled(0.5 * decay), scaled(0.8 * decay));
+        assert!((0..3).all(|c| max_diff(&u[c], &ue[c]) < 1e-14 && max_diff(&b[c], &be[c]) < 1e-14));
+    }
+
+    /// A nonlinear 3-D pair `(u, b)` on 8³ with modes up to 2, both divergence-free.
+    fn turbulent_pair(torus: &Torus<3>) -> ([Vec<f64>; 3], [Vec<f64>; 3]) {
+        let u = torus.project(&[torus.sample(|[x, y, z]| (y + 2.0 * z).sin() + (2.0 * x).cos()), torus.sample(|[x, y, z]| (x - z).cos() + 0.5 * (2.0 * y).sin()), torus.sample(|[x, y, z]| (x + y).sin() * z.cos())]);
+        let b = torus.project(&[torus.sample(|[x, y, z]| 0.7 * (x + z).cos() + 0.3 * (2.0 * y).sin()), torus.sample(|[x, _, z]| (2.0 * z - x).sin()), torus.sample(|[x, y, _]| 0.6 * (x - 2.0 * y).cos() + 0.2)]);
+        (u, b)
+    }
+
+    #[test]
+    fn mhd_energy_identity_and_solenoidal_field() {
+        // ½ d(‖u‖² + ‖b‖²)/dt = −ν‖∇u‖² − η‖∇b‖² + ⟨f, u⟩ (the Lorentz work cancels the
+        // induction's), by central differences (h = 10⁻⁴) against the right side, to 10⁻⁸. ∇·b
+        // stays at round-off.
+        let torus = Torus { n: [8, 8, 8], length: TAU };
+        let (u0, b0) = turbulent_pair(&torus);
+        let f = [torus.sample(|[_, y, _]| (2.0 * y).sin()), torus.sample(|[x, _, z]| (x + z).cos()), torus.sample(|[x, _, _]| x.sin())];
+        let (nu, eta, h) = (0.05, 0.08, 1e-4);
+        let run = |(u, b): &([Vec<f64>; 3], [Vec<f64>; 3]), t: (f64, f64), steps| torus.mhd(u, b, nu, eta, t, steps, |_| f.clone());
+        let before = run(&(u0, b0), (0.0, 0.5 - h), 50);
+        let now = run(&before, (0.5 - h, 0.5), 1);
+        let after = run(&now, (0.5, 0.5 + h), 1);
+        let energy = |(u, b): &([Vec<f64>; 3], [Vec<f64>; 3])| torus.inner(u, u) + torus.inner(b, b);
+        let rate = (energy(&after) - energy(&before)) / (4.0 * h);
+        let budget = -nu * torus.gradient_norm2(&now.0) - eta * torus.gradient_norm2(&now.1) + torus.inner(&f, &now.0);
+        assert!((rate - budget).abs() < 1e-8 * budget.abs(), "{rate} {budget}");
+        assert!(max_abs(&torus.divergence(&now.1)) < 1e-13);
+        // The field does work on the flow: the Lorentz term ⟨u, (b·∇)b⟩ is not small.
+        let lorentz: [Vec<f64>; 3] = core::array::from_fn(|a| torus.advect(&now.1, &now.1[a]));
+        assert!(torus.inner(&now.0, &lorentz).abs() > 0.05);
+    }
+
+    /// `∇×v` on T³.
+    fn curl(torus: &Torus<3>, v: &[Vec<f64>; 3]) -> [Vec<f64>; 3] {
+        let g: Vec<[Vec<f64>; 3]> = v.iter().map(|c| torus.gradient(c)).collect();
+        core::array::from_fn(|a| {
+            let (j, k) = ((a + 1) % 3, (a + 2) % 3);
+            g[k][j].iter().zip(&g[j][k]).map(|(x, y)| x - y).collect()
+        })
+    }
+
+    #[test]
+    fn ideal_invariants() {
+        // With ν = η = 0 the Galerkin system conserves the energy ½⟨u² + b²⟩, the cross-helicity
+        // ⟨u·b⟩ and the magnetic helicity ⟨a·b⟩ (∇×a = b, ∇·a = 0) in 3-D, and ⟨A²⟩
+        // (b = ∇⊥A) in 2-D, exactly; the steps keep them to the stepper's order or better (the
+        // drift falls about 32-fold per halving here, fifth order).
+        let t3 = Torus { n: [8, 8, 8], length: TAU };
+        let (u0, b) = turbulent_pair(&t3);
+        // A Beltrami part gives b magnetic helicity, and a part along u cross-helicity. The pair's
+        // uniform part is removed: with a mean field B₀, ⟨a·b⟩ is not conserved on the torus
+        // (B₀ has no periodic potential), and it drifts by 2% here.
+        let a = abc(&t3);
+        let b0: [Vec<f64>; 3] = core::array::from_fn(|c| {
+            let mean = t3.mean(&b[c]);
+            (0..512).map(|i| b[c][i] - mean + 0.4 * a[c][i] + 0.5 * u0[c][i]).collect()
+        });
+        let helicity = |b: &[Vec<f64>; 3]| {
+            let a: [Vec<f64>; 3] = curl(&t3, b).map(|c| t3.inverse_laplacian(&c).iter().map(|x| -x).collect());
+            t3.inner(&a, b)
+        };
+        let invariants3 = |(u, b): &([Vec<f64>; 3], [Vec<f64>; 3])| [t3.inner(u, u) + t3.inner(b, b), t3.inner(u, b), helicity(b)];
+        let start = invariants3(&(u0.clone(), b0.clone()));
+        let drift3 = |steps| {
+            let end = invariants3(&t3.mhd(&u0, &b0, 0.0, 0.0, (0.0, 1.0), steps, zero_force(&t3)));
+            (0..3).map(|k| ((end[k] - start[k]) / start[k]).abs()).fold(0.0, f64::max)
+        };
+        let (coarse, fine) = (drift3(20), drift3(40));
+        assert!(coarse < 1e-5 && coarse / fine > 14.0 && start.iter().all(|x| x.abs() > 0.05), "{coarse:e} {fine:e} {start:?}");
+        let t2 = plane(16);
+        let (u, b) = (perp(&t2, &t2.sample(|[x, y]| (x + 2.0 * y).sin() + (3.0 * x).cos())), perp(&t2, &t2.sample(|[x, y]| 0.8 * (2.0 * x - y).cos() + (3.0 * y).sin() + 0.5 * (x + 2.0 * y).sin())));
+        let flux = |b: &[Vec<f64>; 2]| {
+            let [gx, gy] = [t2.gradient(&b[0]), t2.gradient(&b[1])];
+            let j: Vec<f64> = gy[0].iter().zip(&gx[1]).map(|(dbydx, dbxdy)| dbydx - dbxdy).collect();
+            t2.inverse_laplacian(&j.iter().map(|x| -x).collect::<Vec<_>>())
+        };
+        let a2 = |b: &[Vec<f64>; 2]| t2.mean(&flux(b).iter().map(|x| x * x).collect::<Vec<_>>());
+        // The flux function is right: ∇⊥A gives back b.
+        assert!((0..2).all(|c| max_diff(&perp(&t2, &flux(&b))[c], &b[c]) < 1e-14));
+        let drift2 = |steps| {
+            let (ue, be) = t2.mhd(&u, &b, 0.0, 0.0, (0.0, 1.0), steps, zero_force(&t2));
+            [((t2.inner(&ue, &ue) + t2.inner(&be, &be)) / (t2.inner(&u, &u) + t2.inner(&b, &b)) - 1.0).abs(), (t2.inner(&ue, &be) / t2.inner(&u, &b) - 1.0).abs(), (a2(&be) / a2(&b) - 1.0).abs()]
+                .into_iter()
+                .fold(0.0, f64::max)
+        };
+        let (coarse, fine) = (drift2(80), drift2(160));
+        assert!(coarse < 1e-5 && coarse / fine > 14.0, "{coarse:e} {fine:e}");
+    }
+
+    #[test]
+    fn induction_matches_mhd_for_a_weak_field() {
+        // A field too weak to act back: in a steadily forced ABC flow (f = νu holds it in place,
+        // exactly, as above) the kinematic solver and the full one agree to the Lorentz term's
+        // order, b², here 10⁻⁸ against b = 10⁻⁴. ∇·b stays at round-off.
+        let torus = Torus { n: [8, 8, 8], length: TAU };
+        let (u, nu, eta) = (abc(&torus), 0.2, 0.25);
+        let (_, b0) = turbulent_pair(&torus);
+        let b0 = b0.map(|c| c.iter().map(|x| 1e-4 * x).collect::<Vec<_>>());
+        let force = u.clone().map(|c| c.iter().map(|x| nu * x).collect::<Vec<_>>());
+        let (_, b_full) = torus.mhd(&u, &b0, nu, eta, (0.0, 2.0), 20, |_| force.clone());
+        let b_kin = torus.induction(&b0, eta, (0.0, 2.0), 20, |_| u.clone());
+        assert!((0..3).all(|c| max_diff(&b_full[c], &b_kin[c]) < 1e-10 && max_abs(&b_kin[c]) > 1e-5));
+        assert!(max_abs(&torus.divergence(&b_kin)) < 1e-17);
+    }
+
+    /// The incompressible Orszag–Tang vortex on the 2π torus, `u = (−sin y, sin x)`,
+    /// `b = (−sin y, sin 2x)`, at `ν = η = nu`, in steps of `dt` to `t_end`, sampled from
+    /// `from` on and at whole times: each sample's time, energy `½⟨u² + b²⟩`, dissipation
+    /// `ν⟨|∇u|²⟩ + η⟨|∇b|²⟩` and grid maximum of `|j|`.
+    fn orszag_tang(n: usize, nu: f64, dt: f64, (from, t_end): (f64, f64)) -> Vec<[f64; 4]> {
+        let torus = plane(n);
+        let (mut u, mut b) = ([torus.sample(|[_, y]| -y.sin()), torus.sample(|[x, _]| x.sin())], [torus.sample(|[_, y]| -y.sin()), torus.sample(|[x, _]| (2.0 * x).sin())]);
+        let steps = (t_end / dt).round() as usize;
+        let mut out = Vec::new();
+        for k in 0..=steps {
+            if k > 0 {
+                (u, b) = torus.mhd(&u, &b, nu, nu, ((k - 1) as f64 * dt, k as f64 * dt), 1, zero_force(&torus));
+            }
+            let t = k as f64 * dt;
+            if t < from - 1e-9 && (t - t.round()).abs() > 1e-9 {
+                continue;
+            }
+            let j: Vec<f64> = torus.gradient(&b[1])[0].iter().zip(&torus.gradient(&b[0])[1]).map(|(x, y)| x - y).collect();
+            let energy = 0.5 * (torus.inner(&u, &u) + torus.inner(&b, &b));
+            out.push([t, energy, nu * (torus.gradient_norm2(&u) + torus.gradient_norm2(&b)), max_abs(&j)]);
+        }
+        out
+    }
+
+    /// The largest value in column `c` of samples `dt` apart (time in column 0), and when, by a
+    /// parabola through the greatest sample and its neighbours.
+    fn peak(samples: &[[f64; 4]], c: usize, dt: f64) -> (f64, f64) {
+        let k = (1..samples.len() - 1).max_by(|&i, &j| samples[i][c].total_cmp(&samples[j][c])).expect("interior samples");
+        let (a, m, d) = (samples[k - 1][c], samples[k][c], samples[k + 1][c]);
+        let s = 0.5 * (a - d) / (a - 2.0 * m + d);
+        (m - 0.25 * (a - d) * s, samples[k][0] + s * dt)
+    }
+
+    /// The sample at time `t`.
+    fn at(samples: &[[f64; 4]], t: f64) -> [f64; 4] {
+        *samples.iter().find(|s| (s[0] - t).abs() < 1e-9).expect("a sample at that time")
+    }
+
+    #[test]
+    fn orszag_tang_vortex() {
+        // Against an independent pseudo-spectral solver at 128² and 256² (numpy;
+        // research/topics/navier-stokes-computation/notes/mhd_benchmarks.md, §1). At ν = η = 0.05
+        // on 64²: the dissipation peaks at 0.22001 at t = 1.1494, E(2) = 0.599845, and max|j|
+        // peaks at 7.5144 at t = 2.0226 (the grid maximum, 7.5137 on 64²).
+        let dt = 0.01;
+        let run = orszag_tang(64, 0.05, dt, (0.0, 2.2));
+        assert!((run[0][1] - 1.0).abs() < 1e-15 && (at(&run, 2.0)[1] - 0.599845).abs() < 1e-6, "E(2) = {}", at(&run, 2.0)[1]);
+        let (d, td) = peak(&run, 2, dt);
+        assert!((d - 0.22001).abs() < 1e-5 && (td - 1.1494).abs() < 2e-3, "{d} at {td}");
+        let (j, tj) = peak(&run, 3, dt);
+        assert!((j - 7.5144).abs() < 2e-3 && (tj - 2.0226).abs() < 5e-3, "{j} at {tj}");
+    }
+
+    #[test]
+    fn orszag_tang_against_rosenberg_pouquet_mininni_fig_8() {
+        // Rosenberg, Pouquet & Mininni (New J. Phys. 9, 304, 2007; arXiv:physics/0703024) run
+        // twice this initial condition at ν = η = 0.025 on 128²; by MHD scaling that is this one
+        // at ν = η = 0.0125 with times doubled and j halved. Their Fig. 8 shows max|j| peaking at
+        // ≈ 45 near t ≈ 1.1 (read by eye). Here, on 128²: the peak is 22.527 at t = 2.1458, so
+        // 45.05 at 1.073 in their units; the dissipation peaks at 0.14522 at t = 2.1025; and
+        // E(1) = 0.943781, E(2) = 0.821857, as the independent solver gives at 128² and 256².
+        let dt = 0.01;
+        let run = orszag_tang(128, 0.0125, dt, (2.0, 2.25));
+        let (e1, e2) = (at(&run, 1.0)[1], at(&run, 2.0)[1]);
+        assert!((e1 - 0.943781).abs() < 1e-6 && (e2 - 0.821857).abs() < 1e-6, "{e1} {e2}");
+        let (j, tj) = peak(&run, 3, dt);
+        assert!((j - 22.527).abs() < 5e-3 && (tj - 2.1458).abs() < 3e-3, "{j} at {tj}");
+        assert!((2.0 * j - 45.0).abs() < 1.0 && (tj / 2.0 - 1.1).abs() < 0.05);
+        let (d, td) = peak(&run, 2, dt);
+        assert!((d - 0.14522).abs() < 1e-5 && (td - 2.1025).abs() < 2e-3, "{d} at {td}");
+    }
+
+    /// The kinematic dynamo of the flow `u = (A sin z + cos y, sin x + A cos z, sin y + cos x)`
+    /// at `Rm = 1/η` on `n`: the field's growth rate `σ` and the period of its energy's
+    /// oscillation (`π/ω`, or 0 when it does not oscillate), from a mean-free field followed to
+    /// `t_end` in steps of `dt`, by the slope of ln‖b‖ between the energy's peaks after `t0`, or
+    /// over `[t0, t_end]` when there are none.
+    fn dynamo(n: [usize; 3], a: f64, rm: f64, (t0, t_end): (f64, f64), dt: f64) -> (f64, f64) {
+        let torus = Torus { n, length: TAU };
+        let u = [torus.sample(|[_, y, z]| a * z.sin() + y.cos()), torus.sample(|[x, _, z]| x.sin() + a * z.cos()), torus.sample(|[x, y, _]| y.sin() + x.cos())];
+        let mut b = torus.project(&[torus.sample(|[x, y, z]| (x + 2.0 * y).sin() * z.cos() + 0.3 * z.sin()), torus.sample(|[x, y, z]| (y - x).cos() * z.sin() + 0.2 * (2.0 * x).sin() * z.cos()), torus.sample(|[x, y, z]| (x + z).sin() * y.cos())]);
+        let steps = (t_end / dt).round() as usize;
+        let mut log = vec![torus.inner(&b, &b).ln() / 2.0];
+        for k in 0..steps {
+            b = torus.induction(&b, 1.0 / rm, (k as f64 * dt, (k + 1) as f64 * dt), 1, |_| u.clone());
+            log.push(torus.inner(&b, &b).ln() / 2.0);
+        }
+        let samples: Vec<[f64; 4]> = log.iter().enumerate().map(|(k, &l)| [k as f64 * dt, l, 0.0, 0.0]).collect();
+        let peaks: Vec<(f64, f64)> = (1..steps)
+            .filter(|&k| k as f64 * dt >= t0 && log[k] > log[k - 1] && log[k] >= log[k + 1])
+            .map(|k| {
+                let (l, t) = peak(&samples[k - 1..=k + 1], 1, dt);
+                (t, l)
+            })
+            .collect();
+        match (peaks.first(), peaks.last()) {
+            (Some(f), Some(l)) if peaks.len() > 2 => ((l.1 - f.1) / (l.0 - f.0), (l.0 - f.0) / (peaks.len() - 1) as f64),
+            _ => {
+                let k0 = (t0 / dt).round() as usize;
+                ((log[steps] - log[k0]) / (t_end - t0), 0.0)
+            }
+        }
+    }
+
+    #[test]
+    fn roberts_flow_dynamo() {
+        // A = 0: the z-independent Roberts-type flow. A field with vertical wavenumber 1 stays
+        // in that sector, so four points span z exactly. Its leading eigenvalue is real: σ = 0.08289
+        // at Rm = 10 from a Fourier–Galerkin eigen-solver converged in truncation (mhd_benchmarks.md,
+        // §2; this solver gives 0.082890 on 32 × 32 × 4, 0.2% less on 16 × 16 × 4). Below
+        // onset (Rm = 6.215) the field decays.
+        let (sigma, period) = dynamo([16, 16, 4], 0.0, 10.0, (30.0, 50.0), 0.1);
+        assert!(period == 0.0 && (sigma / 0.08289 - 1.0).abs() < 3e-3, "{sigma} {period}");
+        assert!(dynamo([16, 16, 4], 0.0, 5.0, (30.0, 50.0), 0.1).0 < -0.05);
+    }
+
+    #[test]
+    fn abc_flow_dynamo() {
+        // A = B = C = 1, the first dynamo window: 8.9 < Rm < 17.5 (Galloway & Frisch 1986, as
+        // quoted by Archontis, Dorch & Nordlund, A&A 397, 393, 2003), 8.934 to 17.554 from the
+        // eigen-solver. The leading eigenvalue is a complex pair (Bouya & Dormy 2013):
+        // σ ± iω = 0.00807 ± 0.61773i at Rm = 12 and −0.08479 ± 0.61614i at Rm = 5, converged
+        // (mhd_benchmarks.md, §2). On 16³ (modes to 5) the eigen-solver's K = 5 truncation gives
+        // 0.008069 ± 0.61854i, and the energy oscillates with period π/ω.
+        let (sigma, period) = dynamo([16; 3], 1.0, 12.0, (40.0, 80.0), 0.2);
+        assert!((sigma - 0.00807).abs() < 2e-5 && (PI / period / 0.61773 - 1.0).abs() < 2e-3, "{sigma} {}", PI / period);
+        let (sigma, period) = dynamo([16; 3], 1.0, 5.0, (20.0, 50.0), 0.2);
+        assert!((sigma + 0.08479).abs() < 1e-4 && (PI / period / 0.61614 - 1.0).abs() < 2e-3, "{sigma} {}", PI / period);
     }
 }

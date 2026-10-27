@@ -283,7 +283,7 @@ fn torus_run(shift: [f64; 2], blocks: usize, band: (f64, f64), c: f64) -> Vec<f6
             check(&w, &old, &reference, &mut worst);
             seen.push((n, detector(&w)));
         }
-        // The heat-only wait to t_{n+1}, sampled; the integrating factor makes each step exact.
+        // The heat-only wait to t_{n+1}, sampled; the exponential step makes each one exact.
         mass += torus.mean(&g);
         for k in 0..4 {
             let (t0, t1) = (t_n + 2.0 * delta + k as f64 * (2.0 - 2.0 * delta) / 4.0, t_n + 2.0 * delta + (k + 1) as f64 * (2.0 - 2.0 * delta) / 4.0);

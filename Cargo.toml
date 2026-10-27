@@ -11,3 +11,10 @@ repository = "https://github.com/FusionVault/physica"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
+
+# The spectral solvers run their tests at optimised speed; everything else keeps debug builds.
+[profile.dev.package.geopotential]
+opt-level = 3
+
+[profile.dev.package.magnetics]
+opt-level = 3
