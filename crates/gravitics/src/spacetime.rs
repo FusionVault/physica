@@ -416,6 +416,261 @@ pub fn kerr_shadow_size(a: f64, inclination: f64) -> (f64, f64) {
     (-sum / PI, d)
 }
 
+impl Metric {
+    /// The time component `g₀₀` at `x = GM/(c²r)`, with `r` the isotropic radius:
+    /// `((1 − x/2)/(1 + x/2))²` in general relativity and `e^{−2x}` (that is, `1/K`) in the
+    /// polarizable vacuum ([Puthoff 2002](https://arxiv.org/abs/gr-qc/9909037), eqs 42 and 45).
+    /// Both are `1 − 2x + 2x²`, so they agree at first post-Newtonian order, and part at `x³`:
+    /// `−3/2` against `−4/3`. A negative `x` is a negative mass.
+    pub fn g00(self, x: f64) -> f64 {
+        match self {
+            Metric::GeneralRelativity => ((1.0 - x / 2.0) / (1.0 + x / 2.0)).powi(2),
+            Metric::PolarizableVacuum => (-2.0 * x).exp(),
+        }
+    }
+
+    /// The spatial component `−g_ii` at `x = GM/(c²r)`, isotropic: `(1 + x/2)⁴` in general
+    /// relativity and `e^{2x}` (`K`) in the polarizable vacuum (Puthoff 2002 eqs 43 and 46). Both are
+    /// `1 + 2x`, with `x²` coefficients `3/2` and `2`. In the polarizable vacuum
+    /// `g₀₀·spatial = 1`, so a faster clock always comes with longer rulers.
+    pub fn spatial(self, x: f64) -> f64 {
+        match self {
+            Metric::GeneralRelativity => (1.0 + x / 2.0).powi(4),
+            Metric::PolarizableVacuum => (2.0 * x).exp(),
+        }
+    }
+
+    /// The critical impact parameter in units of `GM/c²`, the smallest `r√(spatial/g₀₀)`: `3√3`
+    /// in general relativity and `2e` in the polarizable vacuum, whose photon sphere is at
+    /// isotropic `r = 2GM/c²` ([Boonserm et al. 2018](https://arxiv.org/abs/1805.03781), §7). Light
+    /// passing closer is captured ([`exact_deflection`]).
+    pub fn critical_impact(self) -> f64 {
+        match self {
+            Metric::GeneralRelativity => 27f64.sqrt(),
+            Metric::PolarizableVacuum => 2.0 * core::f64::consts::E,
+        }
+    }
+
+    /// The angular diameter (rad) of the shadow of a static `mass` (kg) at `distance` (m): twice
+    /// the critical impact parameter seen from `D`, which is [`shadow_diameter`] in general
+    /// relativity. The polarizable vacuum's is `2e/√27 − 1` = 4.63% larger, `δ = +0.0463` in
+    /// [`shadow_deviation`]'s terms; the literature's "5%" rounds this. Spin would shrink a
+    /// Kerr shadow, but no rotating-PV shadow has been computed.
+    ///
+    /// ```
+    /// use gravitics::spacetime::{Metric, shadow_deviation};
+    /// use metrology::{C, G, PARSEC, SOLAR_MASS};
+    ///
+    /// let uas = std::f64::consts::PI / 180.0 / 3600.0 * 1e-6;
+    /// // Sgr A* with the EHT's VLTI prior, 4.297×10⁶ M☉ at 8277 pc: 53.254 µas against 55.718.
+    /// let (mass, distance) = (4.297e6 * SOLAR_MASS, 8277.0 * PARSEC);
+    /// let gr = Metric::GeneralRelativity.shadow_diameter(mass, distance) / uas;
+    /// let pv = Metric::PolarizableVacuum.shadow_diameter(mass, distance) / uas;
+    /// assert!((gr - 53.254).abs() < 5e-4 && (pv - 55.718).abs() < 5e-4);
+    /// let theta_g = G * mass / (C * C * distance) / uas;
+    /// assert!((shadow_deviation(pv, theta_g) - 0.046267).abs() < 5e-7);
+    /// // M87*: δ = −0.01 ± 0.17 with the stellar-dynamics prior (EHT M87* Paper VI) puts PV at
+    /// // 0.33σ and Schwarzschild at 0.06σ, so M87* does not constrain it.
+    /// let sigma = |metric: Metric| (metric.critical_impact() / 27f64.sqrt() - 1.0 + 0.01) / 0.17;
+    /// assert!((sigma(Metric::PolarizableVacuum) - 0.33).abs() < 5e-3 && (sigma(Metric::GeneralRelativity) - 0.06).abs() < 5e-3);
+    /// ```
+    ///
+    /// The EHT's own δ comparisons are in [EHT Sgr A* Paper VI](https://arxiv.org/abs/2311.09484)
+    /// and [EHT M87* Paper VI](https://arxiv.org/abs/1906.11243).
+    pub fn shadow_diameter(self, mass: f64, distance: f64) -> f64 {
+        shadow_diameter(mass, distance) * (self.critical_impact() / 27f64.sqrt())
+    }
+}
+
+/// Bozza's strong-deflection coefficients `(ā, b̄)`: near the critical impact parameter the
+/// deflection is `α ≈ −ā ln(b/b_c − 1) + b̄` ([Bozza 2002](https://arxiv.org/abs/gr-qc/0208075)).
+/// General relativity has `(1, ln[216(7 − 4√3)] − π)` = `(1, −0.40023004)` (Bozza §3.1). The
+/// polarizable vacuum has `ā = 1` exactly too, so its photon subrings also shrink by `e^π`, but
+/// `b̄ = −0.46581756`: our value, as no published one could be read. Only `b_c` and `b̄` tell the
+/// geometries apart; `b̄` moves the subrings' offsets from the critical curve by `e^{Δb̄}` = 0.936.
+///
+/// It evaluates Bozza's `ā = R/(2√β_m)` and `b̄ = −π + b_R + ā ln(2β_m/y_m)` from the photon
+/// sphere's `y_m = A_m`, `C_m`, `C′_m`, `C″_m` and `A″_m`, with `b_R` his regular integral over
+/// `z = (A − y_m)/(1 − y_m)`.
+pub fn strong_deflection(metric: Metric) -> (f64, f64) {
+    let e = core::f64::consts::E;
+    // Areal x = 3 for GR, isotropic x = 2 for PV.
+    let (ym, c, c1, c2, a2) = match metric {
+        Metric::GeneralRelativity => (1.0 / 3.0, 9.0, 6.0, 2.0, -4.0 / 27.0),
+        Metric::PolarizableVacuum => (1.0 / e, 4.0 * e, 2.0 * e, e, -1.0 / (4.0 * e)),
+    };
+    let beta = c * (1.0 - ym).powi(2) * (c2 * ym - c * a2) / (2.0 * ym * ym * c1 * c1);
+    // A·B = 1 and C·A′ = 2 in both metrics, so Bozza's R(z, x_m) is the constant (1 − y_m)√C_m.
+    let r = (1.0 - ym) * c.sqrt();
+    // y_m − A·C_m/C, which has a double root at z = 0, written without cancellation there.
+    let radicand = |z: f64| match metric {
+        Metric::GeneralRelativity => z * z * (1.0 - 2.0 * z / 3.0),
+        Metric::PolarizableVacuum => {
+            let s = (e - 1.0) * z;
+            let q = (1.0 + s) * s.ln_1p() - s;
+            q * (2.0 - q) / e
+        }
+    };
+    // The subtracted integrand is analytic on [0, 1]; 32 nodes reach round-off.
+    let (x, w) = geopotential::gauss_legendre(32);
+    let b_r = r * x.iter().zip(&w).map(|(x, w)| {
+        let z = 0.5 * (1.0 + x);
+        0.5 * w * (1.0 / radicand(z).sqrt() - 1.0 / (beta.sqrt() * z))
+    }).sum::<f64>();
+    let abar = r / (2.0 * beta.sqrt());
+    (abar, -PI + b_r + abar * (2.0 * beta / ym).ln())
+}
+
+/// The innermost stable circular orbit `(areal radius, GMΩ/c³, E)`, with the radius in units of
+/// `GM/c²` and `E` the energy per unit rest energy, so `1 − E` is the accretion efficiency.
+/// General relativity: `(6, 6^{−3/2}, √(8/9))`. The polarizable vacuum: isotropic `r = (3 + √5)GM/c²`,
+/// areal `r e^{1/r}` = 6.337940, `MΩ = e^{−2/r}/(r√(r − 1))` = 0.0633326 and
+/// `E = e^{−1/r}√((r − 1)/(r − 2))` = 0.9452132 ([Boonserm et al. 2018](https://arxiv.org/abs/1805.03781), §7;
+/// [Makukov & Mychelkin 2018](https://arxiv.org/abs/1809.05290)). PV's `Ω` is 6.92% lower and its
+/// efficiency 5.479% against 5.719%, which a slightly retrograde Kerr spin would mimic:
+/// **speculative**, not a clean test without an independent spin.
+///
+/// ```
+/// use gravitics::spacetime::{Metric, isco};
+/// use metrology::{C, G, SOLAR_MASS};
+///
+/// // The gravitational-wave frequency Ω/π at the ISCO of 10 M☉: 439.7 Hz against 409.3 Hz.
+/// let f = |metric| isco(metric).1 / std::f64::consts::PI * C.powi(3) / (G * 10.0 * SOLAR_MASS);
+/// assert!((f(Metric::GeneralRelativity) - 439.7).abs() < 0.05 && (f(Metric::PolarizableVacuum) - 409.3).abs() < 0.05);
+/// ```
+pub fn isco(metric: Metric) -> (f64, f64, f64) {
+    match metric {
+        Metric::GeneralRelativity => {
+            let r = 6.0f64;
+            (r, r.powf(-1.5), (1.0 - 2.0 / r) / (1.0 - 3.0 / r).sqrt())
+        }
+        Metric::PolarizableVacuum => {
+            let r = 3.0 + 5f64.sqrt();
+            (r * (1.0 / r).exp(), (-2.0 / r).exp() / (r * (r - 1.0).sqrt()), (-1.0 / r).exp() * ((r - 1.0) / (r - 2.0)).sqrt())
+        }
+    }
+}
+
+/// The periastron ratio `K = Ω_φ/Ω_r` of a near-circular orbit at radius `r` (units of `GM/c²`;
+/// areal in general relativity, isotropic in the polarizable vacuum, as in [`exact_deflection`]):
+/// `(1 − 6/r)^{−1/2}` and `r/√(r² − 6r + 4)`, infinite at the [`isco`]. The orbit advances by
+/// `2π(K − 1)` per radial period. In terms of the frequency, `x = (GMΩ/c³)^{2/3}` with
+/// `MΩ = r^{−3/2}` or `e^{−2/r}/(r√(r − 1))`, they are `1 + 3x + 13.5x² + 67.5x³` and
+/// `1 + 3x + 14.5x² + 76.5x³`: PV adds `2πx²` per orbit, 0.35 µas per century for Mercury.
+/// Ours, from the research notes' PV tests; **speculative** and untested.
+pub fn periastron_ratio(metric: Metric, r: f64) -> f64 {
+    let c = match metric {
+        Metric::GeneralRelativity => 0.0,
+        Metric::PolarizableVacuum => 4.0,
+    };
+    r / (r * r - 6.0 * r + c).sqrt()
+}
+
+/// The redshift `z` of light from a static emitter at areal radius `R`, with `u = GM/(c²R)`:
+/// `1/√(1 − 2u) − 1` in general relativity, and `e^w − 1` in the polarizable vacuum, where
+/// `w e^{−w} = u` gives its isotropic `GM/(c²r)` on the principal branch (up to the throat,
+/// `u = 1/e`; beyond it, NaN). They part at `u³/6`: 0.2346620 against 0.2371177 at `u = 0.172`, a
+/// 1% difference at a neutron-star surface, though PV has no published stellar interior. Ours,
+/// from the research notes; **speculative**.
+pub fn surface_redshift(metric: Metric, u: f64) -> f64 {
+    let g00 = match metric {
+        Metric::GeneralRelativity => 1.0 - 2.0 * u,
+        Metric::PolarizableVacuum => {
+            if u > (-1.0f64).exp() {
+                return f64::NAN;
+            }
+            let (mut lo, mut hi) = (0.0, 1.0);
+            while hi - lo > f64::EPSILON * hi {
+                let mid = 0.5 * (lo + hi);
+                if mid * (-mid).exp() < u { lo = mid } else { hi = mid }
+            }
+            metric.g00(0.5 * (lo + hi))
+        }
+    };
+    1.0 / redshift_factor(g00) - 1.0
+}
+
+/// The second post-Newtonian Shapiro delay (s) of the polarizable vacuum minus general
+/// relativity's, one way past a `mass` (kg) at impact parameter `b` (m) with the emitter and
+/// receiver fixed: `(π/4)(GM/c²)²/(bc)`. That is 8.21 ps at the solar limb, and in Cassini's
+/// Doppler observable it mimics `δγ = (π/8)GM/(bc²)` = 5.2×10⁻⁷ at 1.6 R☉, against Cassini's
+/// σ = 2.3×10⁻⁵. Ours, derived in the research notes; untested.
+pub fn shapiro_2pn_difference(mass: f64, b: f64) -> f64 {
+    let m = G * mass / (C * C);
+    PI / 4.0 * m * m / (b * C)
+}
+
+/// The rate of a static clock against a remote one, `√g₀₀`: Puthoff's Table 1 rows 1–3, where a
+/// remote observer sees local intervals as `Δt/√g₀₀`, frequencies as `ω√g₀₀` and energies as
+/// `E√g₀₀` ([Puthoff 2010](https://arxiv.org/abs/1204.2184)). His §3.1 example, ten seconds
+/// remote judged as five locally, is `g₀₀ = 0.25`. Between two heights it gives the gravitational
+/// redshift, `gh/c²` = 2.456×10⁻¹⁵ over Pound and Rebka's 22.5 m, though a `g₀₀` that close to 1
+/// carries such a shift only to the nearest `f64` step, 2.2×10⁻¹⁶. **Established.**
+pub fn redshift_factor(g00: f64) -> f64 {
+    g00.sqrt()
+}
+
+/// Puthoff's "effective mass" factor `spatial/√g₀₀` (Table 1 row 6 of
+/// [Puthoff 2010](https://arxiv.org/abs/1204.2184); `K^{3/2}` in the polarizable vacuum,
+/// [Puthoff 2002](https://arxiv.org/abs/gr-qc/9909037) eq. 9), with `spatial = −g₁₁`: the
+/// coefficient of `½mv²` in the Lagrangian `−mc²√(g₀₀ − spatial·v²/c²)` for the coordinate
+/// velocity `v`. It is bookkeeping, **not an invariant**: it depends on the coordinates, and it
+/// rises near a mass, `1 + 3x + 4x²` in general relativity and `1 + 3x + 4.5x²` in PV, while the
+/// conserved energy of a body at rest, `mc²√g₀₀`, falls.
+pub fn effective_mass_factor(g00: f64, spatial: f64) -> f64 {
+    spatial / g00.sqrt()
+}
+
+/// The mass (kg, negative) whose exterior has `g₀₀ = 1 + excess` at areal `radius` (m): Puthoff's
+/// "spacetime-engineered" metric (`g₀₀ > 1`, faster clocks) is exactly the exterior of a negative
+/// mass. General relativity: `−excess·Rc²/(2G)`. The polarizable vacuum: `−yRe^y c²/G` with
+/// `y = ln(1 + excess)/2`, the same in the weak field and less in the strong: 3 times less for a
+/// clock running 17.6 times fast. Ours: the paper gives no number. With ordinary matter and fields
+/// `√g₀₀` is subharmonic and cannot exceed 1, so the region needs a strong-energy-condition
+/// violation. The mathematics is established; as an explanation of a craft it is **fringe**.
+///
+/// ```
+/// use gravitics::spacetime::{Metric, engineered_mass};
+/// use metrology::{C, G};
+///
+/// // A clock speed-up of 10⁻¹⁸ at 10 m, the reach of optical clocks, needs 6.7×10⁹ kg of
+/// // negative mass, and it pulls outward with c²δ/(2R) = 4.5 mm/s²...
+/// let mass = engineered_mass(1e-18, 10.0, Metric::GeneralRelativity);
+/// assert!((mass / -6.733e9 - 1.0).abs() < 1e-4);
+/// let pull = |excess: f64| G * -engineered_mass(excess, 10.0, Metric::PolarizableVacuum) / 100.0;
+/// assert!((pull(1e-18) / (C * C * 1e-18 / 20.0) - 1.0).abs() < 1e-12 && (pull(1e-18) - 4.5e-3).abs() < 1e-5);
+/// // ...so a 1 µGal gravimeter at 10 m resolves δ = 2gR/c² = 2.2×10⁻²⁴, a million times less.
+/// let delta = 2.0 * 1e-8 * 10.0 / (C * C);
+/// assert!((delta - 2.2e-24).abs() < 5e-26 && (pull(delta) / 1e-8 - 1.0).abs() < 1e-12);
+/// ```
+///
+/// Hiding the region from gravimeters would need a ± mass double layer of dipole density
+/// `δc²/(8πG)`, 5.4×10⁷ kg/m for `δ = 10⁻¹⁸`, negative inside (ours, derived in the notes, not
+/// found in a source).
+pub fn engineered_mass(excess: f64, radius: f64, metric: Metric) -> f64 {
+    match metric {
+        Metric::GeneralRelativity => -excess * radius * C * C / (2.0 * G),
+        Metric::PolarizableVacuum => {
+            let y = excess.ln_1p() / 2.0;
+            -y * radius * y.exp() * C * C / G
+        }
+    }
+}
+
+/// The extra transit time (s) of light across a region of `length` `L` (m) filled with
+/// electromagnetic energy density `u` (J/m³, `B²/2μ₀` or `ε₀E²/2`), Puthoff, Davis & Maccone's
+/// Levi-Civita effect, the field route Puthoff 2010 cites: `(L/c)·4πGuL²/(3c⁴)`
+/// ([Puthoff, Davis & Maccone 2005](https://arxiv.org/abs/physics/0403064), eqs 8 and 15). At the
+/// centre `K − 1 = πGuL²/c⁴`, which is `3cτ/(4L)` (eqs 6 and 13): 1.03×10⁻³⁸ for 1 T over 1 m,
+/// with a delay of 4.6×10⁻⁴⁷ s. The sign is `K > 1`: field energy slows light like mass, the
+/// opposite of what the engineered metric needs. Their length scale
+/// `a = c²/(B√(4πG/μ₀))`, with `K − 1 = L²/(8a²)`, prints as 3.484×10¹⁸/B m, which takes
+/// `c = 3×10⁸` m/s; the exact `c` gives 3.4789×10¹⁸. **Established** at this order, where PV and
+/// general relativity agree.
+pub fn levi_civita_delay(energy_density: f64, length: f64) -> f64 {
+    length / C * 4.0 * PI * G * energy_density * length * length / (3.0 * C.powi(4))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -661,6 +916,229 @@ mod tests {
         // 2×10⁻⁸), against GR's −0.40023: α + ln ε at ε = 10⁻⁶.
         let eps = 1e-6;
         assert!((at(critical * (1.0 + eps), Metric::PolarizableVacuum) + eps.ln() + 0.46581756).abs() < 1e-5);
+    }
+
+    /// The Taylor coefficient of `f` at 0 that follows the `known` ones, by one Richardson step
+    /// from `h` to `h/2`, so its error is of order `h²` times the coefficient two places on.
+    fn next_coefficient(f: impl Fn(f64) -> f64, known: &[f64], h: f64) -> f64 {
+        let rest = |x: f64| (f(x) - known.iter().rev().fold(0.0, |sum, c| sum * x + c)) / x.powi(known.len() as i32);
+        2.0 * rest(h / 2.0) - rest(h)
+    }
+
+    #[test]
+    fn exact_deflection_carries_both_weak_field_series() {
+        // PV's 4π, 48 and 64π against GR's 15π/4, 128/3 and 3465π/64 (the research's series,
+        // confirmed without cancellation in PR #47), from exact_deflection at b = 500 to 2000 GM/c².
+        let m = metrology::SOLAR_MASS;
+        let rg = G * m / (C * C);
+        for (metric, [c2, c3, c4]) in [
+            (Metric::GeneralRelativity, [15.0 * PI / 4.0, 128.0 / 3.0, 3465.0 * PI / 64.0]),
+            (Metric::PolarizableVacuum, [4.0 * PI, 48.0, 64.0 * PI]),
+        ] {
+            let alpha = |x: f64| exact_deflection(m, rg / x, metric).unwrap();
+            // Each estimate is off by about c_(k+2)h²/2: 10⁻⁴ for c₂ and 4×10⁻⁴ for c₃ at
+            // h = 10⁻³. For c₄, α's absolute round-off of 4×10⁻¹⁶ (it is 2∫ − π) over h⁴ needs
+            // h = 2×10⁻³, where the remainder is 8×10⁻³. The gaps PV − GR are 0.79, 5.3 and 31.
+            assert!((next_coefficient(alpha, &[0.0, 4.0], 1e-3) - c2).abs() < 2e-4, "{metric:?}");
+            assert!((next_coefficient(alpha, &[0.0, 4.0, c2], 1e-3) - c3).abs() < 1e-3, "{metric:?}");
+            assert!((next_coefficient(alpha, &[0.0, 4.0, c2, c3], 2e-3) - c4).abs() < 2e-2, "{metric:?}");
+        }
+    }
+
+    #[test]
+    fn the_metrics_in_isotropic_coordinates() {
+        let (gr, pv) = (Metric::GeneralRelativity, Metric::PolarizableVacuum);
+        // Both g₀₀ = 1 − 2x + 2x², then −3/2 against −4/3; both spatial = 1 + 2x, then 3/2 against 2
+        // (Puthoff 2002 eqs 42–46; Ibison 2006 eq. 3).
+        for (metric, cubic, square) in [(gr, -1.5, 1.5), (pv, -4.0 / 3.0, 2.0)] {
+            assert!((next_coefficient(|x| metric.g00(x), &[1.0, -2.0, 2.0], 1e-3) - cubic).abs() < 1e-5, "{metric:?}");
+            assert!((next_coefficient(|x| metric.spatial(x), &[1.0, 2.0], 1e-3) - square).abs() < 1e-5, "{metric:?}");
+        }
+        // Isotropic Schwarzschild is areal 1 − 2GM/(c²R) with R = r(1 + x/2)².
+        for x in [0.01, 0.3, 1.0] {
+            assert!(close(gr.g00(x), 1.0 - 2.0 * x / (1.0 + x / 2.0).powi(2), 1e-14), "x = {x}");
+            assert!(close(pv.g00(x) * pv.spatial(x), 1.0, 1e-15) && close(pv.g00(-x), pv.spatial(x), 1e-15));
+        }
+        // The critical impact parameter is the least r√(spatial/g₀₀), by golden-section search
+        // over the isotropic radius; and exact_deflection captures light inside it.
+        for metric in [gr, pv] {
+            let b = |r: f64| r * (metric.spatial(1.0 / r) / metric.g00(1.0 / r)).sqrt();
+            let (mut lo, mut hi) = (1.0, 10.0);
+            for _ in 0..100 {
+                let (a, c) = (hi - 0.618 * (hi - lo), lo + 0.618 * (hi - lo));
+                if b(a) < b(c) { hi = c } else { lo = a }
+            }
+            assert!(close(b(0.5 * (lo + hi)), metric.critical_impact(), 1e-14), "{metric:?}");
+            let rg = G * metrology::SOLAR_MASS / (C * C);
+            let at = |scale: f64| exact_deflection(metrology::SOLAR_MASS, scale * metric.critical_impact() * rg, metric);
+            assert!(at(1.0 - 1e-9).is_none() && at(1.0 + 1e-9).is_some(), "{metric:?}");
+        }
+        assert!(close(pv.critical_impact() / gr.critical_impact() - 1.0, 0.046_267, 1e-5));
+        // The GR shadow is shadow_diameter's, bit for bit.
+        let (mass, distance) = (4.297e6 * metrology::SOLAR_MASS, 8277.0 * metrology::PARSEC);
+        assert_eq!(gr.shadow_diameter(mass, distance), shadow_diameter(mass, distance));
+    }
+
+    #[test]
+    fn strong_deflection_both_ways() {
+        // Bozza §3.1: ā = 1 and b̄ = ln[216(7 − 4√3)] − π = −0.40023004 for Schwarzschild.
+        let (a, b) = strong_deflection(Metric::GeneralRelativity);
+        let exact = (216.0 * (7.0 - 4.0 * 3f64.sqrt())).ln() - PI;
+        assert!((a - 1.0).abs() < 1e-15 && (b - exact).abs() < 1e-14 && (b + 0.400_230_04).abs() < 5e-9, "{a} {b}");
+        // PV: ā = 1 and b̄ = −0.46581756 (the research's PV notes, two methods to 2×10⁻⁸). A
+        // long-double recomputation of Bozza's integral gives −0.465817563343; the notes'
+        // ten-digit −0.4658175637 lost 4×10⁻¹⁰ to cancellation near the photon sphere.
+        let (a, b) = strong_deflection(Metric::PolarizableVacuum);
+        assert!((a - 1.0).abs() < 1e-15 && (b + 0.465_817_56).abs() < 5e-9, "{a} {b}");
+        // Against exact_deflection at b_c(1 + 10⁻⁶): 13.4152855578 and 13.3496988228 (the notes),
+        // with α + ln ε within 6×10⁻⁶ of b̄, the O(ε ln ε) remainder.
+        let m = metrology::SOLAR_MASS;
+        let rg = G * m / (C * C);
+        let eps = 1e-6;
+        for (metric, alpha) in [(Metric::GeneralRelativity, 13.415_285_557_8), (Metric::PolarizableVacuum, 13.349_698_822_8)] {
+            let at = exact_deflection(m, metric.critical_impact() * (1.0 + eps) * rg, metric).unwrap();
+            assert!((at - alpha).abs() < 5e-11, "{metric:?}");
+            assert!((at + eps.ln() - strong_deflection(metric).1).abs() < 6e-6, "{metric:?}");
+        }
+    }
+
+    #[test]
+    fn the_innermost_stable_orbit_both_ways() {
+        // GR: 6GM/c², MΩ = 6^(−3/2) = 0.0680414, E = √(8/9) = 0.9428090.
+        let (r, omega, energy) = isco(Metric::GeneralRelativity);
+        assert!(r == 6.0 && close(omega, 6f64.powf(-1.5), 1e-15) && close(energy, (8.0f64 / 9.0).sqrt(), 1e-15));
+        assert!((omega - 0.068_041_4).abs() < 5e-8 && (energy - 0.942_809_0).abs() < 5e-8);
+        // PV at isotropic (3 + √5)GM/c²: areal 6.337940 and L = 3.523216 (Boonserm et al. §7, who
+        // print 6.337940263 and 3.523216438, 2×10⁻⁹ and 10⁻⁹ below the closed forms' 6.3379402649
+        // and 3.5232164391), MΩ = 0.0633326 (Makukov & Mychelkin), E = 0.9452132.
+        let (r, omega, energy) = isco(Metric::PolarizableVacuum);
+        assert!((r - 6.337_940).abs() < 5e-7 && (omega - 0.063_332_6).abs() < 5e-8 && (energy - 0.945_213_2).abs() < 5e-8);
+        let iso = 3.0 + 5f64.sqrt();
+        let pv = Metric::PolarizableVacuum;
+        // L = C Ω u^t with u^t = E/g₀₀, and C = r²·spatial.
+        let l = iso * iso * pv.spatial(1.0 / iso) * omega * energy / pv.g00(1.0 / iso);
+        assert!((l - 3.523_216).abs() < 5e-7, "{l}");
+        // Ω is 6.92% lower and the efficiency 5.479% against 5.719%.
+        let gr = isco(Metric::GeneralRelativity);
+        assert!((omega / gr.1 - 1.0 + 0.069_20).abs() < 5e-6);
+        assert!(((1.0 - energy) * 100.0 - 5.479).abs() < 5e-4 && ((1.0 - gr.2) * 100.0 - 5.719).abs() < 5e-4);
+        // It is where the circular orbits' E(r) = e^(−1/r)√((r − 1)/(r − 2)) is least, and where
+        // the periastron ratio diverges.
+        let e = |r: f64| (-1.0 / r).exp() * ((r - 1.0) / (r - 2.0)).sqrt();
+        assert!(close(e(iso), energy, 1e-15) && e(iso - 1e-3) > energy && e(iso + 1e-3) > energy);
+        assert!(periastron_ratio(pv, iso * (1.0 + 1e-12)) > 1e5 && periastron_ratio(Metric::GeneralRelativity, 6.0 * (1.0 + 1e-12)) > 1e5);
+    }
+
+    #[test]
+    fn periastron_ratio_both_ways() {
+        // The research's numerical Ω_φ/Ω_r (pv_metric_tests.py §5): GR at areal 7, 10 and 20,
+        // where it is (1 − 6x)^(−1/2); PV at isotropic 6, 9 and 19.
+        for (metric, r, k) in [
+            (Metric::GeneralRelativity, 7.0, 2.645_75),
+            (Metric::GeneralRelativity, 10.0, 1.581_14),
+            (Metric::GeneralRelativity, 20.0, 1.195_23),
+            (Metric::PolarizableVacuum, 6.0, 3.0),
+            (Metric::PolarizableVacuum, 9.0, 1.616_45),
+            (Metric::PolarizableVacuum, 19.0, 1.199_27),
+        ] {
+            assert!((periastron_ratio(metric, r) - k).abs() < 5e-6, "{metric:?} r = {r}");
+        }
+        // In x = (MΩ)^(2/3): 1 + 3x + 13.5x² + 67.5x³ against 1 + 3x + 14.5x² + 76.5x³. The x³
+        // coefficient by extrapolating (K − 1 − 3x − c₂x²)/x³ linearly in x from r = 10³ and 2×10³.
+        for (metric, c2, c3) in [(Metric::GeneralRelativity, 13.5, 67.5), (Metric::PolarizableVacuum, 14.5, 76.5)] {
+            let point = |r: f64| {
+                let omega = match metric {
+                    Metric::GeneralRelativity => r.powf(-1.5),
+                    Metric::PolarizableVacuum => (-2.0 / r).exp() / (r * (r - 1.0).sqrt()),
+                };
+                let x = omega.powf(2.0 / 3.0);
+                (x, (periastron_ratio(metric, r) - 1.0 - 3.0 * x - c2 * x * x) / x.powi(3))
+            };
+            let ((x1, d1), (x2, d2)) = (point(1e3), point(2e3));
+            // The remainder is of order c₅x₁x₂, about 10⁻³.
+            assert!(((d2 * x1 - d1 * x2) / (x1 - x2) - c3).abs() < 5e-3, "{metric:?}");
+        }
+    }
+
+    #[test]
+    fn surface_redshift_both_ways() {
+        // At GM/(c²R) = 0.172: 0.2346620 against 0.2371177 (the research's PV notes, §8).
+        let (gr, pv) = (Metric::GeneralRelativity, Metric::PolarizableVacuum);
+        assert!((surface_redshift(gr, 0.172) - 0.234_662_0).abs() < 5e-8 && (surface_redshift(pv, 0.172) - 0.237_117_7).abs() < 5e-8);
+        // At S2's pericentre, 1/1400, they differ by 6.096×10⁻¹¹, close to u³/6.
+        let u = 1.0 / 1400.0;
+        assert!(close(surface_redshift(pv, u) - surface_redshift(gr, u), 6.096e-11, 1e-4) && close(u.powi(3) / 6.0, 6.074e-11, 1e-3));
+        // PV's throat is at areal eGM/c², where the isotropic radius is GM/c² and z = e − 1.
+        assert!(close(surface_redshift(pv, (-1.0f64).exp()), core::f64::consts::E - 1.0, 1e-7) && surface_redshift(pv, 0.4).is_nan());
+    }
+
+    #[test]
+    fn the_second_order_shapiro_difference() {
+        // (π/4)(GM/c²)²/(bc): 8.211 ps at the solar limb and 5.132 ps at Cassini's 1.6 R☉.
+        let (sun, limb) = (metrology::SOLAR_MASS, 6.957e8);
+        assert!((shapiro_2pn_difference(sun, limb) * 1e12 - 8.211).abs() < 5e-4);
+        assert!((shapiro_2pn_difference(sun, 1.6 * limb) * 1e12 - 5.132).abs() < 5e-4);
+    }
+
+    #[test]
+    fn puthoffs_table_one() {
+        // §3.1: ten seconds remote are five locally where g₀₀ = 0.25.
+        assert_eq!(10.0 * redshift_factor(0.25), 5.0);
+        // Pound and Rebka's gh/c² = 2.456×10⁻¹⁵ over 22.5 m (g = 9.81 m/s²), the bottom clock as
+        // reference. f64 holds 1 + 2gh/c² only to the nearest of its 22 ulps above 1, so this
+        // reproduces the shift to 0.55%, not better: the redshift needs g₀₀ − 1, not g₀₀, to be
+        // exact this close to 1.
+        let shift = redshift_factor(1.0 + 2.0 * 9.81 * 22.5 / (C * C)) - 1.0;
+        assert!((shift / 2.456e-15 - 1.0).abs() < 6e-3);
+        // At the Sun's surface, −GM/(c²R) = −2.1225×10⁻⁶ to first order.
+        let u = metrology::GM_SUN / (C * C * 6.957e8);
+        assert!(close(redshift_factor(1.0 - 2.0 * u) - 1.0, -2.1225e-6, 5e-5));
+        // The mass factor is K^(3/2) in PV, 8 at K = 4, and the ½v² coefficient of
+        // −√(g₀₀ − spatial·v²): 1.912366 at (0.7, 1.6) (the research's §B).
+        assert_eq!(effective_mass_factor(0.25, 4.0), 8.0);
+        assert!((effective_mass_factor(0.7, 1.6) - 1.912_366).abs() < 5e-7);
+        let lagrangian = |v: f64| -(0.7 - 1.6 * v * v).sqrt();
+        let h = 1e-4;
+        assert!(close((lagrangian(h) - 2.0 * lagrangian(0.0) + lagrangian(-h)) / (h * h), effective_mass_factor(0.7, 1.6), 1e-7));
+        // Near a mass it rises as 1 + 3x + 4x² in GR and 1 + 3x + 4.5x² in PV (the research's §C).
+        for (metric, square) in [(Metric::GeneralRelativity, 4.0), (Metric::PolarizableVacuum, 4.5)] {
+            let mass = |x: f64| effective_mass_factor(metric.g00(x), metric.spatial(x));
+            assert!((next_coefficient(mass, &[1.0, 3.0], 1e-3) - square).abs() < 1e-5, "{metric:?}");
+        }
+    }
+
+    #[test]
+    fn negative_mass_for_an_engineered_metric() {
+        let (gr, pv) = (Metric::GeneralRelativity, Metric::PolarizableVacuum);
+        // 10⁻¹⁸ at 10 m: 6.733×10⁹ kg in both (puthoff_metric_checks §G).
+        assert!(close(engineered_mass(1e-18, 10.0, gr), -6.733e9, 1e-4) && close(engineered_mass(1e-18, 10.0, pv), engineered_mass(1e-18, 10.0, gr), 1e-15));
+        // A 300 K body glowing at 550 nm, √g₀₀ = 17.56: 2.070×10³⁰ kg in GR, 6.777×10²⁹ in PV.
+        let excess = (2.897_771_955e-3 / 300.0 / 550e-9f64).powi(2) - 1.0;
+        assert!(close(engineered_mass(excess, 10.0, gr), -2.070e30, 1e-4) && close(engineered_mass(excess, 10.0, pv), -6.777e29, 1e-4));
+        // Back again: the PV mass at areal R = r e^(−x), x = G|M|/(c²r), so x e^x = G|M|/(c²R), and
+        // there g₀₀ = e^(2x) = 1 + excess.
+        let target = -G * engineered_mass(excess, 10.0, pv) / (C * C * 10.0);
+        let (mut lo, mut hi) = (0.0f64, 10.0);
+        for _ in 0..200 {
+            let mid = 0.5 * (lo + hi);
+            if mid * mid.exp() < target { lo = mid } else { hi = mid }
+        }
+        assert!(close(pv.g00(-0.5 * (lo + hi)), 1.0 + excess, 1e-13));
+    }
+
+    #[test]
+    fn the_levi_civita_effect() {
+        let mu0 = metrology::MU_0;
+        // 1 T over 1 m: a delay of 4.594×10⁻⁴⁷ s and K − 1 = 3cτ/(4L) = 1.033×10⁻³⁸; a 10⁹ T
+        // pulsar field over 10 km, 1.033×10⁻¹² (puthoff_metric_checks §H).
+        let tau = levi_civita_delay(1.0 / (2.0 * mu0), 1.0);
+        assert!(close(tau, 4.594e-47, 1.1e-4) && close(3.0 * C * tau / 4.0, 1.033e-38, 5e-4));
+        assert!(close(3.0 * C * levi_civita_delay(1e18 / (2.0 * mu0), 1e4) / 4e4, 1.033e-12, 5e-4));
+        // Puthoff, Davis & Maccone eq. B-2: a = c²/(B√(4πG/μ₀)), with K − 1 = L²/(8a²). Their
+        // 3.484×10¹⁸ T·m is 3.4837×10¹⁸ with c = 3×10⁸; the exact c gives 3.4789×10¹⁸.
+        let a = |c: f64| c * c / (4.0 * PI * G / mu0).sqrt();
+        assert!((a(C) / 3.4789e18 - 1.0).abs() < 1.5e-5 && (a(3e8) / 3.4837e18 - 1.0).abs() < 1.5e-5);
+        assert!(close(3.0 * C * tau / 4.0, 1.0 / (8.0 * a(C) * a(C)), 1e-13));
     }
 
     #[test]
