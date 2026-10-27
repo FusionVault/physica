@@ -64,6 +64,19 @@ pub fn skin_depth(rho: f64, f: f64, mu_r: f64) -> f64 {
     (2.0 * rho / (TAU * f * MU_0 * mu_r)).sqrt()
 }
 
+/// A molar susceptibility (m³/mol) from its CGS value `chi_cgs` (cm³/mol, as the CRC Handbook
+/// lists them): `4π×10⁻⁶ χ`. Oxygen's +3449×10⁻⁶ cm³/mol at 293 K is 4.334×10⁻⁸ m³/mol, the most
+/// of any elemental gas; the heavy rare earths are 8–51 times more per mole.
+pub fn molar_susceptibility_si(chi_cgs: f64) -> f64 {
+    4.0 * core::f64::consts::PI * 1e-6 * chi_cgs
+}
+
+/// A paramagnet's susceptibility at temperature `t` (K) from its value `chi` at `t0` (Curie's
+/// law, `χ ∝ 1/T`).
+pub fn curie_scale(chi: f64, t0: f64, t: f64) -> f64 {
+    chi * t0 / t
+}
+
 /// The field-gradient product `B·dB/dz` (T²/m) that levitates a diamagnet of density `rho`
 /// (kg/m³) and volume susceptibility `chi` (negative) against gravity `g`: `μ₀ρg/|χ|`.
 /// Earnshaw's theorem does not forbid it because the moment is induced
@@ -153,6 +166,15 @@ mod tests {
         assert!(close(levitation_product(1000.0, -8.8e-6, 9.81), 1400.9, 1e-4));
         // Both of Post's Inductrack examples imply a 1.67 km/h transition speed.
         assert!(close(500.0 / 300.0, 50.0 / 30.0, 1e-12) && close(inductrack_lift_drag(500.0, 500.0 / 300.0), 300.0, 1e-12));
+    }
+
+    #[test]
+    fn molar_susceptibility() {
+        // O₂: +3449×10⁻⁶ cm³/mol (CRC, 293 K) is 4.334×10⁻⁸ m³/mol, 1% above Moldover et al.'s
+        // (2008) 42.92×10⁻⁹; at 273.15 K Curie's law gives 3700×10⁻⁶.
+        let si = molar_susceptibility_si(3449e-6);
+        assert!(close(si, 4.334e-8, 1e-3) && close(si, 42.92e-9, 0.011));
+        assert!(close(curie_scale(3449e-6, 293.15, 273.15), 3700e-6, 1e-3));
     }
 
     #[test]
