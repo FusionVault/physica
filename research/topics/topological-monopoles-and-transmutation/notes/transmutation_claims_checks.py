@@ -221,22 +221,22 @@ check("12C+16O tunnelling at E=1 keV: log10 exp(-sqrt(E_G/E)) (this note)",
       -math.sqrt(gamow_energy_mev("C12", "O16") / 1e-3) / math.log(10), -1708.0, 2.0)
 
 # 5. Srinivasan: "4 tonnes of excess metal per day for 11 weeks", 11 MW furnace.
-fe_atoms_day = 4e6 / 55.845 * NA
+fe_atoms_day = 4e6 / mass_u("Fe56") * NA   # alpha-conjugate routes make pure 56Fe (55.935 u)
 p_si = fe_atoms_day * q_sisi * MEV_J / DAY            # if Fe came from 28Si+28Si -> 56Ni
 p_co = fe_atoms_day * (q_ohsawa_ni + q_ni_fe) * MEV_J / DAY   # all the way from C+O
-check("4 t Fe/day: atoms/day (this note)", fe_atoms_day, 4.313e28, 1e-3, rel=True)
-check("4 t Fe/day via Si+Si: power (W, this note)", p_si, 8.72e11, 2e-3, rel=True)
-check("4 t Fe/day via 2(C+O): power (W, this note)", p_co, 4.084e12, 2e-3, rel=True)
-check("ratio to an 11 MW furnace, Si+Si (this note)", p_si / 11e6, 7.93e4, 2e-3, rel=True)
-check("4 t over 11 weeks instead: Si+Si power (W, this note)", p_si / 77, 1.133e10, 2e-3, rel=True)
+check("4 t Fe/day: atoms/day (this note)", fe_atoms_day, 4.3066e28, 1e-4, rel=True)
+check("4 t Fe/day via Si+Si: power (W, this note)", p_si, 8.722e11, 1e-3, rel=True)
+check("4 t Fe/day via 2(C+O): power (W, this note)", p_co, 4.083e12, 1e-3, rel=True)
+check("ratio to an 11 MW furnace, Si+Si (this note)", p_si / 11e6, 7.929e4, 1e-3, rel=True)
+check("4 t over 11 weeks instead: Si+Si power (W, this note)", p_si / 77, 1.1327e10, 1e-3, rel=True)
 # Steady-state 56Ni/56Co activity if the iron passed through 56Ni (production = decay rate).
-check("steady-state 56Ni activity (Ci, this note)", fe_atoms_day / DAY / 3.7e10, 1.349e13, 2e-3, rel=True)
+check("steady-state 56Ni activity (Ci, this note)", fe_atoms_day / DAY / 3.7e10, 1.3472e13, 1e-3, rel=True)
 # Etemadi et al. Heliyon 9, e13956 (2023): FeSi75 at 8.46-9.18 MWh/t -> an 11 MW furnace's output.
 check("11 MW furnace FeSi75 output at 8.46 MWh/t (t/day)", 11 * 24 / 8.46, 31.2, 0.05)
 check("11 MW furnace FeSi75 output at 9.18 MWh/t (t/day)", 11 * 24 / 9.18, 28.76, 0.05)
 # 17O budget for 4 17O -> 12C + 56Fe at 4 t/day (natural 17O 0.038%, NIST).
-o_total_t = 4 * 4e6 / 55.845 / 0.00038 * 15.999 / 1e6
-check("oxygen needed per day for 4 t Fe via 4 17O (tonnes, this note)", o_total_t, 12_062.0, 5e-3, rel=True)
+o_total_t = 4 * 4e6 / mass_u("Fe56") / 0.00038 * 15.999 / 1e6
+check("oxygen needed per day for 4 t Fe via 4 17O (tonnes, this note)", o_total_t, 12_043.0, 1e-3, rel=True)
 
 # 6. Adamenko: 300 J (talk) per shot at 100% conversion to the endothermic Cu -> Pb.
 pb_atoms = 300 / (-q_cu_pb * MEV_J)
