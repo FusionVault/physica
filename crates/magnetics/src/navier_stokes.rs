@@ -56,7 +56,12 @@
 //! (ETDRK4); Kassam & Trefethen, [SIAM J. Sci. Comput. 26, 1214 (2005)](https://doi.org/10.1137/S1064827502410633)
 //! (its coefficients' cancellation, avoided here by series); Bernstein's inequality for the
 //! gradient bound. MHD: Walén's exact Alfvén waves (Walén 1944, Ark. Mat. Astron. Fys. 30A, 15);
-//! Biskamp, *Magnetohydrodynamic Turbulence* (Cambridge, 2003) for the ideal invariants.
+//! Biskamp, *Magnetohydrodynamic Turbulence* (Cambridge, 2003) for the ideal invariants; the
+//! Orszag–Tang vortex against Rosenberg, Pouquet & Mininni, [New J. Phys. 9, 304 (2007)](https://doi.org/10.1088/1367-2630/9/8/304),
+//! Fig. 8; the ABC dynamo's first window, Galloway & Frisch, [Geophys. Astrophys. Fluid Dyn. 36, 53 (1986)](https://doi.org/10.1080/03091928608208797),
+//! and its complex leading eigenvalue, Bouya & Dormy, [Phys. Fluids 25, 037103 (2013)](https://doi.org/10.1063/1.4795546).
+//! The reference values are recomputed, by an independent solver, in
+//! `research/topics/navier-stokes-computation/notes/mhd_benchmarks.md`.
 
 use core::f64::consts::PI;
 
@@ -1281,5 +1286,135 @@ mod tests {
         let b_kin = torus.induction(&b0, eta, (0.0, 2.0), 20, |_| u.clone());
         assert!((0..3).all(|c| max_diff(&b_full[c], &b_kin[c]) < 1e-10 && max_abs(&b_kin[c]) > 1e-5));
         assert!(max_abs(&torus.divergence(&b_kin)) < 1e-17);
+    }
+
+    /// The incompressible Orszag–Tang vortex on the 2π torus, `u = (−sin y, sin x)`,
+    /// `b = (−sin y, sin 2x)`, at `ν = η = nu`, in steps of `dt` to `t_end`, sampled from
+    /// `from` on and at whole times: each sample's time, energy `½⟨u² + b²⟩`, dissipation
+    /// `ν⟨|∇u|²⟩ + η⟨|∇b|²⟩` and grid maximum of `|j|`.
+    fn orszag_tang(n: usize, nu: f64, dt: f64, (from, t_end): (f64, f64)) -> Vec<[f64; 4]> {
+        let torus = plane(n);
+        let (mut u, mut b) = ([torus.sample(|[_, y]| -y.sin()), torus.sample(|[x, _]| x.sin())], [torus.sample(|[_, y]| -y.sin()), torus.sample(|[x, _]| (2.0 * x).sin())]);
+        let steps = (t_end / dt).round() as usize;
+        let mut out = Vec::new();
+        for k in 0..=steps {
+            if k > 0 {
+                (u, b) = torus.mhd(&u, &b, nu, nu, ((k - 1) as f64 * dt, k as f64 * dt), 1, zero_force(&torus));
+            }
+            let t = k as f64 * dt;
+            if t < from - 1e-9 && (t - t.round()).abs() > 1e-9 {
+                continue;
+            }
+            let j: Vec<f64> = torus.gradient(&b[1])[0].iter().zip(&torus.gradient(&b[0])[1]).map(|(x, y)| x - y).collect();
+            let energy = 0.5 * (torus.inner(&u, &u) + torus.inner(&b, &b));
+            out.push([t, energy, nu * (torus.gradient_norm2(&u) + torus.gradient_norm2(&b)), max_abs(&j)]);
+        }
+        out
+    }
+
+    /// The largest value in column `c` of samples `dt` apart (time in column 0), and when, by a
+    /// parabola through the greatest sample and its neighbours.
+    fn peak(samples: &[[f64; 4]], c: usize, dt: f64) -> (f64, f64) {
+        let k = (1..samples.len() - 1).max_by(|&i, &j| samples[i][c].total_cmp(&samples[j][c])).expect("interior samples");
+        let (a, m, d) = (samples[k - 1][c], samples[k][c], samples[k + 1][c]);
+        let s = 0.5 * (a - d) / (a - 2.0 * m + d);
+        (m - 0.25 * (a - d) * s, samples[k][0] + s * dt)
+    }
+
+    /// The sample at time `t`.
+    fn at(samples: &[[f64; 4]], t: f64) -> [f64; 4] {
+        *samples.iter().find(|s| (s[0] - t).abs() < 1e-9).expect("a sample at that time")
+    }
+
+    #[test]
+    fn orszag_tang_vortex() {
+        // Against an independent pseudo-spectral solver at 128² and 256² (numpy;
+        // research/topics/navier-stokes-computation/notes/mhd_benchmarks.md, §1). At ν = η = 0.05
+        // on 64²: the dissipation peaks at 0.22001 at t = 1.1494, E(2) = 0.599845, and max|j|
+        // peaks at 7.5144 at t = 2.0226 (the grid maximum, 7.5137 on 64²).
+        let dt = 0.01;
+        let run = orszag_tang(64, 0.05, dt, (0.0, 2.2));
+        assert!((run[0][1] - 1.0).abs() < 1e-15 && (at(&run, 2.0)[1] - 0.599845).abs() < 1e-6, "E(2) = {}", at(&run, 2.0)[1]);
+        let (d, td) = peak(&run, 2, dt);
+        assert!((d - 0.22001).abs() < 1e-5 && (td - 1.1494).abs() < 2e-3, "{d} at {td}");
+        let (j, tj) = peak(&run, 3, dt);
+        assert!((j - 7.5144).abs() < 2e-3 && (tj - 2.0226).abs() < 5e-3, "{j} at {tj}");
+    }
+
+    #[test]
+    fn orszag_tang_against_rosenberg_pouquet_mininni_fig_8() {
+        // Rosenberg, Pouquet & Mininni (New J. Phys. 9, 304, 2007; arXiv:physics/0703024) run
+        // twice this initial condition at ν = η = 0.025 on 128²; by MHD scaling that is this one
+        // at ν = η = 0.0125 with times doubled and j halved. Their Fig. 8 shows max|j| peaking at
+        // ≈ 45 near t ≈ 1.1 (read by eye). Here, on 128²: the peak is 22.527 at t = 2.1458, so
+        // 45.05 at 1.073 in their units; the dissipation peaks at 0.14522 at t = 2.1025; and
+        // E(1) = 0.943781, E(2) = 0.821857, as the independent solver gives at 128² and 256².
+        let dt = 0.01;
+        let run = orszag_tang(128, 0.0125, dt, (2.0, 2.25));
+        let (e1, e2) = (at(&run, 1.0)[1], at(&run, 2.0)[1]);
+        assert!((e1 - 0.943781).abs() < 1e-6 && (e2 - 0.821857).abs() < 1e-6, "{e1} {e2}");
+        let (j, tj) = peak(&run, 3, dt);
+        assert!((j - 22.527).abs() < 5e-3 && (tj - 2.1458).abs() < 3e-3, "{j} at {tj}");
+        assert!((2.0 * j - 45.0).abs() < 1.0 && (tj / 2.0 - 1.1).abs() < 0.05);
+        let (d, td) = peak(&run, 2, dt);
+        assert!((d - 0.14522).abs() < 1e-5 && (td - 2.1025).abs() < 2e-3, "{d} at {td}");
+    }
+
+    /// The kinematic dynamo of the flow `u = (A sin z + cos y, sin x + A cos z, sin y + cos x)`
+    /// at `Rm = 1/η` on `n`: the field's growth rate `σ` and the period of its energy's
+    /// oscillation (`π/ω`, or 0 when it does not oscillate), from a mean-free field followed to
+    /// `t_end` in steps of `dt`, by the slope of ln‖b‖ between the energy's peaks after `t0`, or
+    /// over `[t0, t_end]` when there are none.
+    fn dynamo(n: [usize; 3], a: f64, rm: f64, (t0, t_end): (f64, f64), dt: f64) -> (f64, f64) {
+        let torus = Torus { n, length: TAU };
+        let u = [torus.sample(|[_, y, z]| a * z.sin() + y.cos()), torus.sample(|[x, _, z]| x.sin() + a * z.cos()), torus.sample(|[x, y, _]| y.sin() + x.cos())];
+        let mut b = torus.project(&[torus.sample(|[x, y, z]| (x + 2.0 * y).sin() * z.cos() + 0.3 * z.sin()), torus.sample(|[x, y, z]| (y - x).cos() * z.sin() + 0.2 * (2.0 * x).sin() * z.cos()), torus.sample(|[x, y, z]| (x + z).sin() * y.cos())]);
+        let steps = (t_end / dt).round() as usize;
+        let mut log = vec![torus.inner(&b, &b).ln() / 2.0];
+        for k in 0..steps {
+            b = torus.induction(&b, 1.0 / rm, (k as f64 * dt, (k + 1) as f64 * dt), 1, |_| u.clone());
+            log.push(torus.inner(&b, &b).ln() / 2.0);
+        }
+        let samples: Vec<[f64; 4]> = log.iter().enumerate().map(|(k, &l)| [k as f64 * dt, l, 0.0, 0.0]).collect();
+        let peaks: Vec<(f64, f64)> = (1..steps)
+            .filter(|&k| k as f64 * dt >= t0 && log[k] > log[k - 1] && log[k] >= log[k + 1])
+            .map(|k| {
+                let (l, t) = peak(&samples[k - 1..=k + 1], 1, dt);
+                (t, l)
+            })
+            .collect();
+        match (peaks.first(), peaks.last()) {
+            (Some(f), Some(l)) if peaks.len() > 2 => ((l.1 - f.1) / (l.0 - f.0), (l.0 - f.0) / (peaks.len() - 1) as f64),
+            _ => {
+                let k0 = (t0 / dt).round() as usize;
+                ((log[steps] - log[k0]) / (t_end - t0), 0.0)
+            }
+        }
+    }
+
+    #[test]
+    fn roberts_flow_dynamo() {
+        // A = 0: the z-independent Roberts-type flow. A field with vertical wavenumber 1 stays
+        // in that sector, so four points span z exactly. Its leading eigenvalue is real: σ = 0.08289
+        // at Rm = 10 from a Fourier–Galerkin eigen-solver converged in truncation (mhd_benchmarks.md,
+        // §2; this solver gives 0.082890 on 32 × 32 × 4, 0.2% less on 16 × 16 × 4). Below
+        // onset (Rm = 6.215) the field decays.
+        let (sigma, period) = dynamo([16, 16, 4], 0.0, 10.0, (30.0, 50.0), 0.1);
+        assert!(period == 0.0 && (sigma / 0.08289 - 1.0).abs() < 3e-3, "{sigma} {period}");
+        assert!(dynamo([16, 16, 4], 0.0, 5.0, (30.0, 50.0), 0.1).0 < -0.05);
+    }
+
+    #[test]
+    fn abc_flow_dynamo() {
+        // A = B = C = 1, the first dynamo window: 8.9 < Rm < 17.5 (Galloway & Frisch 1986, as
+        // quoted by Archontis, Dorch & Nordlund, A&A 397, 393, 2003), 8.934 to 17.554 from the
+        // eigen-solver. The leading eigenvalue is a complex pair (Bouya & Dormy 2013):
+        // σ ± iω = 0.00807 ± 0.61773i at Rm = 12 and −0.08479 ± 0.61614i at Rm = 5, converged
+        // (mhd_benchmarks.md, §2). On 16³ (modes to 5) the eigen-solver's K = 5 truncation gives
+        // 0.008069 ± 0.61854i, and the energy oscillates with period π/ω.
+        let (sigma, period) = dynamo([16; 3], 1.0, 12.0, (40.0, 80.0), 0.2);
+        assert!((sigma - 0.00807).abs() < 2e-5 && (PI / period / 0.61773 - 1.0).abs() < 2e-3, "{sigma} {}", PI / period);
+        let (sigma, period) = dynamo([16; 3], 1.0, 5.0, (20.0, 50.0), 0.2);
+        assert!((sigma + 0.08479).abs() < 1e-4 && (PI / period / 0.61614 - 1.0).abs() < 2e-3, "{sigma} {}", PI / period);
     }
 }
