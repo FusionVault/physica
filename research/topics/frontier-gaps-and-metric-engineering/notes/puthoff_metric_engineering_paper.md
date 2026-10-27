@@ -343,8 +343,8 @@ Three groups of predictions, each with its effect size:
 
 | Test | GR | PV | Difference | Source |
 |---|---|---|---|---|
-| Light bending, 2nd-order coefficient | 15π/4 | 4π | 0.730 µas at the solar limb (first order 1.7512″) | numerical, 11.781079 and 12.566501 (§D) |
-| Light bending, 3rd-order coefficient | 42.646 (exact 128/3 = 42.667) | 47.97 | — | numerical (§D) |
+| Light bending, 2nd-order coefficient | 15π/4 | 4π | 0.730 µas at the solar limb (first order 1.7512″) | numerical, 11.7809732 and 12.5663713 (§D; exact to 6×10⁻⁸) |
+| Light bending, 3rd-order coefficient | 128/3 = 42.667 (numerical 42.66707) | 48 (numerical 48.0004) | — | numerical (§D). Corrected 2026-10-27: the first quadrature lost three digits near the turning point and gave 42.646 and 47.97; the cancellation-free form recovers 128/3 to 10⁻⁵ and confirms the report's 48 |
 | Critical impact parameter | 3√3 GM/c² | 2e GM/c² | PV shadow deviation δ = +0.0463 | §E |
 | Photon sphere (areal) | 3GM/c² | 3.297GM/c² | — | §E |
 | Surface redshift factor at GM/Rc² = 0.1723 | — | — | −0.20% in PV | §E |

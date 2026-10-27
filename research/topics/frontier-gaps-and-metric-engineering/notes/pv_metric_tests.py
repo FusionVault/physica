@@ -1,7 +1,7 @@
 """Polarizable-vacuum (exponential) metric against GR: every observable computed both ways.
 
 Units G = c = M = 1 unless stated. PV: ds^2 = -e^{-2/r}dt^2 + e^{2/r}(dr^2 + r^2 dΩ^2) (isotropic r).
-GR: Schwarzschild, areal R (or isotropic where said). Run: python3 -I pv_metric_tests.py
+GR: Schwarzschild, areal R (or isotropic where said). Run: python3 -P pv_metric_tests.py (numpy + scipy from user site).
 """
 import numpy as np
 from scipy.integrate import quad
