@@ -28,3 +28,7 @@ test = true
 [[example]]
 name = "storm"
 test = true
+
+[[example]]
+name = "navier_stokes_computation"
+test = true
