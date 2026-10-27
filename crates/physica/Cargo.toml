@@ -1,6 +1,6 @@
 [package]
 name = "physica"
-version = "0.3.12"
+version = "0.3.13"
 description = "The physica crate family in one dependency: constants, Earth's gravity and magnetic fields, satellite gravimetry, gravitational waves, frontier gravity, fusion plasma and magnetism, plus tested cross-domain analogies between them."
 keywords = ["physics", "gravity", "geomagnetism", "plasma", "gravitational-waves"]
 categories = ["science"]
@@ -11,11 +11,11 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-geopotential = { path = "../geopotential", version = "0.3.7" }
+geopotential = { path = "../geopotential", version = "0.3.8" }
 gravimetry = { path = "../gravimetry", version = "0.7.2" }
 gravitational = { path = "../gravitational", version = "0.2.6" }
 gravitics = { path = "../gravitics", version = "0.5.11" }
-magnetics = { path = "../magnetics", version = "0.1.8" }
+magnetics = { path = "../magnetics", version = "0.1.9" }
 metrology = { path = "../metrology", version = "0.2.6" }
 plasmoid = { path = "../plasmoid", version = "0.4.2" }
 
