@@ -17,7 +17,7 @@
 
 use core::f64::consts::PI;
 
-use metrology::{ALPHA, AMU, C, G, HBAR, K_B, KEV, M_E, MU_0};
+use metrology::{ALPHA, AMU, C, G, HBAR, K_B, KEV, M_E, MEV, MU_0};
 
 /// `e²/4πε₀ = αħc`, keV fm.
 pub const E2: f64 = ALPHA * HBAR * C / KEV * 1e15;
@@ -67,6 +67,13 @@ pub fn gamow_energy(z1: f64, z2: f64, mr: f64) -> f64 {
 pub fn gamow_peak(e_g: f64, kt: f64) -> (f64, f64) {
     let e0 = (e_g * kt * kt / 4.0).cbrt();
     (e0, 4.0 * (e0 * kt / 3.0).sqrt())
+}
+
+/// `log₁₀` of the Maxwell-averaged tunnelling factor `e^(−3E₀/kT)` at temperature `kt` (keV) for
+/// Gamow energy `e_g` (keV): how far a thermal plasma or arc sits from fusing. Heavy ions at arc or
+/// body temperatures give exponents in the thousands: ¹²C + ¹⁶O at 10⁴ K is 10⁻²¹⁴⁹.
+pub fn log10_thermal_tunnelling(e_g: f64, kt: f64) -> f64 {
+    -3.0 * gamow_peak(e_g, kt).0 / kt / core::f64::consts::LN_10
 }
 
 /// The reactions Bosch & Hale (1992) fit.
@@ -184,15 +191,16 @@ pub fn muon_yield(sticking: f64, cycle_rate: f64) -> f64 {
 }
 
 /// Fusions per muon needed to repay the energy `muon_cost_mev` spent making each muon
-/// (17.6 MeV per D–T fusion).
+/// ([`Q_DT`](crate::aneutronic::Q_DT), 17.59 MeV, per D–T fusion).
 pub fn muon_breakeven(muon_cost_mev: f64) -> f64 {
-    muon_cost_mev / 17.6
+    muon_cost_mev / crate::aneutronic::Q_DT
 }
 
-/// D–D reactions per second per watt, from the mean of the two branches (3.651 MeV); half of
+/// D–D reactions per second per watt, from the mean of the two branches (3.6508 MeV); half of
 /// them make a neutron.
 pub fn dd_per_watt() -> f64 {
-    1.0 / ((3.268 + 4.033) / 2.0 * 1e3 * KEV)
+    use crate::aneutronic::{Q_DDN, Q_DDP};
+    1.0 / ((Q_DDN + Q_DDP) / 2.0 * MEV)
 }
 
 /// Neutrons per second that `watts` of D–D fusion must make, and how many times more that is
@@ -205,7 +213,7 @@ pub fn dd_neutron_deficit(watts: f64, claimed: f64) -> (f64, f64) {
 /// Fusion power density (W/m³) of densities `n1`, `n2` (m⁻³) reacting at ⟨σv⟩ `sv` (m³/s) and
 /// releasing `q_mev` each; `identical` halves it for like particles (D–D).
 pub fn fusion_power(n1: f64, n2: f64, sv: f64, q_mev: f64, identical: bool) -> f64 {
-    n1 * n2 * sv * q_mev * 1e3 * KEV / if identical { 2.0 } else { 1.0 }
+    n1 * n2 * sv * q_mev * MEV / if identical { 2.0 } else { 1.0 }
 }
 
 /// Surface field (V/m), potential (V) and stored energy (J) of a charge `q` (C) on a sphere of
@@ -268,6 +276,24 @@ mod tests {
 
     fn close(a: f64, b: f64, rel: f64) -> bool {
         (a / b - 1.0).abs() < rel
+    }
+
+    #[test]
+    fn thermal_tunnelling_of_heavy_ions() {
+        // The transmutation notes' values, with AME2020 atomic masses: ¹²C + ¹⁶O −2707.5 at 5000 K
+        // and −2149.0 at 10⁴ K; ¹⁶O + ¹⁶O −2740.4 at 10⁴ K; ²⁸Si + ²⁸Si −8773 at 5000 K;
+        // ²³Na + ¹⁶O −11 397 at body temperature, 310 K.
+        let m = |z, a| crate::nuclear::nuclide(z, a).unwrap().atomic_mass_u() * AMU_KEV;
+        let kt = |t_k: f64| K_B * t_k / KEV;
+        let at = |(z1, a1): (u32, u32), (z2, a2): (u32, u32), t_k| {
+            log10_thermal_tunnelling(gamow_energy(f64::from(z1), f64::from(z2), reduced_mass(m(z1, a1), m(z2, a2))), kt(t_k))
+        };
+        for (p1, p2, t_k, want) in [((6, 12), (8, 16), 5000.0, -2707.5), ((6, 12), (8, 16), 1e4, -2149.0), ((8, 16), (8, 16), 1e4, -2740.4), ((14, 28), (14, 28), 5000.0, -8773.0), ((11, 23), (8, 16), 310.0, -11_397.0)] {
+            assert!((at(p1, p2, t_k) - want).abs() < 1.0, "{p1:?} {p2:?} {t_k}");
+        }
+        // It is −3E₀/(kT ln 10) with fusion.rs's own Gamow peak: D–T at 10 keV, E₀ = 30.9 keV.
+        let e_g = gamow_energy(1.0, 1.0, reduced_mass(M_D, M_T));
+        assert!((log10_thermal_tunnelling(e_g, 10.0) + 3.0 * gamow_peak(e_g, 10.0).0 / 10.0 / core::f64::consts::LN_10).abs() < 1e-12);
     }
 
     #[test]
