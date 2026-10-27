@@ -77,6 +77,638 @@ pub fn wormhole_edge_tension() -> f64 {
     -C.powi(4) / (8.0 * G)
 }
 
+/// The slope `f′(r)` of Alcubierre's shape function `f = [tanh σ(r + R) − tanh σ(r − R)]/(2 tanh σR)`.
+fn alcubierre_slope(r: f64, radius: f64, sigma: f64) -> f64 {
+    let sech2 = |x: f64| 1.0 / x.cosh().powi(2);
+    sigma * (sech2(sigma * (r + radius)) - sech2(sigma * (r - radius))) / (2.0 * (sigma * radius).tanh())
+}
+
+/// The energy density (J/m³) that Eulerian observers see at `point` (m from the centre, x along
+/// the motion) of Alcubierre's warp bubble of `radius` (m) and wall steepness `sigma` (m⁻¹) moving
+/// at `speed` (in units of c): `−(c⁴/32πG)v²f′²(y² + z²)/r²`, with his tanh shape function `f`
+/// ([Alcubierre 1994](https://arxiv.org/abs/gr-qc/0009013)). It is negative everywhere and
+/// deepest where the wall crosses the plane through the centre across the motion, `−(c⁴/32πG)v²σ²/4`
+/// at `r = R` for `σR ≫ 1`. [`stress_energy`] reproduces it from the metric.
+///
+/// Warp Factory's test case (v = 0.1, R = 300 m, σ = 0.015 m⁻¹) gives −6.775×10³⁵ J/m³ there,
+/// 4.0 times less than the colour bar of its figure, about −2.7×10³⁶
+/// ([Helmerich et al. 2024](https://arxiv.org/abs/2404.03095)), as if that was drawn for v = 0.2
+/// or σ = 0.03.
+///
+/// White et al. 2021 ([EPJ C 81, 677](https://doi.org/10.1140/epjc/s10052-021-09484-z)) compared
+/// the *shape* of a Casimir cavity's negative energy with a 1 µm bubble, with no correlation
+/// coefficient and no data (**speculative**). Since the density goes as `v²f′²`, a shape carries no
+/// speed; matching magnitudes instead, the cavity buys 1.7×10⁻²² m/s:
+///
+/// ```
+/// use gravitics::spacetime::{alcubierre_energy_density, casimir_energy_density};
+/// use metrology::C;
+///
+/// // A bubble 1 µm across (R = 0.5 µm, a 0.5 µm wall: σ = 4×10⁶ m⁻¹) at light speed, across its
+/// // side wall: −5.2×10⁵⁴ J/m³ at the deepest.
+/// let peak = (1..=2000).map(|k| alcubierre_energy_density(0.5e-6, 4e6, 1.0, [0.0, k as f64 * 5e-10, 0.0])).fold(0.0, f64::min);
+/// assert!((peak / -5.1677e54 - 1.0).abs() < 1e-4);
+/// // The 4 µm cavity's −1.7×10⁻⁶ J/m³ sets v² = u/peak.
+/// let speed = (casimir_energy_density(4e-6) / peak).sqrt() * C;
+/// assert!((speed / 1.7159e-22 - 1.0).abs() < 1e-4);
+/// ```
+pub fn alcubierre_energy_density(radius: f64, sigma: f64, speed: f64, point: [f64; 3]) -> f64 {
+    let [x, y, z] = point;
+    let r2 = x * x + y * y + z * z;
+    if r2 == 0.0 {
+        return 0.0;
+    }
+    -C.powi(4) / (32.0 * PI * G) * speed * speed * alcubierre_slope(r2.sqrt(), radius, sigma).powi(2) * (y * y + z * z) / r2
+}
+
+/// The total energy (as a mass, kg) of Alcubierre's bubble of `radius` (m) with his own tanh wall
+/// of steepness `sigma` (m⁻¹), moving at `speed` (in units of c): the volume integral of
+/// [`alcubierre_energy_density`], `−(v²/12)(c²/G)∫₀^∞ r²f′² dr`, by Gauss–Legendre panels a wall
+/// wide. Negative. For `σR ≫ 1` it is `−(v²/36)R²σ·c²/G`, 2/3 of [`alcubierre_energy`] under
+/// Pfenning & Ford's matching `Δ ≈ 2/σ`. Over all walls it is least, `0.6675R(v²/12)c²/G`, at
+/// `σR = 1.229`, which gives up the flat interior; [`alcubierre_minimum_energy`] keeps one.
+///
+/// White's "Warp Field Mechanics 101" (2011, [NTRS 20110015936](https://ntrs.nasa.gov/citations/20110015936))
+/// proposed seeing a "boost" of 1.0000001 over 1 cm in an interferometer. Computed both ways:
+/// - in his own model, `γ = cosh(½ln|1 − v²|)` = 1.0000001 needs v = 0.0299c, and a 0.5 cm
+///   bubble at that speed (wall ≈ radius) needs −3.4×10²⁰ kg;
+/// - in general relativity, a generous capacitor (10⁶ V/m filling a 0.1 m sphere) perturbs the
+///   metric by `2GM/(c²r)` = 3×10⁻⁴⁵, 38 orders below the target (**fringe** as a test). Lee &
+///   Cleaver 2014 ([arXiv:1407.7772](https://arxiv.org/abs/1407.7772)) reach the same verdict,
+///   though their 1.92×10⁻²³ m Schwarzschild radius is 10²¹–10²³ too large.
+///
+/// ```
+/// use gravitics::spacetime::alcubierre_tanh_energy;
+/// use metrology::{C, EPS_0, G};
+///
+/// // γ = (u + 1/u)/2 with u = √(1 − v²).
+/// let boost: f64 = 1.0 + 1e-7;
+/// let u = boost - (boost * boost - 1.0).sqrt();
+/// let v = (1.0 - u * u).sqrt();
+/// assert!((v - 0.029900).abs() < 1e-6);
+/// assert!((alcubierre_tanh_energy(0.005, 200.0, v) / -3.4340e20 - 1.0).abs() < 1e-4);
+/// // The capacitor: ε₀E²/2 = 4.4 J/m³ in a 0.1 m sphere.
+/// let mass = EPS_0 * 1e12 / 2.0 * 4.0 / 3.0 * std::f64::consts::PI * 0.1f64.powi(3) / (C * C);
+/// let perturbation = 2.0 * G * mass / (C * C * 0.1);
+/// assert!((perturbation / 3.0645e-45 - 1.0).abs() < 1e-4 && (1e-7 / perturbation).log10() > 37.5);
+/// ```
+pub fn alcubierre_tanh_energy(radius: f64, sigma: f64, speed: f64) -> f64 {
+    // f′ is below e⁻⁸⁰ of its peak beyond 40 wall widths 1/σ of the wall.
+    let (lo, hi) = ((radius - 40.0 / sigma).max(0.0), radius + 40.0 / sigma);
+    let panels = ((hi - lo) * sigma).ceil();
+    let half = 0.5 * (hi - lo) / panels;
+    let (x, w) = geopotential::gauss_legendre(16);
+    let integral: f64 = (0..panels as usize)
+        .map(|k| {
+            let mid = lo + (2 * k + 1) as f64 * half;
+            half * x.iter().zip(&w).map(|(x, w)| w * (mid + half * x).powi(2) * alcubierre_slope(mid + half * x, radius, sigma).powi(2)).sum::<f64>()
+        })
+        .sum();
+    -speed * speed / 12.0 * integral * C * C / G
+}
+
+/// The least energy (as a mass, kg) that any bubble of Alcubierre's form moving at `speed` (in
+/// units of c) needs to keep a flat interior of radius `r0` (m): `−(v²/12)r₀c²/G`. The energy is
+/// `−(v²/12)(c²/G)∫r²f′² dr` for any shape `f`, which with `f = 1` inside `r₀` and 0 far away is a
+/// sphere's electrostatic capacitance, least for `f = min(r₀/r, 1)`
+/// ([Bobrick & Martire 2021](https://arxiv.org/abs/2102.06824), appendix). A 100 m interior at
+/// light speed needs 1.122×10²⁸ kg, 5.9 Jupiter masses, and Alcubierre's own σR = 8 profile 2.68
+/// times that, their "factor of three".
+///
+/// White's 2013 chart of the exotic mass a 10 m bubble needs at 10c
+/// ([NTRS 20130011213](https://ntrs.nasa.gov/citations/20130011213)) cannot be reproduced: over all
+/// thicknesses of Alcubierre's wall the energy has a floor of 3.7×10²⁸ kg, and the chart's thick
+/// end, about 10²⁰ kg, sits 10^8.6 below it (**fringe**).
+///
+/// ```
+/// use gravitics::spacetime::{alcubierre_minimum_energy, alcubierre_tanh_energy};
+///
+/// // R = 5 m at v = 10: σR from 0.5 to 3 finds the floor at σR ≈ 1.23.
+/// let floor = (50..=300).map(|k| alcubierre_tanh_energy(5.0, k as f64 / 500.0, 10.0)).fold(f64::NEG_INFINITY, f64::max);
+/// assert!((floor / -3.7451e28 - 1.0).abs() < 1e-4 && (floor / -1e20).log10() > 8.5);
+/// // A flat 5 m interior costs more, 5.6×10²⁸ kg.
+/// assert!((alcubierre_minimum_energy(5.0, 10.0) / -5.6108e28 - 1.0).abs() < 1e-4);
+/// ```
+pub fn alcubierre_minimum_energy(r0: f64, speed: f64) -> f64 {
+    -speed * speed / 12.0 * r0 * C * C / G
+}
+
+/// `(tr K)²` and `tr K²` for the symmetric part `K` of a shift's Jacobian.
+fn shift_invariants(jacobian: [[f64; 3]; 3]) -> (f64, f64) {
+    let trace = jacobian[0][0] + jacobian[1][1] + jacobian[2][2];
+    let square = (0..9).map(|n| (0.5 * (jacobian[n / 3][n % 3] + jacobian[n % 3][n / 3])).powi(2)).sum();
+    (trace * trace, square)
+}
+
+/// The Eulerian energy density (J/m³) of a warp drive of Natário's class, flat slices and unit
+/// lapse, `ds² = −c²dt² + |dx − v c dt|²`, from the Jacobian `jacobian[i][j] = ∂v_i/∂x_j` (m⁻¹,
+/// with `v` in units of c) of its shift: `(c⁴/16πG)(K² − tr K²)`, `K` its symmetric part
+/// ([Santiago, Schuster & Visser 2022](https://arxiv.org/abs/2105.03079)). Its volume integral is
+/// `−(c⁴/32πG)∫|∇×v|² d³x ≤ 0`, so a drive without vorticity that is positive somewhere is negative
+/// elsewhere, and every superluminal drive of this class violates the null energy condition
+/// ([`shift_drive_null_sum`]).
+///
+/// The "positive-energy" drives rest on the Eulerian observer alone. Lentz 2021's positivity is
+/// disputed as a sign error ([Celmaster & Rubin 2025](https://arxiv.org/abs/2511.18251), preprint):
+/// **excluded** as to positivity. Fell & Heisenberg 2021 concede violations for other observers,
+/// and their 9.25×10⁴³ J is 5.2×10⁻⁴ of the Sun's rest energy, 3.3 orders below it rather than
+/// their "four" (**speculative**).
+pub fn shift_drive_density(jacobian: [[f64; 3]; 3]) -> f64 {
+    let (k2, square) = shift_invariants(jacobian);
+    C.powi(4) / (16.0 * PI * G) * (k2 - square)
+}
+
+/// `ρ + p̄` (J/m³), the Eulerian density plus the mean principal pressure, of the drives of
+/// [`shift_drive_density`]: `(c⁴/24πG)(−2ℒₙK + K² − 3 tr K²)`, with `K` the symmetric part of
+/// `jacobian` and `lie_trace` = `ℒₙK = (∂/∂(ct) + v·∇)(∇·v)` (m⁻²)
+/// ([Santiago, Schuster & Visser 2022](https://arxiv.org/abs/2105.03079)). It is the mean of
+/// `T(k, k)` over the null directions `k = n + e`, so where it is negative the null energy condition
+/// fails. The sign of `K` matters here: `K_ij = +∂₍ᵢv_ⱼ₎` reproduces the Einstein tensor and the
+/// opposite sign does not. At Alcubierre's side wall (v = 1, σR = 8, G = c = 1) it is −0.37136.
+pub fn shift_drive_null_sum(jacobian: [[f64; 3]; 3], lie_trace: f64) -> f64 {
+    let (k2, square) = shift_invariants(jacobian);
+    C.powi(4) / (24.0 * PI * G) * (-2.0 * lie_trace + k2 - 3.0 * square)
+}
+
+/// The surface energy density σ (J/m², negative) and surface pressure `p` (N/m, positive, a
+/// surface tension of −p) of Visser's thin-shell wormhole, two Schwarzschild exteriors of `mass`
+/// (kg) joined at `radius` (m): `σ = −(c⁴/2πGa)√(1 − 2GM/ac²)` and
+/// `p = (c⁴/4πGa)(1 − GM/ac²)/√(1 − 2GM/ac²)` ([Visser 1989](https://arxiv.org/abs/0809.0927);
+/// [Poisson & Visser 1995](https://arxiv.org/abs/gr-qc/9506083)). `σ + p < 0`, so the throat
+/// violates the null energy condition. A 1 m throat holds −2.7×10²⁷ kg, the same order as the
+/// twelve edges of Visser's 1 m cube (−2.0×10²⁷ kg, [`wormhole_edge_tension`]).
+pub fn thin_shell_wormhole(radius: f64, mass: f64) -> (f64, f64) {
+    let x = G * mass / (radius * C * C);
+    // c⁴/(2πGa) is 4a times the Morris–Thorne throat tension at a.
+    let scale = 4.0 * radius * wormhole_throat_tension(radius);
+    (-scale * (1.0 - 2.0 * x).sqrt(), 0.5 * scale * (1.0 - x) / (1.0 - 2.0 * x).sqrt())
+}
+
+/// The largest throat (m) of a Morris–Thorne wormhole (`b = r₀²/r`) that quantum fields can hold
+/// open, when the quantum inequality samples a time `f r₀/c`, a fraction `f` of the throat:
+/// `√(3/4π) l_P/f²`, 7.9×10⁻³² m at f = 0.01 ([Ford & Roman 1996](https://arxiv.org/abs/gr-qc/9510071)
+/// §IV, whose `l_P/(2f²)` rounds 3/4π). The throat's density, −[`wormhole_throat_tension`], may not
+/// fall below [`quantum_inequality`].
+pub fn wormhole_throat_bound(f: f64) -> f64 {
+    // −τ(r₀) = −τ(1 m)/r₀² against QI(f r₀/c) = QI(f/c)/r₀⁴, r₀ in metres.
+    (quantum_inequality(f / C) / -wormhole_throat_tension(1.0)).sqrt()
+}
+
+/// The thickest band (m) of exotic matter that quantum fields allow at the throat of radius `r0`
+/// (m) of Ford & Roman's "absurdly benign" wormhole, `b = r₀[1 − (r − r₀)/a₀]²` out to `r₀ + a₀`,
+/// when the quantum inequality samples a fraction `f` of the band: `(3r₀l_P²/(8πf⁴))^{1/3}`,
+/// 1.46×10⁻²¹ m for a 1 m throat at f = 0.01 ([Ford & Roman 1996](https://arxiv.org/abs/gr-qc/9510071);
+/// their "0.2 fermi" for a 1 light-year throat is 0.31 fm).
+pub fn wormhole_band_bound(r0: f64, f: f64) -> f64 {
+    // The density at the throat, b′/(8πr₀²), is 2r₀/a₀ times −τ(r₀) = −τ(1 m)/r₀².
+    (quantum_inequality(f / C) * r0 / (-2.0 * wormhole_throat_tension(1.0))).cbrt()
+}
+
+/// The most negative energy density (J/m³) a massless scalar field allows when averaged with a
+/// Gaussian weight `e^{−t²/τ²}/(√π τ)` of width `tau` (s): `−3ħc/(64π²(cτ)⁴)`, half of
+/// [`quantum_inequality`]'s Lorentzian bound. It is Fewster & Eveson's bound
+/// `−(ħ/16π²c³)∫((√w)″)² dt` for any weight `w` ([Fewster & Eveson 1998](https://arxiv.org/abs/gr-qc/9805024)),
+/// which for the Lorentzian weight gives `27/(2048π²)`, 9/64 of Ford & Roman's constant.
+pub fn quantum_inequality_gaussian(tau: f64) -> f64 {
+    0.5 * quantum_inequality(tau)
+}
+
+/// `x` moved by `dx` along coordinate `a`.
+fn nudge(x: [f64; 4], a: usize, dx: f64) -> [f64; 4] {
+    let mut y = x;
+    y[a] += dx;
+    y
+}
+
+/// The fourth-order central difference from the values at −2h, −h, h and 2h.
+fn central(v: [f64; 4], h: f64) -> f64 {
+    (8.0 * (v[2] - v[1]) - (v[3] - v[0])) / (12.0 * h)
+}
+
+/// The inverse of a symmetric 4×4 matrix, a column per right-hand side.
+fn inverse(g: [[f64; 4]; 4]) -> [[f64; 4]; 4] {
+    core::array::from_fn(|j| {
+        let rows = (0..4).map(|i| [&g[i][..], &[if i == j { 1.0 } else { 0.0 }]].concat()).collect();
+        let column = geopotential::linalg::gauss(rows);
+        core::array::from_fn(|i| column[i])
+    })
+}
+
+/// `Γ^λ_μν = ½g^λσ(∂_μg_σν + ∂_νg_σμ − ∂_σg_μν)`, indexed `[λ][μ][ν]`.
+fn christoffel(metric: &impl Fn([f64; 4]) -> [[f64; 4]; 4], x: [f64; 4], h: f64) -> [[[f64; 4]; 4]; 4] {
+    let inv = inverse(metric(x));
+    let dg: [[[f64; 4]; 4]; 4] = core::array::from_fn(|a| {
+        let v = [-2.0, -1.0, 1.0, 2.0].map(|k| metric(nudge(x, a, k * h)));
+        core::array::from_fn(|m| core::array::from_fn(|n| central(v.map(|g| g[m][n]), h)))
+    });
+    core::array::from_fn(|l| core::array::from_fn(|m| core::array::from_fn(|n| 0.5 * (0..4).map(|s| inv[l][s] * (dg[m][s][n] + dg[n][s][m] - dg[s][m][n])).sum::<f64>())))
+}
+
+/// The stress-energy `T_μν` (J/m³, coordinate components) that the spacetime `metric` needs at the
+/// event `x`: Einstein's equation `T = G/κ` (`κ = 8πG/c⁴`), with the Einstein tensor `G_μν` from
+/// nested fourth-order central differences of step `step` (m), the recipe of Warp Factory
+/// ([Helmerich et al. 2024](https://arxiv.org/abs/2404.03095)). Coordinates are in metres with
+/// `x[0] = ct`, and `metric` gives the dimensionless `g_μν` (signature −+++). [`energy_conditions`]
+/// reads it.
+///
+/// The error relative to the curvature is the truncation `(h/L)⁴`, with `L` the metric's shortest
+/// length scale, plus the rounding `10⁻¹⁶(L/h)²`, so `h ≈ 10⁻³L` leaves 10⁻¹⁰ to 10⁻⁹. A vacuum
+/// shows that residual: 3×10⁻⁹ of the curvature for Schwarzschild at `r = 3GM/c²` with
+/// `h = 10⁻³GM/c²`. It reproduces Alcubierre's density
+/// ([`alcubierre_energy_density`]) and Santiago, Schuster & Visser's `ρ + p̄`
+/// ([`shift_drive_null_sum`]) from the metric alone.
+///
+/// Everett & Roman's Krasnikov tube ([gr-qc/9702049](https://arxiv.org/abs/gr-qc/9702049)),
+/// `ds² = −dt² + (1 − k)dx dt + k dx² + dρ² + ρ²dφ²` (**speculative**) needs negative energy in
+/// its wall: their Eq. T for the static observer gives `T_tt ε² = −0.04222 c⁴/G` at n = 10,
+/// δ = 0.01, and their fit −0.04217, for the wall `k = 1 − (1 − δ/2)θ_ε(nε − ρ)` with
+/// `θ_ε(ξ) = ½{tanh[2(2ξ/ε − 1)] + 1}`:
+///
+/// ```
+/// use gravitics::spacetime::stress_energy;
+/// use metrology::{C, G};
+///
+/// // ε = 1 m; the inner edge of the wall, ρ = (n − 1)ε.
+/// let (n, delta) = (10.0, 0.01);
+/// let k = |rho: f64| 1.0 - (1.0 - delta / 2.0) * 0.5 * ((2.0 * (2.0 * (n - rho) - 1.0)).tanh() + 1.0);
+/// let tube = |x: [f64; 4]| {
+///     let k = k(x[2].hypot(x[3]));
+///     [[-1.0, (1.0 - k) / 2.0, 0.0, 0.0], [(1.0 - k) / 2.0, k, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
+/// };
+/// let t = stress_energy(tube, [0.0, 0.0, n - 1.0, 0.0], 1e-3)[0][0] * G / C.powi(4);
+/// assert!((t + 0.0422211).abs() < 1e-7 && (t / -0.04217 - 1.0).abs() < 2e-3);
+/// ```
+pub fn stress_energy(metric: impl Fn([f64; 4]) -> [[f64; 4]; 4], x: [f64; 4], step: f64) -> [[f64; 4]; 4] {
+    let gamma = christoffel(&metric, x, step);
+    // dgamma[a][λ][μ][ν] = ∂_a Γ^λ_μν.
+    let dgamma: [[[[f64; 4]; 4]; 4]; 4] = core::array::from_fn(|a| {
+        let v = [-2.0, -1.0, 1.0, 2.0].map(|k| christoffel(&metric, nudge(x, a, k * step), step));
+        core::array::from_fn(|l| core::array::from_fn(|m| core::array::from_fn(|n| central(v.map(|c| c[l][m][n]), step))))
+    });
+    // R_μν = ∂_λΓ^λ_μν − ∂_νΓ^λ_μλ + Γ^λ_λσΓ^σ_μν − Γ^λ_νσΓ^σ_μλ.
+    let ricci: [[f64; 4]; 4] = core::array::from_fn(|m| {
+        core::array::from_fn(|n| (0..4).map(|l| dgamma[l][l][m][n] - dgamma[n][l][m][l] + (0..4).map(|s| gamma[l][l][s] * gamma[s][m][n] - gamma[l][n][s] * gamma[s][m][l]).sum::<f64>()).sum())
+    });
+    let g = metric(x);
+    let inv = inverse(g);
+    let scalar: f64 = (0..16).map(|k| inv[k / 4][k % 4] * ricci[k / 4][k % 4]).sum();
+    core::array::from_fn(|m| core::array::from_fn(|n| (ricci[m][n] - 0.5 * g[m][n] * scalar) / metrology::EINSTEIN_KAPPA))
+}
+
+/// What a stress-energy tensor means for the energy conditions, from [`energy_conditions`].
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct EnergyConditions {
+    /// `T_ab` (J/m³) in the orthonormal frame of the Eulerian observer, who moves normal to the
+    /// slices of constant `x⁰`, with spatial axes from the coordinate axes by Gram–Schmidt:
+    /// `[0][0]` is the energy density that observer sees, `[i][j]` the stresses, and `[0][i]` minus
+    /// the momentum density times c.
+    pub eulerian: [[f64; 4]; 4],
+    /// The least `T_ab kᵃkᵇ` (J/m³) over the null vectors `k = (1, n)` of that frame, found exactly
+    /// as a trust-region problem in the stress's eigenbasis. The null energy condition holds where
+    /// it is ≥ 0; that sign does not depend on how `k` is scaled, its size does. Minima over
+    /// timelike observers are not given: wherever this is negative they are unbounded, growing as γ².
+    pub null: f64,
+    /// For Hawking–Ellis type I stress-energy, `[ρ, p₁, p₂, p₃]` (J/m³): the density in its rest
+    /// frame and the principal pressures in ascending order, from which the null (`ρ + p₁ ≥ 0`),
+    /// weak, strong and dominant conditions follow exactly. `None` for types II–IV (a null or a
+    /// complex eigenvector), which need [`EnergyConditions::null`] instead. Eigenvalues closer than
+    /// 10⁻⁴ of the largest component count as one, which absorbs errors in `T` up to 10⁻⁸.
+    pub type_one: Option<[f64; 4]>,
+}
+
+/// The energy conditions for the stress-energy `stress` (coordinate `T_μν`, J/m³, as from
+/// [`stress_energy`]) at an event where the metric is `metric`: the components the Eulerian
+/// observer measures, the null energy condition's minimum, and the Hawking–Ellis type I
+/// decomposition. Le 2026's warpax finds that Eulerian checks alone miss 15–28% of violations
+/// ([arXiv:2602.18023](https://arxiv.org/abs/2602.18023)); the null minimum and the eigenvalues do
+/// not depend on an observer.
+///
+/// At Alcubierre's side wall (v = 1, σR = 8, G = c = 1) the Eulerian density is −1/(2π) while the
+/// null minimum is −5/(2π), along the motion; the stress-energy is type I with rest-frame
+/// `ρ = −(√15 − 2)/(4π)` and `ρ + p₁ = −√15/(2π)`. On the wall's front and back, and on Natário's
+/// zero-expansion wall, it is type IV.
+pub fn energy_conditions(metric: [[f64; 4]; 4], stress: [[f64; 4]; 4]) -> EnergyConditions {
+    let inv = inverse(metric);
+    let dot = |u: [f64; 4], v: [f64; 4]| (0..16).map(|k| metric[k / 4][k % 4] * u[k / 4] * v[k % 4]).sum::<f64>();
+    // The Eulerian observer nᵘ = −αg^{μ0}; the coordinate axes ∂ᵢ are normal to it already.
+    let alpha = (-1.0 / inv[0][0]).sqrt();
+    let mut frame = [inv[0].map(|g| -alpha * g); 4];
+    for i in 1..4 {
+        let mut u = [0.0; 4];
+        u[i] = 1.0;
+        for e in &frame[1..i] {
+            let p = dot(u, *e);
+            u.iter_mut().zip(e).for_each(|(x, e)| *x -= p * e);
+        }
+        let norm = dot(u, u).sqrt();
+        frame[i] = u.map(|x| x / norm);
+    }
+    let eulerian = core::array::from_fn(|a| core::array::from_fn(|b| (0..16).map(|k| frame[a][k / 4] * frame[b][k % 4] * stress[k / 4][k % 4]).sum()));
+    EnergyConditions { eulerian, null: null_minimum(eulerian), type_one: hawking_ellis_type_one(eulerian) }
+}
+
+/// `min ρ + 2f·n + nᵀSn` over unit `n` for the orthonormal `T`. In the eigenbasis of `S`
+/// (eigenvalues λ, `g = Qᵀf`) the minimiser is `n = −(Λ − μ)⁻¹g` with the `μ ≤ λ_min` that makes
+/// `|n| = 1`, and the minimum is `ρ + μ − Σg²/(λ − μ)`; when `g` has no part along `λ_min` and
+/// `|n| < 1` even there (the "hard case"), `μ = λ_min`.
+fn null_minimum(t: [[f64; 4]; 4]) -> f64 {
+    let stress: Vec<f64> = (0..9).map(|k| t[k / 3 + 1][k % 3 + 1]).collect();
+    let (values, vectors) = geopotential::linalg::symmetric_eigen(&stress, 3);
+    let parts: Vec<(f64, f64)> = (0..3).map(|k| (values[k], (0..3).map(|i| vectors[i * 3 + k] * t[0][i + 1]).sum::<f64>())).filter(|p| p.1 != 0.0).collect();
+    let low = values.iter().copied().fold(f64::INFINITY, f64::min);
+    let size = parts.iter().map(|p| p.1 * p.1).sum::<f64>().sqrt();
+    // |n(μ)|² rises with μ, from at most 1 at λ_min − |g|.
+    let length = |mu: f64| parts.iter().map(|(l, g)| (g / (l - mu)).powi(2)).sum::<f64>();
+    let (mut lo, mut hi) = (low - size, low);
+    for _ in 0..200 {
+        let mid = 0.5 * (lo + hi);
+        if length(mid) > 1.0 { hi = mid } else { lo = mid }
+    }
+    t[0][0] + lo - parts.iter().map(|(l, g)| g * g / (l - lo)).sum::<f64>()
+}
+
+/// Hawking–Ellis type I: `[ρ, p₁, p₂, p₃]` from the eigenvalues of `Tᵃ_b = η^{ac}T_cb`, if they are
+/// real and one eigenspace holds a timelike eigenvector. That eigenspace is the one onto which the
+/// Eulerian observer `e₀` projects as timelike: the spectral projections `Π(M − λ_d)/(λ − λ_d)`
+/// (over the other eigenvalues) of a diagonalisable `M` are η-orthogonal and sum to the identity,
+/// so their η-norms sum to −1.
+fn hawking_ellis_type_one(t: [[f64; 4]; 4]) -> Option<[f64; 4]> {
+    let m: [[f64; 4]; 4] = core::array::from_fn(|a| t[a].map(|x| if a == 0 { -x } else { x }));
+    let scale = m.iter().flatten().fold(0.0f64, |big, x| big.max(x.abs()));
+    if scale == 0.0 {
+        return Some([0.0; 4]);
+    }
+    // Errors split a repeated eigenvalue, a defective one (types II and III) by the square root
+    // of the error, so this tolerance absorbs errors up to 10⁻⁸ of the largest component.
+    let tol = 1e-4 * scale;
+    let values = eigenvalues(m)?;
+    if values.iter().any(|v| v.1.abs() > tol) {
+        return None;
+    }
+    let mut lambda = values.map(|v| v.0);
+    lambda.sort_by(f64::total_cmp);
+    let mut bounds = vec![0];
+    bounds.extend((1..4).filter(|&k| lambda[k] - lambda[k - 1] > tol));
+    bounds.push(4);
+    let means: Vec<f64> = bounds.windows(2).map(|w| lambda[w[0]..w[1]].iter().sum::<f64>() / (w[1] - w[0]) as f64).collect();
+    let apply = |v: [f64; 4], shift: f64| -> [f64; 4] { core::array::from_fn(|a| (0..4).map(|b| m[a][b] * v[b]).sum::<f64>() - shift * v[a]) };
+    for (c, &mean) in means.iter().enumerate() {
+        let others = means.iter().enumerate().filter(|&(d, _)| d != c);
+        let v = others.clone().fold([1.0, 0.0, 0.0, 0.0], |v, (_, &shift)| apply(v, shift)).map(|x| x / others.clone().map(|(_, d)| mean - d).product::<f64>());
+        let size2: f64 = v.iter().map(|x| x * x).sum();
+        // The timelike projection has η-norm −γ² ≤ −1, the others ≥ 0 up to the errors.
+        let norm = size2 - 2.0 * v[0] * v[0];
+        if norm > -0.5 {
+            continue;
+        }
+        // A defective eigenvalue's projection is no eigenvector.
+        if apply(v, mean).iter().map(|x| x * x).sum::<f64>() > (10.0 * tol).powi(2) * size2 {
+            return None;
+        }
+        // The eigenvalue v carries, vᵀTv/vᵀηv, picks ρ out of a cluster.
+        let carried = (0..16).map(|k| t[k / 4][k % 4] * v[k / 4] * v[k % 4]).sum::<f64>() / norm;
+        let k = (bounds[c]..bounds[c + 1]).min_by(|&i, &j| (lambda[i] - carried).abs().total_cmp(&(lambda[j] - carried).abs()))?;
+        let p: Vec<f64> = (0..4).filter(|&i| i != k).map(|i| lambda[i]).collect();
+        return Some([-lambda[k], p[0], p[1], p[2]]);
+    }
+    None
+}
+
+/// The eigenvalues `(re, im)` of a real 4×4 matrix, by Householder reduction to Hessenberg form
+/// and the Francis double-shift QR iteration (EISPACK's `hqr`, as in Press et al., *Numerical
+/// Recipes*, 2nd ed., §11.6), or `None` if that does not converge. Indices run from 1, as in `hqr`.
+#[allow(clippy::needless_range_loop)]
+fn eigenvalues(matrix: [[f64; 4]; 4]) -> Option<[(f64, f64); 4]> {
+    const N: usize = 4;
+    let sign = |a: f64, b: f64| if b >= 0.0 { a.abs() } else { -a.abs() };
+    let mut a = [[0.0; N + 1]; N + 1];
+    for i in 0..N {
+        a[i + 1][1..].copy_from_slice(&matrix[i]);
+    }
+    for k in 1..=N - 2 {
+        let norm = (k + 1..=N).map(|i| a[i][k] * a[i][k]).sum::<f64>().sqrt();
+        if norm == 0.0 {
+            continue;
+        }
+        let mut v = [0.0; N + 1];
+        v[k + 1] = a[k + 1][k] + sign(norm, a[k + 1][k]);
+        for i in k + 2..=N {
+            v[i] = a[i][k];
+        }
+        let vv: f64 = v.iter().map(|x| x * x).sum();
+        for j in 1..=N {
+            let s = 2.0 * (k + 1..=N).map(|i| v[i] * a[i][j]).sum::<f64>() / vv;
+            for i in k + 1..=N {
+                a[i][j] -= s * v[i];
+            }
+        }
+        for i in 1..=N {
+            let s = 2.0 * (k + 1..=N).map(|j| a[i][j] * v[j]).sum::<f64>() / vv;
+            for j in k + 1..=N {
+                a[i][j] -= s * v[j];
+            }
+        }
+    }
+    for i in 3..=N {
+        for j in 1..=i - 2 {
+            a[i][j] = 0.0;
+        }
+    }
+    let (mut wr, mut wi) = ([0.0; N + 1], [0.0; N + 1]);
+    let mut anorm = 0.0;
+    for i in 1..=N {
+        for j in (i - 1).max(1)..=N {
+            anorm += a[i][j].abs();
+        }
+    }
+    let mut nn = N;
+    let mut t = 0.0;
+    while nn >= 1 {
+        let mut its = 0;
+        loop {
+            let mut l = nn;
+            while l >= 2 {
+                let mut s = a[l - 1][l - 1].abs() + a[l][l].abs();
+                if s == 0.0 {
+                    s = anorm;
+                }
+                if a[l][l - 1].abs() + s == s {
+                    a[l][l - 1] = 0.0;
+                    break;
+                }
+                l -= 1;
+            }
+            let mut x = a[nn][nn];
+            if l == nn {
+                wr[nn] = x + t;
+                wi[nn] = 0.0;
+                nn -= 1;
+                break;
+            }
+            let mut y = a[nn - 1][nn - 1];
+            let mut w = a[nn][nn - 1] * a[nn - 1][nn];
+            if l == nn - 1 {
+                let p = 0.5 * (y - x);
+                let q = p * p + w;
+                let z = q.abs().sqrt();
+                x += t;
+                if q >= 0.0 {
+                    let z = p + sign(z, p);
+                    wr[nn - 1] = x + z;
+                    wr[nn] = if z != 0.0 { x - w / z } else { x + z };
+                    wi[nn - 1] = 0.0;
+                    wi[nn] = 0.0;
+                } else {
+                    wr[nn - 1] = x + p;
+                    wr[nn] = x + p;
+                    wi[nn - 1] = -z;
+                    wi[nn] = z;
+                }
+                nn -= 2;
+                break;
+            }
+            if its == 30 {
+                return None;
+            }
+            if its == 10 || its == 20 {
+                t += x;
+                for i in 1..=nn {
+                    a[i][i] -= x;
+                }
+                let s = a[nn][nn - 1].abs() + a[nn - 1][nn - 2].abs();
+                x = 0.75 * s;
+                y = x;
+                w = -0.4375 * s * s;
+            }
+            its += 1;
+            let mut m = nn - 2;
+            let (mut p, mut q, mut r, mut z);
+            loop {
+                z = a[m][m];
+                r = x - z;
+                let s = y - z;
+                p = (r * s - w) / a[m + 1][m] + a[m][m + 1];
+                q = a[m + 1][m + 1] - z - r - s;
+                r = a[m + 2][m + 1];
+                let s = p.abs() + q.abs() + r.abs();
+                p /= s;
+                q /= s;
+                r /= s;
+                if m == l {
+                    break;
+                }
+                let u = a[m][m - 1].abs() * (q.abs() + r.abs());
+                let v = p.abs() * (a[m - 1][m - 1].abs() + z.abs() + a[m + 1][m + 1].abs());
+                if u + v == v {
+                    break;
+                }
+                m -= 1;
+            }
+            for i in m + 2..=nn {
+                a[i][i - 2] = 0.0;
+                if i != m + 2 {
+                    a[i][i - 3] = 0.0;
+                }
+            }
+            for k in m..nn {
+                if k != m {
+                    p = a[k][k - 1];
+                    q = a[k + 1][k - 1];
+                    r = if k != nn - 1 { a[k + 2][k - 1] } else { 0.0 };
+                    x = p.abs() + q.abs() + r.abs();
+                    if x != 0.0 {
+                        p /= x;
+                        q /= x;
+                        r /= x;
+                    }
+                }
+                let s = sign((p * p + q * q + r * r).sqrt(), p);
+                if s == 0.0 {
+                    continue;
+                }
+                if k == m {
+                    if l != m {
+                        a[k][k - 1] = -a[k][k - 1];
+                    }
+                } else {
+                    a[k][k - 1] = -s * x;
+                }
+                p += s;
+                x = p / s;
+                y = q / s;
+                z = r / s;
+                q /= p;
+                r /= p;
+                for j in k..=nn {
+                    p = a[k][j] + q * a[k + 1][j];
+                    if k != nn - 1 {
+                        p += r * a[k + 2][j];
+                        a[k + 2][j] -= p * z;
+                    }
+                    a[k + 1][j] -= p * y;
+                    a[k][j] -= p * x;
+                }
+                for i in l..=nn.min(k + 3) {
+                    p = x * a[i][k] + y * a[i][k + 1];
+                    if k != nn - 1 {
+                        p += z * a[i][k + 2];
+                        a[i][k + 2] -= p * r;
+                    }
+                    a[i][k + 1] -= p * q;
+                    a[i][k] -= p;
+                }
+            }
+        }
+    }
+    Some(core::array::from_fn(|i| (wr[i + 1], wi[i + 1])))
+}
+
+/// The Regge–Wheeler potential `V` (units of `(c²/GM)²`) of a test field of spin `s` (0, 1 or 2)
+/// and multipole `l` on the static `metric`, at radius `r` (units of `GM/c²`), each metric in its
+/// own radius as in [`exact_deflection`]. The field obeys `∂²ψ/∂t² = ∂²ψ/∂r*² − Vψ`.
+/// - Schwarzschild, areal `r`: `V = (1 − 2/r)[ℓ(ℓ + 1)/r² + 2(1 − s²)/r³]`, with `dr* = dr/(1 − 2/r)`
+///   (Regge & Wheeler 1957 for `s = 2`).
+/// - Puthoff's isotropic `r`: `V = e^{−4/r}[ℓ(ℓ + 1) + (s² − 1)((1 − 1/r)² − 1)]/r²`, with
+///   `dr* = e^{2/r}dr` ([Boonserm et al. 2018](https://arxiv.org/abs/1805.03781) §8). This puts
+///   general relativity's perturbation equations on the exponential geometry, their "inverse
+///   Cowling approximation"; PV theory itself radiates a single scalar (**speculative**).
+///
+/// Each is a single barrier, so neither has echoes. For `ℓ = s = 2` it peaks at 0.15129 at
+/// `r = (9 + √17)/4` = 3.2808 (GR) and at 0.13188 at isotropic `r = 2.4376` (PV); for spin 1 it
+/// is the photon's, peaking at the photon sphere at `ℓ(ℓ + 1)/b_c²`. Evolving `ψ` in time and
+/// fitting its ringing gives `Mω = 0.3448 − 0.0851i` on the PV geometry, against Schwarzschild's
+/// 0.3737 − 0.0890i ([Berti, Cardoso & Starinets 2009](https://arxiv.org/abs/0905.2975)), 7.7% lower.
+pub fn regge_wheeler(metric: Metric, s: u32, l: u32, r: f64) -> f64 {
+    let (ell, spin) = (f64::from(l * (l + 1)), f64::from(s * s));
+    match metric {
+        Metric::GeneralRelativity => (1.0 - 2.0 / r) * (ell / (r * r) + 2.0 * (1.0 - spin) / r.powi(3)),
+        Metric::PolarizableVacuum => (-4.0 / r).exp() * (ell + (spin - 1.0) * ((1.0 - 1.0 / r).powi(2) - 1.0)) / (r * r),
+    }
+}
+
+/// The dielectric function `K` of Puthoff's polarizable vacuum around a static `mass` (kg) of
+/// `charge` (C), at isotropic radius `r` (m), with `g₀₀ = 1/K`: `√K = cosh(k/r) + (a/k)sinh(k/r)`
+/// with `a = GM/c²`, `b² = GQ²/(4πε₀c⁴)` and `k = √(a² − b²)`, or the cos and sin of
+/// `k = √(b² − a²)` when `b > a` ([Puthoff 2002](https://arxiv.org/abs/gr-qc/9909037), eq. 65)
+/// (**speculative**). It matches Reissner–Nordström to second order,
+/// `g₀₀ = 1 − 2x + (2 + b²/a²)x²` with `x = a/r`. `K` drops below 1, the faster clocks Puthoff's
+/// craft needs, only when `Q/M` exceeds [`crate::gem::extremal_charge_to_mass`] (`b > a`): inside
+/// `r = 1.654a` for `b = 2a`, where the solution ends at `√K = 0`, `r = 0.827a`.
+pub fn charged_pv_dielectric(mass: f64, charge: f64, r: f64) -> f64 {
+    let a = G * mass / (C * C);
+    let b2 = G * charge * charge / (4.0 * PI * metrology::EPS_0 * C.powi(4));
+    // (k/r)², negative when b > a.
+    let q = (a * a - b2) / (r * r);
+    let (even, odd) = if q > 0.0 {
+        (q.sqrt().cosh(), q.sqrt().sinh() / q.sqrt())
+    } else if q < 0.0 {
+        ((-q).sqrt().cos(), (-q).sqrt().sin() / (-q).sqrt())
+    } else {
+        (1.0, 1.0)
+    };
+    (even + a / r * odd).powi(2)
+}
+
 /// Temperature (K) of a horizon of surface gravity `kappa` (s⁻¹): `ħκ/(2πk_B)`. With κ = a/c it is
 /// the Unruh temperature, with c³/(4GM) Hawking's, with the Hubble rate Gibbons–Hawking's.
 ///
@@ -1266,5 +1898,441 @@ mod tests {
             assert!((-alpha[0] / uas - plane).abs() < 1e-6 && (alpha[2] / uas - north).abs() < 1e-6, "b = {scale}R");
         }
         assert!((DUR2020_GM / (C * C * DUR2020_RADIUS) * 4.0 * j(4) / uas + 9.5426).abs() < 1e-4);
+    }
+}
+
+#[cfg(test)]
+mod warp_tests {
+    use super::*;
+    use metrology::{EINSTEIN_KAPPA, HBAR, SOLAR_MASS, YEAR};
+
+    fn close(a: f64, b: f64, rel: f64) -> bool {
+        (a / b - 1.0).abs() < rel
+    }
+
+    /// J/m³ to G = c = 1 with lengths in metres: G/c⁴.
+    const GEOMETRIC: f64 = EINSTEIN_KAPPA / (8.0 * PI);
+
+    /// The shape function of Alcubierre's tanh wall.
+    fn alcubierre_shape(r: f64, radius: f64, sigma: f64) -> f64 {
+        ((sigma * (r + radius)).tanh() - (sigma * (r - radius)).tanh()) / (2.0 * (sigma * radius).tanh())
+    }
+
+    /// Alcubierre's shift `v = (v f(r_s), 0, 0)` at the event `x = (ct, x, y, z)`, the bubble
+    /// centred at `x = v ct`.
+    fn alcubierre_shift(v: f64, radius: f64, sigma: f64, x: [f64; 4]) -> [f64; 3] {
+        let r = ((x[1] - v * x[0]).powi(2) + x[2] * x[2] + x[3] * x[3]).sqrt();
+        [v * alcubierre_shape(r, radius, sigma), 0.0, 0.0]
+    }
+
+    /// Natário's zero-expansion shift along x: `−2vf cosθ e_r + v(2f + rf′) sinθ e_θ`, with
+    /// `f = (1 − f_Alcubierre)/2` (gr-qc/0110086).
+    fn natario_shift(v: f64, radius: f64, sigma: f64, x: [f64; 4]) -> [f64; 3] {
+        let [_, x, y, z] = x;
+        let (r, rho) = ((x * x + y * y + z * z).sqrt(), y.hypot(z));
+        let (f, slope) = (0.5 * (1.0 - alcubierre_shape(r, radius, sigma)), -0.5 * alcubierre_slope(r, radius, sigma));
+        let (c, s) = (x / r, rho / r);
+        let (radial, polar) = ([x / r, y / r, z / r], [-s, c * y / rho, c * z / rho]);
+        core::array::from_fn(|i| -2.0 * v * f * c * radial[i] + v * (2.0 * f + r * slope) * s * polar[i])
+    }
+
+    /// The metric `−dt² + |dx − v dt|²` of a shift `v` (Santiago, Schuster & Visser's convention).
+    fn shift_metric(v: [f64; 3]) -> [[f64; 4]; 4] {
+        core::array::from_fn(|a| {
+            core::array::from_fn(|b| match (a, b) {
+                (0, 0) => -1.0 + v[0] * v[0] + v[1] * v[1] + v[2] * v[2],
+                (0, i) | (i, 0) => -v[i - 1],
+                (i, j) => f64::from(u8::from(i == j)),
+            })
+        })
+    }
+
+    /// The Jacobian `∂v_i/∂x_j` of a shift and `ℒₙ(∇·v) = (∂₀ + v·∇)(∇·v)`, by nested central differences.
+    fn shift_derivatives(shift: &impl Fn([f64; 4]) -> [f64; 3], x: [f64; 4], h: f64) -> ([[f64; 3]; 3], f64) {
+        let jacobian = |y: [f64; 4]| -> [[f64; 3]; 3] { core::array::from_fn(|i| core::array::from_fn(|j| central([-2.0, -1.0, 1.0, 2.0].map(|k| shift(nudge(y, j + 1, k * h))[i]), h))) };
+        let divergence = |y: [f64; 4]| {
+            let j = jacobian(y);
+            j[0][0] + j[1][1] + j[2][2]
+        };
+        let v = shift(x);
+        let lie = (0..4).map(|a| if a == 0 { 1.0 } else { v[a - 1] } * central([-2.0, -1.0, 1.0, 2.0].map(|k| divergence(nudge(x, a, k * h))), h)).sum();
+        (jacobian(x), lie)
+    }
+
+    /// The energy conditions of a metric at `x`, in G = c = 1.
+    fn conditions(metric: impl Fn([f64; 4]) -> [[f64; 4]; 4], x: [f64; 4], h: f64) -> EnergyConditions {
+        let c = energy_conditions(metric(x), stress_energy(&metric, x, h));
+        EnergyConditions {
+            eulerian: c.eulerian.map(|row| row.map(|t| t * GEOMETRIC)),
+            null: c.null * GEOMETRIC,
+            type_one: c.type_one.map(|t| t.map(|t| t * GEOMETRIC)),
+        }
+    }
+
+    #[test]
+    fn alcubierre_density_and_the_capacitance_floor() {
+        // At the side wall (0, R, 0) with σR = 8 and v = 1: −1/(2π), since f′(R) = −σ/2 up to
+        // tanh 8 = 1 − 2.3×10⁻⁷ (exactly −tanh⁴16/(2π tanh²8)).
+        let side = alcubierre_energy_density(1.0, 8.0, 1.0, [0.0, 1.0, 0.0]) * GEOMETRIC;
+        assert!(close(side, -1.0 / (2.0 * PI), 4.6e-7) && !close(side, -1.0 / (2.0 * PI), 4.4e-7));
+        assert!(close(side, -16f64.tanh().powi(4) / (2.0 * PI * 8f64.tanh().powi(2)), 1e-14));
+        // Warp Factory's case: −6.7751×10³⁵ J/m³ at (0, 300 m, 0). Zero on the axis and at the centre.
+        assert!(close(alcubierre_energy_density(300.0, 0.015, 0.1, [0.0, 300.0, 0.0]), -6.7751e35, 1e-4));
+        assert!(alcubierre_energy_density(1.0, 8.0, 1.0, [0.0; 3]) == 0.0 && alcubierre_energy_density(1.0, 8.0, 1.0, [1.0, 0.0, 0.0]) == 0.0);
+        // Bobrick & Martire's floor for a 100 m interior at light speed: 1.122×10²⁸ kg, 5.9 M_J.
+        assert!(close(alcubierre_minimum_energy(100.0, 1.0), -1.122_16e28, 1e-5));
+        assert!(close(alcubierre_minimum_energy(100.0, 1.0) / -1.898_13e27, 5.912, 1e-3));
+    }
+
+    #[test]
+    fn alcubierre_total_energy_of_the_tanh_wall() {
+        // The density's volume integral, with ∫sin²θ dΩ = 8π/3, by panels of its own.
+        let (x, w) = geopotential::gauss_legendre(32);
+        let radial: f64 = (0..300)
+            .map(|k| {
+                x.iter()
+                    .zip(&w)
+                    .map(|(x, w)| {
+                        let r = 0.02 * (k as f64 + 0.5 + 0.5 * x);
+                        0.01 * w * r * r * alcubierre_energy_density(1.0, 8.0, 1.0, [0.0, r, 0.0])
+                    })
+                    .sum::<f64>()
+            })
+            .sum();
+        let total = alcubierre_tanh_energy(1.0, 8.0, 1.0);
+        assert!(close(8.0 * PI / 3.0 * radial / (C * C), total, 1e-12));
+        // Alcubierre's σR = 8 profile needs 2.680104 times the capacitance floor (BM's "factor of three").
+        assert!(close(total / alcubierre_minimum_energy(1.0, 1.0), 2.680_104, 1e-6));
+        // Thin walls: −(v²/36)R²σ c²/G (0.3762 M☉ at R = 100 m, σ = 2 m⁻¹, up to 8×10⁻⁶), 2/3 of
+        // Pfenning & Ford's Eq. 28 with their Δ = (1 + tanh²σR)²/(2σ tanh σR), and 1/36 of Lobo & Visser's "−v²R²σ".
+        let thin = alcubierre_tanh_energy(100.0, 2.0, 1.0);
+        assert!(close(thin / (-1e4 * 2.0 / 36.0 * C * C / G), 1.000_008_06, 1e-8));
+        assert!(close(thin / -SOLAR_MASS, 0.3762, 1e-4));
+        let delta = (1.0 + 200f64.tanh().powi(2)).powi(2) / (2.0 * 2.0 * 200f64.tanh());
+        assert!((thin / alcubierre_energy(100.0, delta, 1.0) - 2.0 / 3.0).abs() < 1e-6);
+        assert!(close(-1e4 * 20.0 * C * C / G / alcubierre_tanh_energy(100.0, 20.0, 1.0), 36.0, 1e-6));
+        // Over all walls the least is 0.667477 R (v²/12)c²/G at σR = 1.2290.
+        let (best, at) = (1000..=1500).map(|k| (alcubierre_tanh_energy(1.0, k as f64 / 1000.0, 1.0), k as f64 / 1000.0)).fold((f64::NEG_INFINITY, 0.0), |a, b| if b.0 > a.0 { b } else { a });
+        assert!(close(best / alcubierre_minimum_energy(1.0, 1.0), 0.667_477, 1e-6) && (at - 1.229).abs() < 1.5e-3);
+    }
+
+    #[test]
+    fn shift_drives_at_alcubierre_and_natario_walls() {
+        // Alcubierre's side wall, v = 1, R = 1, σ = 8: ρ = −1/(2π) and ρ + p̄ = −7/(6π) = −0.37136,
+        // both up to tanh 8 = 1 − 2.3×10⁻⁷. Analytically ∂v_x/∂y = vf′(R) and ℒₙK = v²(f − 1)f′/R there.
+        let shift = |x: [f64; 4]| alcubierre_shift(1.0, 1.0, 8.0, x);
+        let wall = [0.0, 0.0, 1.0, 0.0];
+        let (jacobian, lie) = shift_derivatives(&shift, wall, 1e-3);
+        let (f, slope) = (alcubierre_shape(1.0, 1.0, 8.0), alcubierre_slope(1.0, 1.0, 8.0));
+        assert!((jacobian[0][1] - slope).abs() < 1e-8 && (lie - (f - 1.0) * slope).abs() < 1e-7);
+        assert!(jacobian.iter().flatten().filter(|j| j.abs() > 1e-9).count() == 1);
+        let rho = shift_drive_density(jacobian) * GEOMETRIC;
+        let null = shift_drive_null_sum(jacobian, lie) * GEOMETRIC;
+        // Fourth-order differences of step h leave (hσ)⁴ = 4×10⁻⁹ in the slope.
+        assert!((rho - alcubierre_energy_density(1.0, 8.0, 1.0, [0.0, 1.0, 0.0]) * GEOMETRIC).abs() < 1e-8);
+        assert!(close(null, -7.0 / (6.0 * PI), 1e-6) && (null + 0.37136).abs() < 5e-6);
+        // The other sign of K gives −0.26526, which the Einstein tensor contradicts (below).
+        assert!((shift_drive_null_sum(jacobian.map(|r| r.map(|j| -j)), -lie) * GEOMETRIC + 0.26526).abs() < 5e-6);
+        // Natário (v = 1, R = 1, σ = 4) at (0.6, 0.85, 0): −0.0405272, his
+        // −(v²/8π)[3f′²cos²θ + (f′ + rf″/2)²sin²θ], with no expansion.
+        let shift = |x: [f64; 4]| natario_shift(1.0, 1.0, 4.0, x);
+        let point = [0.0, 0.6, 0.85, 0.0];
+        let (jacobian, _) = shift_derivatives(&shift, point, 1e-3);
+        let r = 0.6f64.hypot(0.85);
+        let slope = -0.5 * alcubierre_slope(r, 1.0, 4.0);
+        let curve = -0.5 * (alcubierre_slope(r + 1e-4, 1.0, 4.0) - alcubierre_slope(r - 1e-4, 1.0, 4.0)) / 2e-4;
+        let cos2 = 0.36 / (r * r);
+        let natario = -1.0 / (8.0 * PI) * (3.0 * slope * slope * cos2 + (slope + r * curve / 2.0).powi(2) * (1.0 - cos2));
+        let rho = shift_drive_density(jacobian) * GEOMETRIC;
+        assert!(close(rho, natario, 1e-7) && (rho + 0.040_527_2).abs() < 1e-7);
+        assert!((jacobian[0][0] + jacobian[1][1] + jacobian[2][2]).abs() < 1e-9);
+    }
+
+    #[test]
+    fn wormhole_shells_and_quantum_inequality_bounds() {
+        // A 1 m shell around nothing: −1.926×10⁴³ J/m², −2.693×10²⁷ kg in all, pressure +c⁴/(4πG).
+        let (sigma, p) = thin_shell_wormhole(1.0, 0.0);
+        assert!(close(sigma, -1.926_18e43, 1e-5) && close(4.0 * PI * sigma / (C * C), -2.693_18e27, 1e-5));
+        assert!(close(p, 9.630_91e42, 1e-5) && sigma + p < 0.0);
+        assert!(close(4.0 * PI * thin_shell_wormhole(1.0, 0.1 * C * C / G).0 / (C * C), -2.408_85e27, 1e-5));
+        // Static shells keep σ′ = −(2/a)(σ + p) (Poisson & Visser), here at a = 4GM/c².
+        let mass = C * C / G;
+        let h = 1e-4;
+        let slope = (thin_shell_wormhole(4.0 + h, mass).0 - thin_shell_wormhole(4.0 - h, mass).0) / (2.0 * h);
+        let (sigma, p) = thin_shell_wormhole(4.0, mass);
+        assert!(close(slope, -0.5 * (sigma + p), 1e-8));
+        // Ford & Roman's bounds at f = 0.01, against the closed forms in l_P = √(ħG/c³).
+        let planck = (HBAR * G / C.powi(3)).sqrt();
+        assert!(close(wormhole_throat_bound(0.01), 7.8971e-32, 1e-4) && close(wormhole_throat_bound(0.01), (0.75 / PI).sqrt() * planck / 1e-4, 1e-13));
+        let band = |r0: f64| (3.0 * r0 * planck * planck / (8.0 * PI * 1e-8)).cbrt();
+        assert!(close(wormhole_band_bound(1.0, 0.01), 1.460_94e-21, 1e-5) && close(wormhole_band_bound(1.0, 0.01), band(1.0), 1e-13));
+        // FR's "0.2 fermi" for a light-year throat is 0.31 fm; 1.43×10⁻¹⁴ m for 10⁵ ly.
+        assert!(close(wormhole_band_bound(C * YEAR, 0.01), 3.0899e-16, 1e-4) && close(wormhole_band_bound(1e5 * C * YEAR, 0.01), 1.4342e-14, 1e-4));
+        // The Gaussian bound at 1 ns: −1.859×10⁻²⁶ J/m³. Fewster & Eveson's (1/16π²)∫((√w)″)² by
+        // quadrature: 3/(64π²) for the Gaussian, half of Ford & Roman's 3/(32π²), and 27/(2048π²),
+        // 9/64 of it, for the Lorentzian (t = tan θ).
+        assert!(close(quantum_inequality_gaussian(1e-9), -1.858_90e-26, 1e-5));
+        let (x, w) = geopotential::gauss_legendre(64);
+        let gauss = (0..24)
+            .map(|k| {
+                x.iter()
+                    .zip(&w)
+                    .map(|(x, w)| {
+                        let t = -12.0 + k as f64 + 0.5 + 0.5 * x;
+                        0.5 * w * ((t * t - 1.0) * (-t * t / 2.0).exp()).powi(2)
+                    })
+                    .sum::<f64>()
+            })
+            .sum::<f64>()
+            / PI.sqrt();
+        let lorentz = x
+            .iter()
+            .zip(&w)
+            .map(|(x, w)| {
+                let (s, c) = (PI / 2.0 * x).sin_cos();
+                PI / 2.0 * w * (2.0 * s * s - c * c).powi(2) * c.powi(4)
+            })
+            .sum::<f64>()
+            / PI;
+        let ford_roman = 3.0 / (32.0 * PI * PI);
+        assert!(close(gauss / (16.0 * PI * PI) / ford_roman, quantum_inequality_gaussian(1.0) / quantum_inequality(1.0), 1e-13));
+        assert!(close(lorentz / (16.0 * PI * PI) / ford_roman, 9.0 / 64.0, 1e-13));
+    }
+
+    #[test]
+    fn eigenvalues_of_general_four_by_four_matrices() {
+        // B = [[2, −3], [3, 2]] ⊕ [[1, 5], [0, −4]] turned by a reflection Q = I − 2uuᵀ: 2 ± 3i, 1, −4.
+        let u = [0.5, -0.5, 0.1, 0.7];
+        let q: [[f64; 4]; 4] = core::array::from_fn(|i| core::array::from_fn(|j| if i == j { 1.0 } else { 0.0 } - 2.0 * u[i] * u[j]));
+        let b = [[2.0, -3.0, 0.0, 0.0], [3.0, 2.0, 0.0, 0.0], [0.0, 0.0, 1.0, 5.0], [0.0, 0.0, 0.0, -4.0]];
+        let m: [[f64; 4]; 4] = core::array::from_fn(|i| core::array::from_fn(|j| (0..16).map(|k| q[i][k / 4] * b[k / 4][k % 4] * q[j][k % 4]).sum()));
+        let mut values = eigenvalues(m).unwrap();
+        values.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.total_cmp(&b.1)));
+        for (got, want) in values.iter().zip([(-4.0, 0.0), (1.0, 0.0), (2.0, -3.0), (2.0, 3.0)]) {
+            assert!((got.0 - want.0).abs() < 1e-13 && (got.1 - want.1).abs() < 1e-13, "{values:?}");
+        }
+        // A matrix already triangular, and the zero matrix.
+        let mut values = eigenvalues([[3.0, 1.0, 4.0, 1.0], [0.0, -5.0, 9.0, 2.0], [0.0, 0.0, 6.0, 5.0], [0.0, 0.0, 0.0, 0.5]]).unwrap().map(|v| v.0);
+        values.sort_by(f64::total_cmp);
+        assert_eq!(values, [-5.0, 0.5, 3.0, 6.0]);
+        assert_eq!(eigenvalues([[0.0; 4]; 4]).unwrap(), [(0.0, 0.0); 4]);
+    }
+
+    #[test]
+    fn hawking_ellis_types_of_known_stress_energy() {
+        // An anisotropic fluid ρ = 1, p = (−3, 0.5, 2), boosted by β = 0.5 along (1, 2, 2)/3: type I,
+        // and the null condition fails (ρ + p₁ = −2).
+        let n = [1.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0];
+        let (beta, gamma) = (0.5, 1.0 / 0.75f64.sqrt());
+        let boost: [[f64; 4]; 4] = core::array::from_fn(|a| {
+            core::array::from_fn(|b| match (a, b) {
+                (0, 0) => gamma,
+                (0, i) | (i, 0) => gamma * beta * n[i - 1],
+                (i, j) => f64::from(u8::from(i == j)) + (gamma - 1.0) * n[i - 1] * n[j - 1],
+            })
+        });
+        let rest = [1.0, -3.0, 0.5, 2.0];
+        let t: [[f64; 4]; 4] = core::array::from_fn(|a| core::array::from_fn(|b| (0..4).map(|c| boost[c][a] * rest[c] * boost[c][b]).sum()));
+        let found = hawking_ellis_type_one(t).unwrap();
+        assert!(found.iter().zip(rest).all(|(a, b)| (a - b).abs() < 1e-12), "{found:?}");
+        assert!(null_minimum(t) < 0.0);
+        // Vacuum energy T = Λ·diag(1, −1, −1, −1): ρ = Λ, p = −Λ, all degenerate.
+        assert_eq!(hawking_ellis_type_one([[2.0, 0.0, 0.0, 0.0], [0.0, -2.0, 0.0, 0.0], [0.0, 0.0, -2.0, 0.0], [0.0, 0.0, 0.0, -2.0]]), Some([2.0, -2.0, -2.0, -2.0]));
+        // Null dust T = k_a k_b, k = (1, 0.6, 0.8, 0): type II, and the null condition holds at 0.
+        let k = [-1.0, 0.6, 0.8, 0.0];
+        let dust: [[f64; 4]; 4] = core::array::from_fn(|a| core::array::from_fn(|b| k[a] * k[b]));
+        assert!(hawking_ellis_type_one(dust).is_none() && null_minimum(dust).abs() < 1e-15);
+        // A flux larger than (ρ + p)/2: complex eigenvalues ±i, type IV.
+        assert!(hawking_ellis_type_one([[0.0, 1.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]]).is_none());
+        // The exact null minimum against a fine sampling of directions.
+        let t = [[0.3, -0.4, 0.2, 0.1], [-0.4, 1.0, 0.3, -0.2], [0.2, 0.3, -0.5, 0.6], [0.1, -0.2, 0.6, 0.2]];
+        let sampled = (0..400 * 400)
+            .map(|k| {
+                let (z, phi) = (-1.0 + (k / 400) as f64 / 199.5, PI * (k % 400) as f64 / 200.0);
+                let s = (1.0 - z * z).max(0.0).sqrt();
+                let e = [s * phi.cos(), s * phi.sin(), z];
+                t[0][0] + 2.0 * (0..3).map(|i| t[0][i + 1] * e[i]).sum::<f64>() + (0..9).map(|i| t[i / 3 + 1][i % 3 + 1] * e[i / 3] * e[i % 3]).sum::<f64>()
+            })
+            .fold(f64::INFINITY, f64::min);
+        let exact = null_minimum(t);
+        assert!(exact <= sampled && sampled - exact < 1e-3, "{exact} {sampled}");
+    }
+
+    #[test]
+    fn stress_energy_of_flat_space_and_of_schwarzschild() {
+        // Minkowski exactly, and in Rindler's accelerated coordinates (a = 1 m⁻¹): no stress.
+        let flat = stress_energy(|_| [[-1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]], [0.3, 1.0, -2.0, 0.5], 1e-3);
+        assert_eq!(flat, [[0.0; 4]; 4]);
+        let rindler = |x: [f64; 4]| [[-(1.0 + x[1]).powi(2), 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]];
+        let t = conditions(rindler, [0.0, 0.5, 0.0, 0.0], 1e-3);
+        assert!(t.eulerian.iter().flatten().all(|t| t.abs() < 1e-11) && t.null.abs() < 1e-11);
+        // Schwarzschild in isotropic coordinates, GM/c² = 1 m, at r = 3 m and 6 m: a residual of
+        // order the rounding 10⁻¹⁶/h², against curvature 1/r².
+        let schwarzschild = |x: [f64; 4]| {
+            let a = 0.5 / (x[1] * x[1] + x[2] * x[2] + x[3] * x[3]).sqrt();
+            let s = (1.0 + a).powi(4);
+            [[-((1.0 - a) / (1.0 + a)).powi(2), 0.0, 0.0, 0.0], [0.0, s, 0.0, 0.0], [0.0, 0.0, s, 0.0], [0.0, 0.0, 0.0, s]]
+        };
+        for r in [3.0, 6.0] {
+            let t = conditions(schwarzschild, [0.0, r / 3f64.sqrt(), r / 3f64.sqrt(), r / 3f64.sqrt()], 1e-3);
+            assert!(t.eulerian.iter().flatten().all(|t| t.abs() < 1e-10), "{:?}", t.eulerian);
+        }
+    }
+
+    #[test]
+    fn energy_conditions_of_warp_drives_from_their_metrics() {
+        // Alcubierre (v = 1, R = 1, σ = 8) at the side wall (0, R, 0), t = 0: the density, ρ + p̄ of
+        // Santiago, Schuster & Visser, the null minimum −5/(2π) along the motion, and type I with
+        // ρ = −(√15 − 2)/(4π), p = (−(2 + √15), −3, 1)/(4π): closed forms up to tanh 8 = 1 − 2.3×10⁻⁷.
+        let alcubierre = |x: [f64; 4]| shift_metric(alcubierre_shift(1.0, 1.0, 8.0, x));
+        let c = conditions(alcubierre, [0.0, 0.0, 1.0, 0.0], 1e-3);
+        let rho = c.eulerian[0][0];
+        // Against the closed form, to the truncation (hσ)⁴ = 4×10⁻⁹ (of a curvature of order 1).
+        assert!((rho - alcubierre_energy_density(1.0, 8.0, 1.0, [0.0, 1.0, 0.0]) * GEOMETRIC).abs() < 1e-8);
+        let (jacobian, lie) = shift_derivatives(&|x| alcubierre_shift(1.0, 1.0, 8.0, x), [0.0, 0.0, 1.0, 0.0], 1e-3);
+        let mean = rho + (c.eulerian[1][1] + c.eulerian[2][2] + c.eulerian[3][3]) / 3.0;
+        assert!(close(mean, shift_drive_null_sum(jacobian, lie) * GEOMETRIC, 1e-7) && (mean + 0.37136).abs() < 5e-6);
+        assert!(close(c.null, -5.0 / (2.0 * PI), 1e-6));
+        let root = 15f64.sqrt();
+        let want = [-(root - 2.0), -(2.0 + root), -3.0, 1.0].map(|x| x / (4.0 * PI));
+        let found = c.type_one.unwrap();
+        assert!(found.iter().zip(want).all(|(a, b)| close(*a, b, 1e-6)), "{found:?}");
+        assert!(close(found[0] + found[1], -root / (2.0 * PI), 1e-6) && (found[0] + found[1] + 0.616_40).abs() < 5e-6);
+        // At 45° and on the front of the wall it is type IV; there the null minima are −0.762533 and
+        // −0.676539 (a numerical minimisation over directions of the research's evaluator).
+        #[allow(clippy::approx_constant)] // the research's point, not 1/√2
+        let diagonal = 0.7071;
+        for (point, null) in [([0.0, diagonal, diagonal, 0.0], -0.762_533), ([0.0, 1.0, 1e-3, 0.0], -0.676_539)] {
+            let c = conditions(alcubierre, point, 1e-3);
+            let analytic = alcubierre_energy_density(1.0, 8.0, 1.0, [point[1], point[2], 0.0]) * GEOMETRIC;
+            assert!((c.eulerian[0][0] - analytic).abs() < 1e-8);
+            assert!(c.type_one.is_none() && (c.null - null).abs() < 2e-6, "{point:?}: {}", c.null);
+        }
+        // Warp Factory's comoving bubble in SI (v = 0.1, R = 300 m, σ = 0.015 m⁻¹, g_0x = v(1 − f)):
+        // −6.7751×10³⁵ J/m³ at (0, 300 m, 0).
+        let comoving = |x: [f64; 4]| {
+            let b = 0.1 * (1.0 - alcubierre_shape((x[1] * x[1] + x[2] * x[2] + x[3] * x[3]).sqrt(), 300.0, 0.015));
+            [[-1.0 + b * b, b, 0.0, 0.0], [b, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
+        };
+        let x = [0.0, 0.0, 300.0, 0.0];
+        let c = energy_conditions(comoving(x), stress_energy(comoving, x, 0.5));
+        assert!(close(c.eulerian[0][0], alcubierre_energy_density(300.0, 0.015, 0.1, [0.0, 300.0, 0.0]), 1e-7));
+        // Natário (v = 1, R = 1, σ = 4) at (0.6, 0.85, 0): his −0.0405272, type IV, null minimum −1.225409.
+        let natario = |x: [f64; 4]| shift_metric(natario_shift(1.0, 1.0, 4.0, x));
+        let point = [0.0, 0.6, 0.85, 0.0];
+        let c = conditions(natario, point, 1e-3);
+        let (jacobian, _) = shift_derivatives(&|x| natario_shift(1.0, 1.0, 4.0, x), point, 1e-3);
+        assert!(close(c.eulerian[0][0], shift_drive_density(jacobian) * GEOMETRIC, 1e-7) && (c.eulerian[0][0] + 0.040_527_2).abs() < 1e-7);
+        assert!(c.type_one.is_none() && (c.null + 1.225_409).abs() < 2e-6);
+    }
+
+    #[test]
+    fn energy_conditions_of_a_morris_thorne_throat() {
+        // b = r₀²/r with r₀ = 1 m, Φ = 0, at r = 1.2: ρ = p_r = −1/(8πr⁴) and p_t = +1/(8πr⁴) (Ford &
+        // Roman 1996), type I; the null minimum is ρ + p_r, radially.
+        let wormhole = |x: [f64; 4]| {
+            let r2 = x[1] * x[1] + x[2] * x[2] + x[3] * x[3];
+            let extra = 1.0 / (1.0 - 1.0 / r2) - 1.0;
+            core::array::from_fn(|a| {
+                core::array::from_fn(|b| match (a, b) {
+                    (0, 0) => -1.0,
+                    (0, _) | (_, 0) => 0.0,
+                    (i, j) => f64::from(u8::from(i == j)) + extra * x[i] * x[j] / r2,
+                })
+            })
+        };
+        let r = 1.2f64;
+        let c = conditions(wormhole, [0.0, r / 2f64.sqrt(), r / 2f64.sqrt(), 0.0], 1e-3);
+        let a = 1.0 / (8.0 * PI * r.powi(4));
+        assert!(close(c.eulerian[0][0], -a, 1e-8) && close(c.null, -2.0 * a, 1e-8) && (c.null + 0.038_376_5).abs() < 1e-7);
+        let found = c.type_one.unwrap();
+        assert!(found.iter().zip([-a, -a, a, a]).all(|(x, y)| close(*x, y, 1e-6)), "{found:?}");
+    }
+
+    #[test]
+    fn regge_wheeler_potentials() {
+        let (gr, pv) = (Metric::GeneralRelativity, Metric::PolarizableVacuum);
+        // The peak, by golden section.
+        let peak = |metric, s, l, lo: f64, hi: f64| {
+            let (mut lo, mut hi) = (lo, hi);
+            for _ in 0..200 {
+                let (a, b) = (hi - 0.618_034 * (hi - lo), lo + 0.618_034 * (hi - lo));
+                if regge_wheeler(metric, s, l, a) < regge_wheeler(metric, s, l, b) { lo = a } else { hi = b }
+            }
+            (0.5 * (lo + hi), regge_wheeler(metric, s, l, 0.5 * (lo + hi)))
+        };
+        // Schwarzschild ℓ = s = 2: the root (9 + √17)/4 of dV/dr, V = 0.1512867.
+        let (at, top) = peak(gr, 2, 2, 2.5, 5.0);
+        assert!((at - (9.0 + 17f64.sqrt()) / 4.0).abs() < 1e-7 && (top - 0.151_286_70).abs() < 1e-8);
+        // Against the research's grid values (0.15129, 0.13188, 0.24712, 0.22869) and our peaks; its
+        // PV ℓ = s = 2 radius, 2.4365, is a grid's 2.43756.
+        for (metric, s, l, lo, value, radius) in [
+            (gr, 2, 2, 2.5, 0.151_286_699_6, 3.280_776_458),
+            (pv, 2, 2, 1.5, 0.131_876_761_2, 2.437_564_895),
+            (gr, 0, 2, 2.5, 0.247_116_781_7, 2.951_714_821),
+            (pv, 0, 2, 1.2, 0.228_686_877_1, 1.928_849_147),
+        ] {
+            let (at, top) = peak(metric, s, l, lo, 5.0);
+            assert!((top - value).abs() < 1e-9 && (at - radius).abs() < 1e-6, "{metric:?} {s} {l}: {top} at {at}");
+        }
+        assert!((peak(pv, 2, 2, 1.5, 5.0).1 - 0.13188).abs() < 5e-6);
+        // Spin 1 peaks at the photon spheres, ℓ(ℓ + 1)/27 at r = 3 and ℓ(ℓ + 1)/(2e)² at r = 2 (Boonserm §8).
+        for l in 1..4 {
+            let ell = f64::from(l * (l + 1));
+            assert!(close(regge_wheeler(gr, 1, l, 3.0), ell / 27.0, 1e-15) && close(regge_wheeler(pv, 1, l, 2.0), ell / (4.0 * core::f64::consts::E.powi(2)), 1e-15));
+            assert!((peak(gr, 1, l, 2.5, 5.0).0 - 3.0).abs() < 1e-7 && (peak(pv, 1, l, 1.2, 5.0).0 - 2.0).abs() < 1e-7);
+        }
+        // PV spin 0, ℓ = 0: a peak at (1 + 1/√3) and a trough at (1 − 1/√3) (Boonserm §8).
+        let slope = |r: f64| (regge_wheeler(pv, 0, 0, r + 1e-6) - regge_wheeler(pv, 0, 0, r - 1e-6)) / 2e-6;
+        for r in [1.0 + 1.0 / 3f64.sqrt(), 1.0 - 1.0 / 3f64.sqrt()] {
+            assert!(slope(r).abs() < 1e-8);
+        }
+        assert!(regge_wheeler(pv, 0, 0, 1.0 + 1.0 / 3f64.sqrt()) > 0.0 && regge_wheeler(pv, 0, 0, 1.0 - 1.0 / 3f64.sqrt()) < 0.0);
+        // Far out the two agree at the same areal radius R = r e^{1/r} to first order: 5×10⁻⁵ at R = 100, 5×10⁻⁷ at 1000.
+        for (areal, gap) in [(100.0f64, 5.1364e-5), (1000.0, 5.0134e-7)] {
+            let (mut lo, mut hi) = (1.0, areal);
+            for _ in 0..200 {
+                let mid = 0.5 * (lo + hi);
+                if mid * (1.0 / mid).exp() < areal { lo = mid } else { hi = mid }
+            }
+            let relative = regge_wheeler(pv, 2, 2, lo) / regge_wheeler(gr, 2, 2, areal) - 1.0;
+            assert!(close(-relative, gap, 1e-3), "{areal}: {relative:e}");
+        }
+    }
+
+    #[test]
+    fn the_charged_polarizable_vacuum() {
+        // GM/c² = a = 1 m; the charge for b = ratio·a is ratio times the extremal charge.
+        let mass = C * C / G;
+        let extremal = crate::gem::extremal_charge_to_mass() * mass;
+        let k = |ratio: f64, r: f64| charged_pv_dielectric(mass, ratio * extremal, r);
+        // Uncharged, the exponential metric; extremal, √K = 1 + a/r, which the cosh and cos forms
+        // approach linearly from either side, so their mean is second order.
+        assert!(close(k(0.0, 3.0), (2.0f64 / 3.0).exp(), 1e-14) && close(k(1.0, 5.0), 1.44, 1e-12));
+        let (below, above) = (k(1.0 - 1e-6, 5.0) - 1.44, k(1.0 + 1e-6, 5.0) - 1.44);
+        assert!(below > 1e-8 && above < -1e-8 && (below + above).abs() < 1e-12, "{below:e} {above:e}");
+        for ratio in [0.5, 2.0] {
+            // Reissner–Nordström in isotropic r, R = r + a + (a² − b²)/(4r): g₀₀ = 1 − 2a/R + b²/R², to O(x³).
+            let r = 1e3;
+            let areal = r + 1.0 + (1.0 - ratio * ratio) / (4.0 * r);
+            let rn = 1.0 - 2.0 / areal + ratio * ratio / (areal * areal);
+            assert!((1.0 / k(ratio, r) - rn).abs() < 1e-9, "{ratio}");
+            // Puthoff's field equation (64b), √K″ + (2/r)√K′ = (√K′² − b²/r⁴)/√K, at r = 7a.
+            let y = |r: f64| k(ratio, r).sqrt();
+            let (r, h) = (7.0, 1e-3);
+            let (d1, d2) = ((y(r + h) - y(r - h)) / (2.0 * h), (y(r + h) - 2.0 * y(r) + y(r - h)) / (h * h));
+            assert!((d2 + 2.0 / r * d1 - (d1 * d1 - ratio * ratio / r.powi(4)) / y(r)).abs() < 1e-9, "{ratio}");
+        }
+        // Under the extremal ratio K > 1 everywhere; at b = 2a, √K = 0 at √3/(π − arctan √3) =
+        // 0.826993a and K = 1 at 1.653987a.
+        assert!((1..2000).all(|i| k(0.9, 0.005 * i as f64) > 1.0));
+        let zero = 3f64.sqrt() / (PI - 3f64.sqrt().atan());
+        assert!((zero - 0.826_993_343).abs() < 1e-9 && k(2.0, zero) < 1e-28);
+        let (mut lo, mut hi) = (zero * 1.0001, 100.0);
+        for _ in 0..200 {
+            let mid = 0.5 * (lo + hi);
+            if k(2.0, mid) < 1.0 { lo = mid } else { hi = mid }
+        }
+        assert!((lo - 1.653_986_686).abs() < 1e-8);
     }
 }
