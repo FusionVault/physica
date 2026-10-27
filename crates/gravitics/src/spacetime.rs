@@ -103,6 +103,16 @@ pub fn hawking_temperature(m: f64) -> f64 {
     horizon_temperature(C.powi(3) / (4.0 * G * m))
 }
 
+/// Hawking temperature (K) of a Kerr black hole of mass `m` (kg) and spin `chi` = `cJ/(GM²)`
+/// (−1 to 1), from its surface gravity `κ = c³√(1 − χ²)/(2GM(1 + √(1 − χ²)))`
+/// ([Townsend](https://arxiv.org/abs/gr-qc/9707012), ch. 4; T = κ/2π in
+/// [Wald](https://arxiv.org/abs/gr-qc/9912119)). Spin cools it by the factor `2√(1 − χ²)/(1 + √(1 − χ²))`:
+/// 3/4 at χ = 0.8, to zero for an extremal hole.
+pub fn kerr_hawking_temperature(m: f64, chi: f64) -> f64 {
+    let s = (1.0 - chi * chi).sqrt();
+    horizon_temperature(C.powi(3) * s / (2.0 * G * m * (1.0 + s)))
+}
+
 /// Gibbons–Hawking temperature (K) of the cosmological horizon for Hubble rate `h` (s⁻¹).
 pub fn gibbons_hawking_temperature(h: f64) -> f64 {
     horizon_temperature(h)
@@ -300,6 +310,12 @@ pub fn shadow_deviation(diameter: f64, theta_g: f64) -> f64 {
 /// (Gen. Rel. Grav. 35, 1909, 2003) give the radius `√(η + a²) = √(8r³/(r² − 1))`. `√27` without
 /// spin and `2(1 + √2)` at `a = 1`.
 pub fn kerr_pole_on_shadow(a: f64) -> f64 {
+    let r = polar_photon_orbit(a);
+    (8.0 * r * r * r / (r * r - 1.0)).sqrt()
+}
+
+/// The spherical photon orbit with `ξ = 0`, the largest root of `r³ − 3r² + a²r + a² = 0`.
+fn polar_photon_orbit(a: f64) -> f64 {
     // Newton from r = 3 descends monotonically: the cubic is rising and convex for r > 1.
     let mut r = 3.0;
     for _ in 0..100 {
@@ -309,7 +325,95 @@ pub fn kerr_pole_on_shadow(a: f64) -> f64 {
             break;
         }
     }
-    (8.0 * r * r * r / (r * r - 1.0)).sqrt()
+    r
+}
+
+/// Bardeen's image point `(α, β²)` of the spherical photon orbit at radius `r` (`GM/c²` = 1):
+/// `ξ = L_z/E` and `η = Q/E²` give `α = −ξ/sin i` and `β² = η + a²cos²i − ξ²cot²i`.
+fn bardeen(a: f64, inclination: f64, r: f64) -> (f64, f64) {
+    let xi = (r * r * (3.0 - r) - a * a * (r + 1.0)) / (a * (r - 1.0));
+    let eta = r.powi(3) * (4.0 * a * a - r * (r - 3.0).powi(2)) / (a * a * (r - 1.0).powi(2));
+    let (s, c) = inclination.sin_cos();
+    (-xi / s, eta + a * a * c * c - xi * xi * c * c / (s * s))
+}
+
+/// A point `[α, β]` (β ≥ 0, units of `GM/c²`) on the edge of the shadow of a Kerr black hole of
+/// spin `a` (nonzero, |a| < 1) seen from `inclination` (rad) to its spin axis, cast by the
+/// spherical photon orbit of Boyer–Lindquist radius `r`, or `None` where that orbit's light does
+/// not reach the observer (`β² < 0`). Bardeen's curve (1973, as restated by
+/// [Cunha & Herdeiro 2018](https://arxiv.org/abs/1801.00860) and
+/// [Johannsen 2013](https://arxiv.org/abs/1501.02814)):
+///
+/// `ξ = [r²(3 − r) − a²(r + 1)]/[a(r − 1)]`, `η = r³[4a² − r(r − 3)²]/[a²(r − 1)²]`,
+/// `α = −ξ/sin i`, `β = √(η + a²cos²i − ξ²cot²i)`.
+///
+/// The image is centred on the black hole, with `β` along the projected spin axis; for `a > 0`
+/// the prograde side is at negative `α`. Edge-on, `r = 3` gives `(2a, 3√3)` at every spin, the
+/// top of the shadow, so its vertical diameter is `6√3` ([Cunha & Herdeiro 2018]).
+///
+/// [Cunha & Herdeiro 2018]: https://arxiv.org/abs/1801.00860
+pub fn kerr_shadow_edge(a: f64, inclination: f64, r: f64) -> Option<[f64; 2]> {
+    let (alpha, beta2) = bardeen(a, inclination, r);
+    (beta2 >= 0.0).then(|| [alpha, beta2.sqrt()])
+}
+
+/// The mean radius `⟨R⟩` and the displacement `D` (units of `GM/c²`) of the shadow of a Kerr
+/// black hole of spin `a` (|a| < 1) seen from `inclination` (rad) to its spin axis, as
+/// [Johannsen & Psaltis 2010](https://arxiv.org/abs/1005.1931) define them on
+/// [`kerr_shadow_edge`]: `D = |α_max + α_min|/2`, and `⟨R⟩ = ∫R dθ/∫dθ` with
+/// `R = √((α − D)² + β²)` measured from the displaced centre but the angle `tan θ = β/α` measured
+/// about the black hole. (The angle about the centre gives 5.031316 instead of 5.027489 at
+/// `a = 0.9`, `i = 90°`.) The mean diameter is `2⟨R⟩`.
+///
+/// The edge runs over `r` between the roots of `β² = 0`, bracketed by the polar orbit of
+/// [`kerr_pole_on_shadow`] and the equatorial ones `2{1 + cos[(2/3)arccos(∓a)]}` (Bardeen, Press
+/// & Teukolsky 1972), which are the ends edge-on. Samples clustered as `r₁ + (r₂ − r₁)(1 − cos t)/2`
+/// follow β's square-root ends, and the trapezoid rule over the 10⁵ used converges to `10⁻¹⁰`
+/// (`2×10⁻¹⁰` at `a = 0.998`).
+/// Seen from the pole it is [`kerr_pole_on_shadow`] and `D = 0`.
+///
+/// ```
+/// use gravitics::spacetime::kerr_shadow_size;
+///
+/// // a = 0.9 edge-on: the mean diameter against Johannsen 2013's fit L_K, accurate to 0.09%.
+/// let (radius, d) = kerr_shadow_size(0.9, std::f64::consts::FRAC_PI_2);
+/// assert!((2.0 * radius - 10.054979).abs() < 1e-6 && (2.0 * radius / 10.056937 - 1.0).abs() < 9e-4);
+/// assert!((d - 1.993949).abs() < 1e-6);
+/// ```
+pub fn kerr_shadow_size(a: f64, inclination: f64) -> (f64, f64) {
+    let a = a.abs();
+    if a == 0.0 {
+        return (27f64.sqrt(), 0.0);
+    }
+    if inclination.sin() == 0.0 {
+        return (kerr_pole_on_shadow(a), 0.0);
+    }
+    let polar = polar_photon_orbit(a);
+    // Bisect from the polar orbit, where β² > 0 at every inclination, toward an equatorial one.
+    let end = |sign: f64| {
+        let (mut inside, mut outside) = (polar, 2.0 * (1.0 + (2.0 / 3.0 * (sign * a).acos()).cos()));
+        for _ in 0..100 {
+            let mid = 0.5 * (inside + outside);
+            if bardeen(a, inclination, mid).1 > 0.0 { inside = mid } else { outside = mid }
+        }
+        inside
+    };
+    let (r1, r2) = (end(-1.0), end(1.0));
+    let n = 100_000;
+    let edge: Vec<[f64; 2]> = (0..=n)
+        .map(|k| {
+            let (alpha, beta2) = bardeen(a, inclination, r1 + (r2 - r1) * (1.0 - (PI * k as f64 / n as f64).cos()) / 2.0);
+            // β is zero at the ends by definition; rounding r there leaves β ~ 10⁻⁷, a sliver of angle.
+            [alpha, if k == 0 || k == n { 0.0 } else { beta2.max(0.0).sqrt() }]
+        })
+        .collect();
+    let (lo, hi) = edge.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(lo, hi), p| (lo.min(p[0]), hi.max(p[0])));
+    let d = 0.5 * (lo + hi);
+    let radius = |p: [f64; 2]| (p[0] - d).hypot(p[1]);
+    let angle = |p: [f64; 2]| p[1].atan2(p[0]);
+    let sum: f64 = edge.windows(2).map(|w| 0.5 * (radius(w[0]) + radius(w[1])) * (angle(w[1]) - angle(w[0]))).sum();
+    // The upper half of the edge runs from θ = π to 0.
+    (-sum / PI, d)
 }
 
 #[cfg(test)]
@@ -433,6 +537,62 @@ mod tests {
     }
 
     #[test]
+    fn a_kerr_shadow_at_any_inclination() {
+        let edge_on = core::f64::consts::FRAC_PI_2;
+        // Edge-on, r = 3 gives ξ = −2a and η = 27 at every spin, the top of the shadow at
+        // (2a, 3√3) where η is stationary: the vertical diameter is always 6√3.
+        for a in [0.1, 0.5, 0.9, 0.998, -0.7] {
+            let [alpha, beta] = kerr_shadow_edge(a, edge_on, 3.0).unwrap();
+            assert!((alpha - 2.0 * a).abs() < 1e-14 && close(beta, 27f64.sqrt(), 1e-15), "a = {a}");
+            assert!([2.95, 2.999, 3.001, 3.05].iter().all(|&r| kerr_shadow_edge(a, edge_on, r).is_none_or(|p| p[1] < beta)));
+        }
+        // Its ends edge-on are the equatorial photon orbits: at a = 0.9, −2.844421403 and 6.832319230.
+        let orbit = |sign: f64| 2.0 * (1.0 + (2.0 / 3.0 * (sign * 0.9f64).acos()).cos());
+        assert!((bardeen(0.9, edge_on, orbit(-1.0)).0 + 2.844_421_403).abs() < 1e-9);
+        assert!((bardeen(0.9, edge_on, orbit(1.0)).0 - 6.832_319_230).abs() < 1e-9);
+        // Seen from the pole it is kerr_pole_on_shadow, 4.91606338 at a = 0.9, and its limit.
+        assert!((kerr_pole_on_shadow(0.9) - 4.916_063_38).abs() < 1e-8);
+        for a in [0.3, 0.9, 0.999] {
+            assert_eq!(kerr_shadow_size(a, 0.0), (kerr_pole_on_shadow(a), 0.0));
+            let (radius, d) = kerr_shadow_size(a, 1e-5);
+            assert!((radius - kerr_pole_on_shadow(a)).abs() < 1e-9 && d.abs() < 1e-4, "a = {a}: {radius}");
+        }
+        // ⟨R⟩ and D against the research's tables, recomputed here with an independent quadrature
+        // over θ (a root in r for each θ): in units of GM/c².
+        for (a, degrees, radius, d) in [
+            (0.5, 90.0, 5.157_024_802_42, 1.020_944_533_00),
+            (0.9, 17.0, 4.924_470_288_51, 0.600_227_062_12),
+            (0.9, 60.0, 4.997_506_316_25, 1.746_750_502_48),
+            (0.9, 90.0, 5.027_489_401_78, 1.993_948_913_49),
+            (0.998, 90.0, 4.925_689_542_49, 2.442_889_238_42),
+        ] {
+            let (r, dd) = kerr_shadow_size(a, f64::to_radians(degrees));
+            assert!((r - radius).abs() < 1e-9 && (dd - d).abs() < 1e-9, "a = {a}, i = {degrees}: {r} {dd}");
+            // Inside the Kerr range, 2(1 + √2) to √27; spin's sign only mirrors it.
+            assert!(r > 2.0 * (1.0 + 2f64.sqrt()) && r < 27f64.sqrt() && kerr_shadow_size(-a, f64::to_radians(degrees)) == (r, dd));
+        }
+        assert_eq!(kerr_shadow_size(0.0, 1.0), (27f64.sqrt(), 0.0));
+    }
+
+    #[test]
+    fn a_spinning_black_hole_is_colder() {
+        let sun = metrology::SOLAR_MASS;
+        let cold = |chi: f64| kerr_hawking_temperature(sun, chi);
+        assert!(close(cold(0.0), hawking_temperature(sun), 1e-15));
+        // κ(χ)/κ(0) = 2√(1 − χ²)/(1 + √(1 − χ²)): exactly 8/9, 3/4 and 0 (Townsend, ch. 4).
+        assert!(close(cold(0.6) / cold(0.0), 8.0 / 9.0, 1e-15) && close(cold(0.8) / cold(0.0), 0.75, 1e-15) && cold(1.0) == 0.0);
+        // With SOLAR_MASS = GM☉/G: 61.70260 nK, and 46.27695 nK at χ = 0.8.
+        assert!(close(cold(0.0), 6.170_260e-8, 1e-6) && close(cold(0.8), 4.627_695e-8, 1e-6));
+        // The first law at fixed J, in G = c = M = 1: dM/dA = κ/8π with the horizon area
+        // A = 8π(M² + √(M⁴ − J²)), 0.0082883527 at χ = 0.7.
+        let kappa = 2.0 * PI * K_B * cold(0.7) / HBAR * G * sun / C.powi(3);
+        let area = |m: f64| 8.0 * PI * (m * m + (m.powi(4) - 0.49).sqrt());
+        let h = 1e-6;
+        assert!(close(2.0 * h / (area(1.0 + h) - area(1.0 - h)), kappa / (8.0 * PI), 1e-9));
+        assert!((kappa / (8.0 * PI) - 0.008_288_352_7).abs() < 1e-10);
+    }
+
+    #[test]
     fn exact_deflection_against_darwin_bozza_and_the_series() {
         let m = metrology::SOLAR_MASS;
         let rg = G * m / (C * C);
@@ -505,19 +665,14 @@ mod tests {
 
     #[test]
     fn jupiters_oblateness_in_the_deflection() {
-        // Jupiter: the IAU 2015 nominal GM and equatorial radius, and Juno's J₂ = 14696.572×10⁻⁶
-        // ± 0.014 (Iess et al. 2018, Nature 555, 220, Table 1). Durante et al. 2020's PDS product
-        // gives 14696.5735 including a 6.72×10⁻⁸ permanent tide; 14696.5063 is that without it.
-        let (gm, radius, j2) = (1.266_865_3e17, 7.1492e7, 14_696.572e-6);
-        let mut jupiter = geopotential::Coefficients::zeros(gm, radius, 2);
-        jupiter.set(0, 0, 1.0, 0.0);
-        jupiter.set(2, 0, -j2 / 5f64.sqrt(), 0.0);
+        let (gm, radius, j2) = (DUR2020_GM, DUR2020_RADIUS, -DUR2020_C[0]);
+        let field = jupiter(2);
         let mas = PI / 180.0 / 3600.0 * 1e-3;
         for (b, lon) in [(radius, 0.0), (2.0 * radius, 0.7), (radius * 1.1, -2.0)] {
             // An equatorial ray, at any longitude: (4GM/c²b)(1 + J₂R²/b²).
             let point = [b * f64::cos(lon), b * f64::sin(lon), 0.0];
             let dir = [-f64::sin(lon), f64::cos(lon), 0.0];
-            let alpha = multipole_deflection(&jupiter, point, dir, 1.0);
+            let alpha = multipole_deflection(&field, point, dir, 1.0);
             let want = 4.0 * gm / (C * C * b) * (1.0 + j2 * radius * radius / (b * b));
             let size = (alpha[0] * alpha[0] + alpha[1] * alpha[1] + alpha[2] * alpha[2]).sqrt();
             assert!(close(size, want, 1e-13) && alpha[2].abs() < 1e-15 * size, "b = {b}");
@@ -540,5 +695,89 @@ mod tests {
         // γ scales it as (1 + γ)/2.
         let half = multipole_deflection(&point, [1e8, 2e8, -0.5e8], [0.3, -0.2, 0.9], 0.0);
         assert!(close(half[0], alpha[0] / 2.0, 1e-14));
+    }
+
+    // Jupiter from Juno: Durante et al. 2020's PDS product (jnogrv_0002, SHADR
+    // GRV_JUGR_SHA_JUP_U_DUR2020_20200203_V01): GM, the reference radius, and the unnormalised
+    // zonal C_n0 = −J_n for n = 2 to 12. Its J₂ = 14696.5735×10⁻⁶ ± 0.0017 (3σ) includes a
+    // 6.72×10⁻⁸ permanent tide (14696.5063 without it); Iess et al. 2018 give 14696.572 ± 0.014.
+    const DUR2020_GM: f64 = 1.266_865_341e17;
+    const DUR2020_RADIUS: f64 = 7.1492e7;
+    const DUR2020_C: [f64; 11] = [-1.469_657_35e-2, 4.5e-8, 5.866_085e-4, 7.23e-8, -3.420_07e-5, -1.2e-7, 2.422e-6, 1.13e-7, -1.81e-7, -1.6e-8, -6.2e-8];
+
+    /// The DUR2020 zonal field to degree `nmax`, normalised as `C̄_n0 = C_n0/√(2n + 1)`.
+    fn jupiter(nmax: usize) -> geopotential::Coefficients {
+        let mut field = geopotential::Coefficients::zeros(DUR2020_GM, DUR2020_RADIUS, nmax);
+        field.set(0, 0, 1.0, 0.0);
+        for n in 2..=nmax {
+            field.set(n, 0, DUR2020_C[n - 2] / ((2 * n + 1) as f64).sqrt(), 0.0);
+        }
+        field
+    }
+
+    #[test]
+    fn jupiters_quadrupole_at_any_orientation() {
+        // Crosta & Mignard 2006 (astro-ph/0512359) Eqs. defqu1–defqu2: with n from the ray toward
+        // the planet, t along it and m = t × n, α = Φ₁n + Φ₂m where
+        // Φ₁ = (4GM/c²b)[1 + J₂(R/b)²(1 − 2(n·z)² − (t·z)²)] and Φ₂ = (8GM/c²b)J₂(R/b)²(m·z)(n·z).
+        let field = jupiter(2);
+        let (gm, radius, j2) = (DUR2020_GM, DUR2020_RADIUS, -DUR2020_C[0]);
+        let uas = PI / 180.0 / 3600.0 * 1e-6;
+        let dot = |a: [f64; 3], b: [f64; 3]| a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+        let (s30, c30, s45) = (0.5, 0.75f64.sqrt(), 0.5f64.sqrt());
+        // (point, direction, |α| and its quadrupole part in µas, from the research's Born
+        // integral, which matched Crosta's forms to 2×10⁻¹²): over the pole, the quadrupole
+        // subtracts; along the spin axis it vanishes; a ray at 30° to the equator, closest at 45°
+        // latitude, has sin²ϑ = 0.75 to the axis, so 4GMJ₂R²sin²ϑ/(c²b³).
+        for (point, dir, size, quad) in [
+            ([0.0, 0.0, radius], [0.0, 1.0, 0.0], 16_028.272_6, 239.074_26),
+            ([radius, 0.0, 0.0], [0.0, 0.0, 1.0], 16_267.346_9, 0.0),
+            ([radius * s45, 0.0, radius * s45], [0.0, c30, s30], 17_423.170_1, 219.069_54),
+        ] {
+            let along = dot(point, dir);
+            let closest: [f64; 3] = core::array::from_fn(|i| point[i] - along * dir[i]);
+            let b = dot(closest, closest).sqrt();
+            let n = closest.map(|x| -x / b);
+            let m = [dir[1] * n[2] - dir[2] * n[1], dir[2] * n[0] - dir[0] * n[2], dir[0] * n[1] - dir[1] * n[0]];
+            let mono = 4.0 * gm / (C * C * b);
+            let q = j2 * (radius / b).powi(2);
+            let phi1 = mono * (1.0 + q * (1.0 - 2.0 * n[2] * n[2] - dir[2] * dir[2]));
+            let phi2 = 2.0 * mono * q * m[2] * n[2];
+            let alpha = multipole_deflection(&field, point, dir, 1.0);
+            let crosta: [f64; 3] = core::array::from_fn(|i| phi1 * n[i] + phi2 * m[i]);
+            let gap: [f64; 3] = core::array::from_fn(|i| alpha[i] - crosta[i]);
+            assert!(dot(gap, gap).sqrt() < 1e-11 * mono * q, "{dir:?}");
+            assert!((dot(alpha, alpha).sqrt() / uas - size).abs() < 1e-4, "{dir:?}");
+            let rest: [f64; 3] = core::array::from_fn(|i| alpha[i] - mono * n[i]);
+            assert!((dot(rest, rest).sqrt() / uas - quad).abs() < 1e-5, "{dir:?}");
+        }
+        // Over the pole and along the axis these are 4GM/(c²R)(1 − J₂) and 4GM/(c²R) exactly.
+        let limb = 4.0 * gm / (C * C * radius);
+        let over = multipole_deflection(&field, [0.0, 0.0, radius], [0.0, 1.0, 0.0], 1.0);
+        assert!(close(-over[2], limb * (1.0 - j2), 1e-12) && over[0].abs() + over[1].abs() < 1e-15 * limb);
+        let axial = multipole_deflection(&field, [radius, 0.0, 0.0], [0.0, 0.0, 1.0], 1.0);
+        assert!(close(-axial[0], limb, 1e-12) && axial[1].abs() + axial[2].abs() < 1e-15 * limb);
+    }
+
+    #[test]
+    fn jupiters_full_zonal_field_on_an_equatorial_ray() {
+        // For an equatorial ray the zonal field gives, exactly (the research's series, from
+        // P_n(0) and ∫(b² + l²)^(−(n+1)/2) dl), α = (4GM/c²b)[1 + Σ(−1)^(k+1) J_2k (R/b)^2k] in the
+        // plane and (4GM/c²b) Σ(−1)^(k+1) J_(2k+1) (R/b)^(2k+1) north: 16516.561365 and +0.004495 µas
+        // at the limb, 8163.860339 and −0.000018 at 2R; J₄ alone is Crosta & Mignard's "10 µas".
+        let field = jupiter(12);
+        let uas = PI / 180.0 / 3600.0 * 1e-6;
+        let j = |n: usize| -DUR2020_C[n - 2];
+        for (scale, plane, north) in [(1.0, 16_516.561_365, 0.004_495), (2.0, 8_163.860_339, -0.000_018)] {
+            let b = scale * DUR2020_RADIUS;
+            let x = DUR2020_RADIUS / b;
+            let mono = 4.0 * DUR2020_GM / (C * C * b);
+            let even = 1.0 + (1..=6).map(|k| if k % 2 == 1 { 1.0 } else { -1.0 } * j(2 * k) * x.powi(2 * k as i32)).sum::<f64>();
+            let odd = (1..=5).map(|k| if k % 2 == 1 { 1.0 } else { -1.0 } * j(2 * k + 1) * x.powi(2 * k as i32 + 1)).sum::<f64>();
+            let alpha = multipole_deflection(&field, [b, 0.0, 0.0], [0.0, 1.0, 0.0], 1.0);
+            assert!(close(-alpha[0], mono * even, 1e-12) && (alpha[2] - mono * odd).abs() < 1e-12 * mono, "b = {scale}R");
+            assert!((-alpha[0] / uas - plane).abs() < 1e-6 && (alpha[2] / uas - north).abs() < 1e-6, "b = {scale}R");
+        }
+        assert!((DUR2020_GM / (C * C * DUR2020_RADIUS) * 4.0 * j(4) / uas + 9.5426).abs() < 1e-4);
     }
 }
