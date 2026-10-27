@@ -81,20 +81,28 @@ print("=> PPN beta = gamma = 1 in both; first difference: -gii at x^2 (GR 3/2, P
 
 # ---------------------------------------------------------------- D. Light bending from n(r)
 head("D. Deflection by an isotropic index n(u), u = M/r; alpha = 2 int_0^u0 b du/sqrt(n^2 - b^2 u^2) - pi")
-def deflect(n, b):
-    u0 = brentq(lambda u: n(u) - b * u, 0.5 / b, 1.5 / b, xtol=1e-300, rtol=1e-15)  # b >= 100 here
-    f = lambda s: 2 * u0 * s * b / np.sqrt(max(n(u0 * (1 - s * s)) ** 2 - (b * u0 * (1 - s * s)) ** 2, 1e-300))
-    val, _ = quad(f, 0, 1, epsabs=1e-15, epsrel=1e-14, limit=200)
-    return 2 * val - np.pi
+# alpha = 2 int_0^u0 b du / sqrt(n^2 - b^2 u^2) - pi with b = n(u0)/u0 and u = u0(1 - s^2). The radicand
+# is written as (b u)^2 expm1(2[ln n(u) - ln n(u0) - ln(u/u0)]), which has no cancellation near the turning
+# point (the earlier direct form lost 3 digits there, giving c3 = 42.646 and 47.97 instead of 128/3 and 48).
+xs_gl, ws_gl = np.polynomial.legendre.leggauss(600)
+s_gl, w_gl = 0.5 * (xs_gl + 1), 0.5 * ws_gl
+def deflect(dlog_n, n, u0):
+    u = u0 * (1 - s_gl * s_gl); b = n(u0) / u0
+    f = 2 * u0 * s_gl / (u * np.sqrt(np.expm1(2 * (dlog_n(u, u0) - np.log1p(-s_gl * s_gl)))))
+    return 2 * np.dot(w_gl, f) - np.pi, 1 / b
 nGR = lambda u: (1 + u / 2) ** 3 / (1 - u / 2)
 nPV = lambda u: np.exp(2 * u)
-eps = np.array([2e-3, 3e-3, 4e-3, 5e-3, 6e-3, 8e-3, 1e-2])
-for name, n in [("GR", nGR), ("PV", nPV)]:
-    resid = np.array([(deflect(n, 1 / e) - 4 * e) / e**2 for e in eps])
-    c4, c3, c2 = np.polyfit(eps, resid, 2)
-    c2x = 15 * np.pi / 4 if name == "GR" else 4 * np.pi
-    c4b, c3b = np.polyfit(eps, (resid - c2x) / eps, 1)
-    print(f"{name}: c2 = {c2:.6f} (15pi/4 = {15*np.pi/4:.6f}, 4pi = {4*np.pi:.6f}); c3 = {c3b:.3f} given exact c2 (128/3 = {128/3:.3f})")
+dGR = lambda u, u0: 3 * np.log1p((u - u0) / 2 / (1 + u0 / 2)) - np.log1p(-(u - u0) / 2 / (1 - u0 / 2))
+dPV = lambda u, u0: 2 * (u - u0)
+exact = {"GR": (15 * np.pi / 4, 128 / 3, 3465 * np.pi / 64), "PV": (4 * np.pi, 48.0, 64 * np.pi)}
+for name, dl, n in [("GR", dGR, nGR), ("PV", dPV, nPV)]:
+    rows = [deflect(dl, n, u0) for u0 in np.linspace(1e-3, 1.5e-2, 30)]
+    eps = np.array([e for _, e in rows]); a = np.array([x for x, _ in rows])
+    c2, c3, c4 = np.polyfit(eps, (a - 4 * eps) / eps**2, 6)[::-1][:3]
+    c3b, c4b = np.polyfit(eps, (a - 4 * eps - exact[name][0] * eps**2) / eps**3, 5)[::-1][:2]
+    print(f"{name}: c2 = {c2:.7f} (exact {exact[name][0]:.7f}); given exact c2: c3 = {c3b:.5f} (exact {exact[name][1]:.5f}),"
+          f" c4 = {c4b:.3f} (exact {exact[name][2]:.3f})")
+    assert abs(c2 / exact[name][0] - 1) < 1e-6 and abs(c3b / exact[name][1] - 1) < 1e-4 and abs(c4b / exact[name][2] - 1) < 5e-3, name
 print("Epstein-Shapiro-type check: c2 = pi(2 + 2gamma - beta + 3 delta/4) with delta = (2/3)*(x^2 coeff of -gii) (my check, not from a source):"
       f" GR {np.pi*(2+2-1+0.75*1):.6f}, PV {np.pi*(2+2-1+0.75*4/3):.6f}")
 arcsec = 180 / np.pi * 3600

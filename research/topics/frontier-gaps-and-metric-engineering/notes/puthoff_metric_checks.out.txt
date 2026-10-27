@@ -1,7 +1,3 @@
-/home/dan/code/FusionVault/quantum-gravimeter/research_notes/Frontier gaps and metric engineering/puthoff_metric_checks.py:87: IntegrationWarning: The occurrence of roundoff error is detected, which prevents 
-  the requested tolerance from being achieved.  The error may be 
-  underestimated.
-  val, _ = quad(f, 0, 1, epsabs=1e-15, epsrel=1e-14, limit=200)
 
 == A. Eq.(4)/(5): Schwarzschild and Reissner-Nordstrom in harmonic radial coordinate r = R - m
 r=   1.5: g00 eq4-Schw +8.3e-17  grr -1.8e-15  R^2 -8.9e-16  eq5-RN +1.1e-16
@@ -26,8 +22,8 @@ clock sqrt(g00)        GR [ 1.    -1.     0.5   -0.25   0.125]  PV [ 1.       -1
 => PPN beta = gamma = 1 in both; first difference: -gii at x^2 (GR 3/2, PV 2), g00 at x^3 (GR -3/2, PV -4/3)
 
 == D. Deflection by an isotropic index n(u), u = M/r; alpha = 2 int_0^u0 b du/sqrt(n^2 - b^2 u^2) - pi
-GR: c2 = 11.781079 (15pi/4 = 11.780972, 4pi = 12.566371); c3 = 42.646 given exact c2 (128/3 = 42.667)
-PV: c2 = 12.566501 (15pi/4 = 11.780972, 4pi = 12.566371); c3 = 47.972 given exact c2 (128/3 = 42.667)
+GR: c2 = 11.7809732 (exact 11.7809725); given exact c2: c3 = 42.66707 (exact 42.66667), c4 = 169.735 (exact 170.088)
+PV: c2 = 12.5663713 (exact 12.5663706); given exact c2: c3 = 48.00040 (exact 48.00000), c4 = 200.709 (exact 201.062)
 Epstein-Shapiro-type check: c2 = pi(2 + 2gamma - beta + 3 delta/4) with delta = (2/3)*(x^2 coeff of -gii) (my check, not from a source): GR 11.780972, PV 12.566371
 Solar limb: first order 1.7512 arcsec; PV-GR second-order difference 0.730 microarcsec
 
