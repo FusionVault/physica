@@ -268,3 +268,16 @@ Sources as in §1–10.
 
 ### Gaps
 - `crates/magnetics/src` has no `frontier.rs` yet (checked 2026-10-26), so the module path is the planned one. No Rust was written (out of scope).
+
+## Primary-source check (2026-10-27)
+
+Before the remaining calculators were coded (#24), each formula above that came from a review was read in its original where one could be opened; see [monopole_primary_sources.md](monopole_primary_sources.md) and its check script. Everything used here matches. Corrections:
+- **Milton 2006, eq. 9.3** implies γ = µ/(2Sµ_N), but his Table 1 and the criteria (Olaussen & Sollie's g_M = Aµ/(SZ)) need **γ̂ = (A/Z)µ/µ_N**, as used here. They differ by 2S for S > ½.
+- **Milton §9.2's "1.67 < γ_c⁺" for ²⁷Al** should read 3 < γ_c⁺ ≤ 4.216, the large-l limit of his eq. 9.13. Al still binds.
+- **Bracci & Fiorentini, Table I**: the ³H λ_I is printed 2.97; the formula gives 3.97. Not used here.
+- **Super-Kamiokande 2012** is Astropart. Phys. 36, 131 (not PRD). Eq. 9 carries a factor (f_π⁺/0.5) and holds for β < 10⁻³ and M ≲ 10¹⁷ GeV. `superk_limit` above now has the factor.
+- **IceCube 2014, eq. 4** has a second branch below β₀, σ₀/β·(β/β₀)^γ; the catalysis-length row above covers only β ≥ β₀.
+- **PDG eq. 94.8** is the galactic speed, not an energy gain. `monopole_energy_gain` is derived from the field, and the 0.526 kpc row is our inference.
+- **Λ_QCD**: PDG editions from 2020 to 2025 print only α_s. The last printed Λ is PDG 2018 eq. 9.24, with Λ⁽³⁾ = 332 ± 17 MeV.
+- **Ahlen 1978 and Ahlen & Kinoshita 1982** remain unopened (paywalled). The slow factor 1.37 and the K and B constants rest on Patrizii & Spurio and Milton §8.
+- **Ahlen & Kinoshita's free-gas formula** turns negative below n_e = 1.28×10²⁹ m⁻³ (v_F < 0.82αc), so the crate returns `None` there.

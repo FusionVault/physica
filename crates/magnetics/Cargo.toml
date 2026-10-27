@@ -12,7 +12,7 @@ repository.workspace = true
 
 [dependencies]
 geopotential = { path = "../geopotential", version = "0.3.3" }
-metrology = { path = "../metrology", version = "0.2.0" }
+metrology = { path = "../metrology", version = "0.2.4" }
 
 [lints]
 workspace = true

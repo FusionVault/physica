@@ -44,6 +44,12 @@ pub fn magnetic_pressure(b: f64) -> f64 {
     b * b / (2.0 * MU_0)
 }
 
+/// The field (T) whose magnetic pressure, or energy density, is `p` (Pa or J/m³): `√(2μ₀p)`,
+/// the inverse of [`magnetic_pressure`]. 1 eV/cm³ needs 6.35 µG; air at 1 atm balances 0.505 T.
+pub fn field_for_pressure(p: f64) -> f64 {
+    (2.0 * MU_0 * p).sqrt()
+}
+
 /// Plasma beta, thermal over magnetic pressure: `2μ₀nk_BT/B²` for density `n` (m⁻³) of particles at
 /// temperature `t_ev` (eV) in field `b` (T). Sum species yourself if they differ.
 pub fn beta(n: f64, t_ev: f64, b: f64) -> f64 {
@@ -144,6 +150,17 @@ mod tests {
 
     fn close(a: f64, b: f64, rel: f64) -> bool {
         (a / b - 1.0).abs() < rel
+    }
+
+    #[test]
+    fn field_for_pressure_inverts_magnetic_pressure() {
+        // The magnetics report's equipartition row: 1 eV/cm³ needs 6.35 µG; one atmosphere
+        // balances 0.505 T (the plasmoids report's confinement cap).
+        assert!(close(field_for_pressure(1e6 * EV), 6.35e-10, 1e-3));
+        assert!(close(field_for_pressure(101_325.0), 0.5046, 1e-4));
+        for b in [1e-9, 1.0, 45.0] {
+            assert!(close(field_for_pressure(magnetic_pressure(b)), b, 1e-15));
+        }
     }
 
     #[test]
