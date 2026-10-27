@@ -34,6 +34,28 @@ pub fn solenoid_bz(z: f64, r: f64, l: f64, n: f64, i: f64) -> f64 {
     MU_0 * n * i / 2.0 * (end(z + l / 2.0) - end(z - l / 2.0))
 }
 
+/// Radial field (T) at `r` (m, from the centre of a spherical conductor) of a current dipole `q`
+/// (A m) at `r0`: `μ₀/(4π) (Q × (r − r₀))·r̂/|r − r₀|³`. The volume currents add nothing to the
+/// radial component in a spherically symmetric conductor (Hämäläinen et al.,
+/// [Rev. Mod. Phys. 65, 413 (1993)](https://doi.org/10.1103/RevModPhys.65.413), eqs. 30–32), so
+/// this Biot–Savart term is exact there. A typical 10 nAm source 30 mm deep in a 100 mm head
+/// peaks at 355 fT, inside the published "typically 50–500 fT".
+pub fn meg_radial_field(q: [f64; 3], r0: [f64; 3], r: [f64; 3]) -> f64 {
+    use crate::toroidal::{cross, dot};
+    let d = [r[0] - r0[0], r[1] - r0[1], r[2] - r0[2]];
+    MU_0 / (4.0 * core::f64::consts::PI) * dot(cross(q, d), r) / (dot(r, r).sqrt() * dot(d, d).powf(1.5))
+}
+
+/// Joule heating per metre (W/m) of a wire of diameter `d` (m) and resistivity `rho` (Ω m)
+/// delivering power `p` (W) at voltage `v` (V): `(P/V)²ρ/(πd²/4)`. 8 µm copper is 343 Ω/m, so a
+/// kilowatt at 230 V would dissipate 6.5 kW per metre and at 10 kV only 3.4 W per metre: the
+/// "kilowatts over an 8 µm wire" (Moray King 2012) is ordinary at high voltage, and the claim as
+/// told (voltage and source not found) is **unverified**.
+pub fn wire_joule_per_length(p: f64, v: f64, d: f64, rho: f64) -> f64 {
+    let i = p / v;
+    i * i * rho / (core::f64::consts::PI * d * d / 4.0)
+}
+
 /// Field (T) at the centre of a Helmholtz pair of coils of radius `r` (m), `n` turns each,
 /// carrying `i` (A): `(4/5)^(3/2) μ₀NI/R`, the most uniform field two loops can make.
 pub fn helmholtz_b0(r: f64, n: f64, i: f64) -> f64 {
@@ -146,6 +168,29 @@ mod tests {
         let pair = |z: f64| loop_bz(1.0, 1.0, z - 0.5) + loop_bz(1.0, 1.0, z + 0.5);
         let h = 1e-3;
         assert!(((pair(h) - 2.0 * pair(0.0) + pair(-h)) / (h * h)).abs() < 1e-5 * pair(0.0));
+    }
+
+    #[test]
+    fn meg_and_thin_wires() {
+        // A 10 nAm tangential dipole 30 mm below the surface of a 100 mm sphere. In the plane
+        // normal to Q, B_r = μ₀Qd₀ sin θ/(4πD³), which peaks where Rd₀c² + (R² + d₀²)c − 3Rd₀ = 0,
+        // c = cos θ: 354.9596 fT. The script's 400-point scan undershoots the maximum by 1.6 aT
+        // and reports 354.958 fT, "355 fT".
+        let (big_r, d0) = (0.100_f64, 0.070);
+        let s = big_r * big_r + d0 * d0;
+        let c = ((s * s + 12.0 * big_r * big_r * d0 * d0).sqrt() - s) / (2.0 * big_r * d0);
+        let at = |th: f64| meg_radial_field([10e-9, 0.0, 0.0], [0.0, 0.0, d0], [0.0, big_r * th.sin(), big_r * th.cos()]);
+        let peak = at(c.acos());
+        let ft = peak * 1e15;
+        assert!((ft - 355.0).abs() < 0.05 && (0.0..2e-3).contains(&(ft - 354.958)), "{ft}");
+        assert!(peak > at(c.acos() + 1e-3) && peak > at(c.acos() - 1e-3) && (50e-15..500e-15).contains(&peak));
+        // Directly above the dipole and along Q the radial field is zero.
+        assert!(at(0.0).abs() < 1e-30 && meg_radial_field([10e-9, 0.0, 0.0], [0.0, 0.0, d0], [big_r, 0.0, 0.0]).abs() < 1e-30);
+        // IACS copper, 1.7241×10⁻⁸ Ω m: 8 µm is 343.0 Ω/m (1 A), 6.48 kW/m for 1 kW at 230 V.
+        let rho = 1.7241e-8;
+        assert!(close(wire_joule_per_length(1.0, 1.0, 8e-6, rho), 343.0, 1e-3));
+        assert!(close(wire_joule_per_length(1000.0, 230.0, 8e-6, rho), 6.48e3, 1e-3));
+        assert!(close(wire_joule_per_length(1000.0, 10e3, 8e-6, rho), 3.43, 1e-3));
     }
 
     #[test]

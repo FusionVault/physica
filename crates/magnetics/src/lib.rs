@@ -9,3 +9,4 @@ pub mod mhd;
 pub mod monopole;
 pub mod space_weather;
 pub mod stability;
+pub mod toroidal;
