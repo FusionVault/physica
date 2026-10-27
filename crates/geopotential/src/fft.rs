@@ -44,9 +44,69 @@ pub fn fft(re: &mut [f64], im: &mut [f64], inverse: bool) {
     }
 }
 
+/// In-place FFT of a row-major array of shape `dims` (the last index fastest), along each axis in
+/// turn with [`fft`]; `inverse` divides by the total length.
+///
+/// # Panics
+/// If a dimension is not a power of two or the lengths differ from the shape's.
+pub fn fftn(re: &mut [f64], im: &mut [f64], dims: &[usize], inverse: bool) {
+    let n: usize = dims.iter().product();
+    assert!(re.len() == n && im.len() == n, "one value per grid point");
+    let mut stride = n;
+    for &len in dims {
+        stride /= len;
+        if stride == 1 {
+            for (r, i) in re.chunks_mut(len).zip(im.chunks_mut(len)) {
+                fft(r, i, inverse);
+            }
+            continue;
+        }
+        let (mut lr, mut li) = (vec![0.0; len], vec![0.0; len]);
+        for start in (0..n).step_by(len * stride).flat_map(|o| o..o + stride) {
+            for k in 0..len {
+                (lr[k], li[k]) = (re[start + k * stride], im[start + k * stride]);
+            }
+            fft(&mut lr, &mut li, inverse);
+            for k in 0..len {
+                (re[start + k * stride], im[start + k * stride]) = (lr[k], li[k]);
+            }
+        }
+    }
+}
+
+/// The FFT's wavenumber (rad per unit length) at index `i` of `n` samples `d` apart, negative
+/// from `n/2` up.
+pub fn wavenumber(i: usize, n: usize, d: f64) -> f64 {
+    let i = if i < n / 2 { i as f64 } else { i as f64 - n as f64 };
+    TAU * i / (n as f64 * d)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fftn_matches_a_direct_dft_and_inverts() {
+        // A 4 × 2 × 8 array against the triple sum, then back.
+        let dims = [4, 2, 8];
+        let x: Vec<f64> = (0..64).map(|i| ((i * 11 % 17) as f64 - 8.0) * 0.2).collect();
+        let (mut re, mut im) = (x.clone(), vec![0.0; 64]);
+        fftn(&mut re, &mut im, &dims, false);
+        let split = |i: usize| [i / 16, i / 8 % 2, i % 8];
+        for k in 0..64 {
+            let (mut dr, mut di) = (0.0, 0.0);
+            for (t, v) in x.iter().enumerate() {
+                let a = -TAU * (0..3).map(|d| (split(k)[d] * split(t)[d]) as f64 / dims[d] as f64).sum::<f64>();
+                dr += v * a.cos();
+                di += v * a.sin();
+            }
+            assert!((re[k] - dr).abs() < 1e-12 && (im[k] - di).abs() < 1e-12);
+        }
+        fftn(&mut re, &mut im, &dims, true);
+        assert!(re.iter().zip(&x).all(|(a, b)| (a - b).abs() < 1e-14) && im.iter().all(|v| v.abs() < 1e-14));
+        let pi = core::f64::consts::PI;
+        assert_eq!([wavenumber(3, 8, 0.5), wavenumber(4, 8, 0.5), wavenumber(7, 8, 0.5)], [1.5 * pi, -2.0 * pi, -0.5 * pi]);
+    }
 
     #[test]
     fn fft_matches_a_direct_dft_and_inverts() {
