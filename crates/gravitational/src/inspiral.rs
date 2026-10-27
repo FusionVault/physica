@@ -43,6 +43,17 @@ pub fn kerr_isco(a: f64) -> (f64, f64, f64) {
     (r, (1.0 - 2.0 / (3.0 * r)).sqrt(), 2.0 / (3.0 * 3f64.sqrt()) * (1.0 + 2.0 * (3.0 * r - 2.0).sqrt()))
 }
 
+/// The gravitational-wave frequency (Hz, twice the orbital frequency: the `l = m = 2` harmonic) at
+/// the Kerr ISCO of [`kerr_isco`] for total mass `m` (kg) and signed spin `a`: `MΩ =
+/// 1/(r_ISCO^(3/2) + a)` ([Isoyama et al. 2014](https://arxiv.org/abs/1404.6133), Eq. 3, after
+/// Bardeen, Press & Teukolsky 1972) and `f = Ω/π = c³/(πGm(r^(3/2) + a))`. `MΩ` is `6^(−3/2)`
+/// without spin ([`f_isco`]), 1/2 prograde and 1/26 retrograde at `a = 1`. This is the test-mass
+/// geodesic value; the self-force shift is O(μ/M) and not included.
+pub fn kerr_f_isco(m: f64, a: f64) -> f64 {
+    let (r, _, _) = kerr_isco(a);
+    C.powi(3) / (PI * G * m * (r.powf(1.5) + a))
+}
+
 /// The radius (units of `GM/c²`) of the circular photon orbit in the equatorial plane of a Kerr
 /// black hole of signed spin `a`, as in [`kerr_isco`]: `2(1 + cos((2/3)arccos(−a)))`
 /// (Bardeen, Press & Teukolsky 1972). 3M without spin; 1M prograde and 4M retrograde at `a = 1`.
@@ -136,9 +147,19 @@ mod tests {
             assert!((p.powf(1.5) - 3.0 * p.sqrt() + 2.0 * a).abs() < 1e-14, "photon orbit at a = {a}");
         }
         assert!(close(kerr_photon_orbit(0.0), 3.0) && close(kerr_photon_orbit(1.0), 1.0) && close(kerr_photon_orbit(-1.0), 4.0));
-        // f_isco is twice the orbital frequency c³/(2πGM(r^(3/2) + a)) at a = 0.
-        let (r, _, _) = kerr_isco(0.0);
-        assert!(close(f_isco(SOLAR_MASS), C.powi(3) / (PI * G * SOLAR_MASS * r.powf(1.5))));
+        // f_isco is the a = 0 case of kerr_f_isco.
+        assert!(close(f_isco(SOLAR_MASS), kerr_f_isco(SOLAR_MASS, 0.0)));
+    }
+
+    #[test]
+    fn kerr_isco_frequency() {
+        // Isoyama et al. 2014, Eq. 3: MΩ = 6^(−3/2), 1/2 and 1/26 at a = 0, +1 and −1.
+        let m_omega = |a: f64| kerr_f_isco(SOLAR_MASS, a) * PI * G * SOLAR_MASS / C.powi(3);
+        for (a, exact) in [(0.0, 6f64.powf(-1.5)), (1.0, 0.5), (-1.0, 1.0 / 26.0)] {
+            assert!((m_omega(a) / exact - 1.0).abs() < 1e-15, "a = {a}: {}", m_omega(a));
+        }
+        // The research script's a = 0.9: r = 2.3208830418, MΩ = 0.225441708835.
+        assert!((m_omega(0.9) - 0.225441708835).abs() < 1e-12, "{}", m_omega(0.9));
     }
 
     #[test]

@@ -15,6 +15,9 @@
 //! miss: `(2, −1, 1)` 3.22% against 0.67, `(3, 3, 0)` 0.59 against 0.42, `(4, 4, 1)` 1.02 against
 //! 0.77 and `(4, 4, 2)` 1.09 against 0.10.
 //!
+//! [`qnm_exact`] solves for the same modes exactly, by Leaver's continued fraction started from
+//! the fit, to about 10⁻¹⁴.
+//!
 //! ```
 //! use gravitational::ringdown::{damping_time, frequency, qnm};
 //! use metrology::SOLAR_MASS;
@@ -27,6 +30,7 @@
 //! ```
 
 use core::f64::consts::PI;
+use core::ops::{Add, Div, Mul, Neg, Sub};
 
 use metrology::{C, G};
 
@@ -106,6 +110,240 @@ const FITS: [Fit; 63] = [
 pub fn qnm(l: u32, m: i32, n: u32, j: f64) -> Option<(f64, f64)> {
     let (_, f, q, _, _) = FITS.iter().find(|row| row.0 == (l, m, n))?;
     Some((f[0] + f[1] * (1.0 - j).powf(f[2]), q[0] + q[1] * (1.0 - j).powf(q[2])))
+}
+
+/// The exact `(F, Q)` of mode `(l, m, n)` of a Kerr black hole with spin `0 ≤ j < 1`, as [`qnm`]
+/// returns them, or `None` for a mode outside the fits or a root that does not converge to it.
+///
+/// The method is that of [Cook & Zalutskiy 2014](https://arxiv.org/abs/1410.7698) (`G = c = M =
+/// 1`, `s = −2`): Leaver's radial continued fraction in their confluent-Heun form, inverted `n`
+/// times and closed with Nollert's tail through `u₃`; the angular separation constant from their
+/// spectral (spherical-harmonic) matrix, re-solved at every trial `ω`; and a complex secant
+/// started from the BCW06 fit, so it covers the fits' 63 modes (`n ≤ 2`). It reproduces Berti's
+/// Schwarzschild overtones and the `qnm` package's `(2, 2, 0)` at `j = 0.68` to 6×10⁻¹⁶, and all
+/// 693 entries of BCW06 Tables II–IV within 5.4×10⁻⁵. Up to `j = 0.99` a fraction four times
+/// deeper moves no root by more than 10⁻¹⁴. Beyond the fits' `j = 0.99` it still converges (to
+/// 10⁻¹² for the slowest modes at 0.9999), but returns `None` where the fit's guess is more than
+/// 10% from the root, as for `(2, 2, n)` at `j = 0.9999`.
+///
+/// Pitfalls, from the frontier-gaps research: the tail takes the minimal branch, `Re u₁ < 0`;
+/// for `m < 0` the root wanted is the counter-rotating one with `Re ω > 0`, which the fit's
+/// guess selects and a final check enforces; overtones `n ≥ 5` approach the algebraically
+/// special `−2i` and are not covered; the fraction's depth grows as `1/√(1 − j²)`, which matters
+/// above `j = 0.99`; Leaver's own angular continued fraction picks the wrong `l` without inversion
+/// (36 of 315 cases), which the spectral matrix avoids; and Leaver and Berti use `2M = 1`
+/// (`ω` doubled, `a` halved), Cook, `qnm` and BCW06's tables `M = 1`.
+pub fn qnm_exact(l: u32, m: i32, n: u32, j: f64) -> Option<(f64, f64)> {
+    if !(0.0..1.0).contains(&j) {
+        return None;
+    }
+    let (f, q) = qnm(l, m, n, j)?;
+    let fit = Cx(f, -f / (2.0 * q));
+    // The tail converges as exp(2 Re u₁ √N) with u₁ ∝ (1 − j²)^(1/4), so the depth grows as 1/√(1 − j²).
+    let depth = (600.0 / (1.0 - j * j).sqrt()) as usize;
+    // ℓ(ℓ + 1) − s(s + 1) at c = 0, then carried from one trial ω to the next.
+    let mut sep = Cx((l * (l + 1)) as f64 - 2.0, 0.0);
+    let mut cf = |w: Cx| {
+        sep = separation(w * j, l, m, sep);
+        leaver(w, j, m, n as usize, sep, depth)
+    };
+    let (mut w0, mut w1) = (fit, fit * 1.000001);
+    let (mut c0, mut c1) = (cf(w0), cf(w1));
+    for _ in 0..50 {
+        let w2 = w1 - c1 * (w1 - w0) / (c1 - c0);
+        (w0, c0, w1) = (w1, c1, w2);
+        if !w1.abs().is_finite() {
+            return None;
+        }
+        if (w1 - w0).abs() < 1e-13 * w1.abs() {
+            return (w1.0 > 0.0 && (w1 - fit).abs() < 0.1 * fit.abs()).then(|| (w1.0, -w1.0 / (2.0 * w1.1)));
+        }
+        c1 = cf(w1);
+    }
+    None
+}
+
+/// A complex number, enough for the solver.
+#[derive(Clone, Copy, Debug)]
+struct Cx(f64, f64);
+
+impl Cx {
+    fn abs(self) -> f64 {
+        self.0.hypot(self.1)
+    }
+
+    /// The principal square root.
+    fn sqrt(self) -> Cx {
+        let r = self.abs();
+        Cx(((r + self.0) / 2.0).sqrt(), ((r - self.0) / 2.0).sqrt().copysign(self.1))
+    }
+}
+
+impl From<f64> for Cx {
+    fn from(x: f64) -> Cx {
+        Cx(x, 0.0)
+    }
+}
+
+impl<T: Into<Cx>> Add<T> for Cx {
+    type Output = Cx;
+    fn add(self, z: T) -> Cx {
+        let z = z.into();
+        Cx(self.0 + z.0, self.1 + z.1)
+    }
+}
+
+impl<T: Into<Cx>> Sub<T> for Cx {
+    type Output = Cx;
+    fn sub(self, z: T) -> Cx {
+        let z = z.into();
+        Cx(self.0 - z.0, self.1 - z.1)
+    }
+}
+
+impl<T: Into<Cx>> Mul<T> for Cx {
+    type Output = Cx;
+    fn mul(self, z: T) -> Cx {
+        let z = z.into();
+        Cx(self.0 * z.0 - self.1 * z.1, self.0 * z.1 + self.1 * z.0)
+    }
+}
+
+impl<T: Into<Cx>> Div<T> for Cx {
+    type Output = Cx;
+    fn div(self, z: T) -> Cx {
+        let z = z.into();
+        let d = z.0 * z.0 + z.1 * z.1;
+        Cx((self.0 * z.0 + self.1 * z.1) / d, (self.1 * z.0 - self.0 * z.1) / d)
+    }
+}
+
+impl Neg for Cx {
+    type Output = Cx;
+    fn neg(self) -> Cx {
+        Cx(-self.0, -self.1)
+    }
+}
+
+/// Cook & Zalutskiy's `Cf(n; N)` (their Eqs. 34–42, 48), zero at a quasinormal frequency `w` of
+/// a black hole of spin `a`, for azimuthal number `m`, inversion `n`, separation constant `sep`
+/// and depth `depth`, with `s = −2` and the exponents `(ζ₊, ξ₋, η₊)`.
+fn leaver(w: Cx, a: f64, m: i32, n: usize, sep: Cx, depth: usize) -> Cx {
+    let (s, i) = (-2.0, Cx(0.0, 1.0));
+    let root = (1.0 - a * a).sqrt();
+    let (rp, rm) = (1.0 + root, 1.0 - root);
+    let ma = m as f64 * a;
+    let (sig_p, sig_m) = ((w * 2.0 * rp - ma) / (rp - rm), (w * 2.0 * rm - ma) / (rp - rm));
+    let (zeta, xi, eta) = (i * w, -(i * sig_p) - s, -(i * sig_m));
+    let p = zeta * root;
+    // Cook's α has + s·iω/ζ, which is s for ζ = iω.
+    let al = xi + eta - zeta * 2.0 + (1.0 + 2.0 * s);
+    let (ga, de) = (eta * 2.0 + (1.0 + s), xi * 2.0 + (1.0 + s));
+    let gd = ga + de;
+    let sigma = sep + w * w * (a * a - 8.0) + p * (al * 2.0 + ga - de) + (-(gd / 2.0) + (1.0 + s)) * (gd / 2.0 + s);
+    let (d0, d1, d2) = (de, p * 4.0 - al * 2.0 + ga - de - 2.0, al * 2.0 - ga + 2.0);
+    let (d3, d4) = (al * (p * 4.0 - de) - sigma, al * (al - ga + 1.0));
+    let alpha = |k: f64| (d0 + 1.0) * k + d0 + k * k;
+    let beta = |k: f64| (d1 + 2.0) * k + d3 - 2.0 * k * k;
+    let gamma = |k: f64| (d2 - 3.0) * k + d4 - d2 + 2.0 + k * k;
+    // Nollert's tail r_N = 1 + u₁/√N + u₂/N + u₃/N^(3/2) on the minimal branch, Re u₁ < 0.
+    let u1 = (-(p * 4.0)).sqrt();
+    let u1 = if u1.0 > 0.0 { -u1 } else { u1 };
+    let u2 = (p * 8.0 - al * 4.0 + ga * 2.0 + de * 2.0 + 3.0) / -4.0;
+    let u3 = (p * 32.0 * (p * 2.0 - al * 4.0 + ga + de * 3.0 + 4.0) + gd * 4.0 * (gd - 2.0) + sigma * 16.0 + 3.0) / (u1 * 32.0);
+    let big = depth as f64;
+    let tail = u1 / big.sqrt() + u2 / big + u3 / big.powf(1.5) + 1.0;
+    let mut e = beta(big) + alpha(big) * tail;
+    for k in (n + 1..depth).rev() {
+        let k = k as f64;
+        e = beta(k) - alpha(k) * gamma(k + 1.0) / e;
+    }
+    let mut result = beta(n as f64) - alpha(n as f64) * gamma(n as f64 + 1.0) / e;
+    if n > 0 {
+        let mut d = beta(0.0);
+        for k in 1..n {
+            let k = k as f64;
+            d = beta(k) - alpha(k - 1.0) * gamma(k) / d;
+        }
+        result = result - alpha(n as f64 - 1.0) * gamma(n as f64) / d;
+    }
+    result
+}
+
+/// The spin-weighted (`s = −2`) spheroidal separation constant `A_lm(c)` nearest `guess`: the
+/// eigenvalue of Cook & Zalutskiy's spectral matrix (their Eqs. 51–55) on `ℓ = max(|m|, 2)` to
+/// `l + 12`, by Rayleigh-quotient inverse iteration. The matrix is complex symmetric, so the
+/// quotient is the bilinear `vᵀMv/vᵀv`.
+fn separation(c: Cx, l: u32, m: i32, guess: Cx) -> Cx {
+    let (s, mf) = (-2.0, m as f64);
+    let lmin = m.unsigned_abs().max(2);
+    let size = (l + 13 - lmin) as usize;
+    let ell = |k: usize| (lmin as usize + k) as f64;
+    // F_sℓm; G_sℓm = F_s(ℓ−1)m, so F alone fills the matrix. It vanishes at ℓ_min − 1.
+    let f = |l: f64| (((l + 1.0).powi(2) - mf * mf) / ((2.0 * l + 3.0) * (2.0 * l + 1.0)) * ((l + 1.0).powi(2) - s * s) / (l + 1.0).powi(2)).max(0.0).sqrt();
+    let h = |l: f64| -mf * s / (l * (l + 1.0));
+    let mut mat = vec![vec![Cx(0.0, 0.0); size]; size];
+    for k in 0..size {
+        let l = ell(k);
+        mat[k][k] = c * c * -(f(l).powi(2) + f(l - 1.0).powi(2) + h(l).powi(2)) + c * (2.0 * s * h(l)) + (l * (l + 1.0) - s * (s + 1.0));
+        if k + 1 < size {
+            mat[k][k + 1] = (c * (2.0 * s) - c * c * (h(l) + h(l + 1.0))) * f(l);
+            mat[k + 1][k] = mat[k][k + 1];
+        }
+        if k + 2 < size {
+            mat[k][k + 2] = c * c * -(f(l) * f(l + 1.0));
+            mat[k + 2][k] = mat[k][k + 2];
+        }
+    }
+    let dot = |u: &[Cx], v: &[Cx]| u.iter().zip(v).fold(Cx(0.0, 0.0), |sum, (&a, &b)| sum + a * b);
+    let mut v = vec![Cx(0.0, 0.0); size];
+    v[(l - lmin) as usize] = Cx(1.0, 0.0);
+    let mut lambda = guess;
+    for _ in 0..20 {
+        let Some(w) = solve(&mat, lambda, &v) else { break };
+        let scale = w.iter().fold(0.0f64, |big, z| big.max(z.abs()));
+        v = w.iter().map(|&z| z / scale).collect();
+        let mv: Vec<Cx> = mat.iter().map(|row| dot(row, &v)).collect();
+        let next = dot(&v, &mv) / dot(&v, &v);
+        let step = (next - lambda).abs();
+        lambda = next;
+        if step < 1e-15 * lambda.abs() {
+            break;
+        }
+    }
+    lambda
+}
+
+/// `(M − λI)⁻¹v` by Gaussian elimination with partial pivoting, or `None` when it is singular.
+fn solve(mat: &[Vec<Cx>], lambda: Cx, v: &[Cx]) -> Option<Vec<Cx>> {
+    let size = v.len();
+    let mut a: Vec<Vec<Cx>> = mat.iter().enumerate().map(|(k, row)| {
+        let mut row = row.clone();
+        row[k] = row[k] - lambda;
+        row.push(v[k]);
+        row
+    }).collect();
+    for k in 0..size {
+        let pivot = (k..size).max_by(|&x, &y| a[x][k].abs().total_cmp(&a[y][k].abs()))?;
+        a.swap(k, pivot);
+        if a[k][k].abs() == 0.0 {
+            return None;
+        }
+        let (top, rest) = a.split_at_mut(k + 1);
+        let pivot_row = &top[k];
+        for row in rest {
+            let factor = row[k] / pivot_row[k];
+            for (x, &p) in row[k..].iter_mut().zip(&pivot_row[k..]) {
+                *x = *x - factor * p;
+            }
+        }
+    }
+    let mut x = vec![Cx(0.0, 0.0); size];
+    for k in (0..size).rev() {
+        let tail = (k + 1..size).fold(a[k][size], |sum, col| sum - a[k][col] * x[col]);
+        x[k] = tail / a[k][k];
+    }
+    Some(x)
 }
 
 /// The ringing frequency (Hz) of a black hole of mass `mass` (kg, in the detector frame for an
@@ -240,7 +478,7 @@ mod tests {
 
     #[test]
     fn every_fit_against_the_tables() {
-        let mut checked = 0;
+        let (mut checked, mut worst) = (0, 0.0f64);
         for line in TABLES.lines() {
             let mut words = line.split_whitespace();
             let (l, n, j): (u32, u32, f64) = (words.next().unwrap().parse().unwrap(), words.next().unwrap().parse().unwrap(), words.next().unwrap().parse().unwrap());
@@ -255,16 +493,46 @@ mod tests {
                 assert!((f / wr - 1.0).abs() <= f_error / 100.0 + f_round, "F({l},{m},{n}) at j = {j}");
                 let q_tol = Q_TRUE.iter().find(|row| row.0 == (l, m, n)).map_or(*q_error, |row| row.1) / 100.0;
                 assert!((q / (wr / (2.0 * wi)) - 1.0).abs() <= q_tol + q_round, "Q({l},{m},{n}) at j = {j}");
+                // The exact solver against the table, with its two misprints corrected above: the worst
+                // is 5.4×10⁻⁵. Five l = 3, 4, n = 0 imaginary parts are rounded up from just past the
+                // half (0.0790459 printed .0791), so BCW06's own values carry about 5×10⁻⁶.
+                let (f, q) = qnm_exact(l, m, n, j).unwrap();
+                worst = worst.max((f - wr).abs()).max((f / (2.0 * q) - wi).abs());
                 checked += 1;
             }
         }
         assert_eq!(checked, 693);
+        assert!(worst <= 6e-5, "{worst}");
         // The lost digit: (4, 2, 0) at j = 0 is 2.8% off, against a printed maximum of 0.97%
         // and a true one of 2.97%.
         let (_, q) = qnm(4, 2, 0, 0.0).unwrap();
         let off = (q / (0.8092 / (2.0 * 0.0942)) - 1.0).abs();
         assert!(off > 0.0097 + 0.01 && off < 0.0297, "{off}");
         assert!(qnm(5, 5, 0, 0.5).is_none());
+    }
+
+    #[test]
+    fn exact_modes() {
+        // Berti's s2l2.dat, Schwarzschild l = 2, printed in units 2M = 1 (halved here), for the
+        // overtones the fits seed, n = 0–2.
+        let berti = [
+            (0.7473433688360838, 0.1779246313778714),
+            (0.6934219937583268, 0.5478297505824697),
+            (0.6021069092247328, 0.9565539664461437),
+        ];
+        let close = |(f, q): (f64, f64), (re, im): (f64, f64), tol: f64| (f - re).abs() < tol && (f / (2.0 * q) - im).abs() < tol;
+        for (n, (re, im)) in berti.into_iter().enumerate() {
+            for m in [2, -2] {
+                let mode = qnm_exact(2, m, n as u32, 0.0).unwrap();
+                assert!(close(mode, (re / 2.0, im / 2.0), 1e-15), "n = {n}, m = {m}: {mode:?}");
+            }
+        }
+        // The qnm package's README: (2, 2, 0) at a = 0.68.
+        let mode = qnm_exact(2, 2, 0, 0.68).unwrap();
+        assert!(close(mode, (0.5239751042900845, 0.08151262363119974), 1e-15), "{mode:?}");
+        // Near extremality the solver still converges; outside the fits or spins it declines.
+        assert!(qnm_exact(2, 2, 0, 0.999).is_some());
+        assert!(qnm_exact(5, 5, 0, 0.5).is_none() && qnm_exact(2, 2, 0, 1.0).is_none() && qnm_exact(2, 2, 0, -0.1).is_none());
     }
 
     #[test]
