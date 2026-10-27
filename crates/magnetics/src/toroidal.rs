@@ -74,14 +74,16 @@ pub fn toroidal_solenoid_moment(n: f64, i: f64, major: f64, minor: f64) -> f64 {
 /// each as `[re, im]`, at wavenumber `k` (1/m), for time dependence `e^(−iωt)`:
 /// `p_eff = p + (ik/c)T`. The anapole is `p = −(ik/c)T`; for `e^(+iωt)` the sign of `i` flips.
 /// The SI form of Nemkov et al.'s Gaussian `d + ikτ = 0` and Miroshnichenko et al.'s eq. 12.
-/// Status: **mainstream**.
+/// Outside the source only this sum is observable: no external measurement at one frequency
+/// separates `p` from `T` (Fernandez-Corbaton, Nanz & Rockstuhl 2017). Status: **mainstream**.
 pub fn effective_dipole(p: [f64; 2], t: [f64; 2], k: f64) -> [f64; 2] {
     [p[0] - k / C * t[1], p[1] + k / C * t[0]]
 }
 
 /// Power (W) radiated by a toroidal dipole of amplitude `t` (A m³) oscillating at `omega`
 /// (rad/s): `μ₀ω⁶T²/(12πc⁵)`, the electric-dipole power `μ₀ω⁴|p|²/(12πc)` of `p = (ik/c)T`.
-/// Status: **mainstream**.
+/// The `ω⁶` law assumes a current pattern that keeps its shape across frequency; a pattern that
+/// deforms at `O(k²)` can mimic `T` exactly. Status: **mainstream**.
 pub fn toroidal_radiated_power(t: f64, omega: f64) -> f64 {
     MU_0 * omega.powi(6) * t * t / (12.0 * PI * C.powi(5))
 }
@@ -154,7 +156,8 @@ pub fn loop_emf(dflux_dt: f64) -> f64 {
 /// The supertoroidal generating function `[re, im]`, with `f₀ = 1`, at cylindrical radius `r` and
 /// height `z` (m) and time `t` (s): `f = 1/[(q₁ + iτ)(s + q₂)^α]`, `s = r²/(q₁ + iτ) − iσ`,
 /// `τ = z − ct`, `σ = z + ct` (Shen et al. 2021). `α = 1` is the Hellwarth–Nouchi pulse
-/// `1/[r² + (q₁ + iτ)(q₂ − iσ)]`; finite energy needs `α ≥ 1`. Any `g(s)/(q₁ + iτ)` solves the
+/// `1/[r² + (q₁ + iτ)(q₂ − iσ)]`. The pulse's energy is finite for every `α > 0` (Shen et al.'s
+/// `α ≥ 1` is sufficient, not necessary; derived in the toroidal-novelty research, #23). Any `g(s)/(q₁ + iτ)` solves the
 /// wave equation, and `Re(s + q₂) > 0` for `q₁, q₂ > 0`, so the principal power used here is
 /// analytic everywhere. Status: **mainstream**.
 pub fn supertoroidal_generating_fn(r: f64, z: f64, t: f64, q1: f64, q2: f64, alpha: f64) -> [f64; 2] {
