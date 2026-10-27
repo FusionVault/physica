@@ -19,7 +19,7 @@
 
 use core::f64::consts::PI;
 
-use metrology::{ALPHA, C, E_CHARGE, EPS_0, HBAR, KEV, M_E, MU_0};
+use metrology::{ALPHA, C, E_CHARGE, EPS_0, EV, HBAR, KEV, M_E, MU_0};
 
 /// Electron rest energy, keV.
 const MEC2_KEV: f64 = M_E * C * C / KEV;
@@ -132,12 +132,52 @@ pub fn graphene_critical_field(gap_ev: f64, v_f: f64) -> f64 {
     (gap_ev * E_CHARGE).powi(2) / (E_CHARGE * HBAR * v_f)
 }
 
+/// The field (T) whose `eB`, in the natural units lattice QCD and heavy-ion papers use, is
+/// `eb_gev2` (GeV²): `B = eB/(eħc²)`. 1 GeV² is 1.69×10¹⁶ T and `m_π²` 3.3×10¹⁴ T; lattice QCD
+/// finds hadrons still confined at 9 GeV² (1.5×10¹⁷ T; D'Elia et al. 2022).
+pub fn field_from_eb(eb_gev2: f64) -> f64 {
+    eb_gev2 * (1e9 * EV).powi(2) / (E_CHARGE * HBAR * C * C)
+}
+
+/// The field (T) quoted as `b_ev2` (eV²) in Heaviside–Lorentz natural units, where the energy
+/// density is `B²/2`: `B = b·√(μ₀e⁴/(ħc)³)`, so 1 T is 195.35 eV². Quoting B this way, rather
+/// than eB, differs by the charge `√(4πα)`: the source of heavy-ion papers' "eB ≈ m_π² ≈ 10¹⁸ G",
+/// which is 3.3 times too large as a field.
+pub fn field_from_natural(b_ev2: f64) -> f64 {
+    b_ev2 * (MU_0 * E_CHARGE.powi(4) / (HBAR * C).powi(3)).sqrt()
+}
+
+/// The field (T) whose energy density `B²/2μ₀` equals `Λ⁴/(ħc)³` for a QCD scale `lambda_mev`
+/// (MeV): `√(2μ₀Λ⁴/(ħc)³)`. It gives 10¹⁵ T only at Λ = 372 MeV. Equal energy density is not a
+/// deconfinement threshold: lattice QCD keeps hadrons confined to fields a hundred times higher.
+pub fn lambda4_field(lambda_mev: f64) -> f64 {
+    (2.0 * MU_0 * (lambda_mev * 1e6 * EV).powi(4) / (HBAR * C).powi(3)).sqrt()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn close(a: f64, b: f64, rel: f64) -> bool {
         (a / b - 1.0).abs() < rel
+    }
+
+    #[test]
+    fn qcd_field_scales() {
+        // eB in GeV²: 1 → 1.6904×10¹⁶ T (Bali et al. 2012); m_π² = (140 MeV)² → 3.3132×10¹⁴ T
+        // (Skokov et al. 2009); 9 → 1.520×10¹⁷ T (D'Elia et al. 2022); 10¹⁵ T is 0.0592 GeV².
+        assert!(close(field_from_eb(1.0), 1.6904e16, 1e-4) && close(field_from_eb(0.14 * 0.14), 3.3132e14, 1e-4));
+        assert!(close(field_from_eb(9.0), 1.520e17, 1e-3) && close(1e15 / field_from_eb(1.0), 0.059_157, 1e-4));
+        // Heaviside–Lorentz: 1 T = 195.35 eV²; MoEDAL's Pb–Pb 7.6 and 4.0 GeV² are 3.89 and
+        // 2.05×10¹⁶ T; and B quoted as eB differs by e_HL = √(4πα).
+        assert!(close(field_from_natural(195.35), 1.0, 1e-4));
+        assert!(close(field_from_natural(7.6e18), 3.890e16, 1e-3) && close(field_from_natural(4.0e18), 2.048e16, 1e-3));
+        assert!(close(field_from_eb(1.0) / field_from_natural(1e18), 1.0 / (4.0 * PI * ALPHA).sqrt(), 1e-9));
+        // The audit's Λ⁴ criterion: 2.90, 6.52 and 8.37×10¹⁴ T at Λ = 200, 300, 340 MeV;
+        // 10¹⁵ T needs Λ = 371.67 MeV.
+        for (l, b) in [(200.0, 2.8957e14), (300.0, 6.5154e14), (340.0, 8.3686e14), (371.67, 1e15)] {
+            assert!(close(lambda4_field(l), b, 1e-3), "{l} MeV");
+        }
     }
 
     #[test]
