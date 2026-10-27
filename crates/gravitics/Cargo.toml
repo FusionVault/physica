@@ -29,3 +29,7 @@ test = true
 [[example]]
 name = "electrogravity_claim"
 test = true
+
+[[example]]
+name = "puthoff_craft"
+test = true
