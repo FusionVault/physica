@@ -13,6 +13,13 @@
 //! binary ([`pv_radiated_power_ratio`]), about 200σ from the Hulse–Taylor pulsar: **excluded**
 //! ([Ibison 2003](https://arxiv.org/abs/astro-ph/0302273)).
 //!
+//! **Radial coordinates.** [`Metric::g00`] and [`Metric::spatial`] take the isotropic
+//! `x = GM/(c²r)` for both metrics. The orbit and wave functions ([`exact_deflection`],
+//! [`periastron_ratio`], [`regge_wheeler`]) take each metric's own radius, Schwarzschild's areal
+//! `r` and Puthoff's isotropic `r`. [`isco`] and [`surface_redshift`] work in the areal radius,
+//! which is what an observer measures as circumference/2π. The two PV radii are related by
+//! `R = r e^{GM/(c²r)}`.
+//!
 //! ```
 //! use gravitics::spacetime::alcubierre_energy;
 //! use metrology::SOLAR_MASS;
@@ -320,15 +327,18 @@ fn christoffel(metric: &impl Fn([f64; 4]) -> [[f64; 4]; 4], x: [f64; 4], h: f64)
 ///
 /// Everett & Roman's Krasnikov tube ([gr-qc/9702049](https://arxiv.org/abs/gr-qc/9702049)),
 /// `ds² = −dt² + (1 − k)dx dt + k dx² + dρ² + ρ²dφ²` (**speculative**) needs negative energy in
-/// its wall: their Eq. T for the static observer gives `T_tt ε² = −0.04222 c⁴/G` at n = 10,
-/// δ = 0.01, and their fit −0.04217, for the wall `k = 1 − (1 − δ/2)θ_ε(nε − ρ)` with
-/// `θ_ε(ξ) = ½{tanh[2(2ξ/ε − 1)] + 1}`:
+/// its wall. Their tube is `k = 1 − (2 − δ)θ_ε(ρ_max − ρ)θ_ε(t − x − ρ)[θ_ε(x) − θ_ε(x + ε − D)]`
+/// (Eq. 12), with `θ_ε(ξ) = ½{tanh[2(2ξ/ε − 1)] + 1}` (Eq. 35). At the left end cap, `x = ε/2`
+/// where `θ_ε(x) = ½`, it reduces to `k = 1 − (1 − δ/2)θ_ε(nε − ρ)` (Eq. 36), and their static
+/// observer's `T_tt` (Eq. 14) on the wall's inner edge `ρ = (n − 1)ε` is fitted by Eq. 38:
+/// −0.042175/ε² at n = 10, δ = 0.01, against −0.0422211 here (0.12%, the fit's own accuracy).
+/// Mid-tube and in the small-δ, large-n limit they give about `−1/(8πε²)` (Eq. 39):
 ///
 /// ```
 /// use gravitics::spacetime::stress_energy;
 /// use metrology::{C, G};
 ///
-/// // ε = 1 m; the inner edge of the wall, ρ = (n − 1)ε.
+/// // ε = 1 m; the left end cap's wall (Eq. 36), at its inner edge ρ = (n − 1)ε.
 /// let (n, delta) = (10.0, 0.01);
 /// let k = |rho: f64| 1.0 - (1.0 - delta / 2.0) * 0.5 * ((2.0 * (2.0 * (n - rho) - 1.0)).tanh() + 1.0);
 /// let tube = |x: [f64; 4]| {
@@ -336,7 +346,7 @@ fn christoffel(metric: &impl Fn([f64; 4]) -> [[f64; 4]; 4], x: [f64; 4], h: f64)
 ///     [[-1.0, (1.0 - k) / 2.0, 0.0, 0.0], [(1.0 - k) / 2.0, k, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
 /// };
 /// let t = stress_energy(tube, [0.0, 0.0, n - 1.0, 0.0], 1e-3)[0][0] * G / C.powi(4);
-/// assert!((t + 0.0422211).abs() < 1e-7 && (t / -0.04217 - 1.0).abs() < 2e-3);
+/// assert!((t + 0.0422211).abs() < 1e-7 && (t / -0.042175 - 1.0).abs() < 2e-3);
 /// ```
 pub fn stress_energy(metric: impl Fn([f64; 4]) -> [[f64; 4]; 4], x: [f64; 4], step: f64) -> [[f64; 4]; 4] {
     let gamma = christoffel(&metric, x, step);
