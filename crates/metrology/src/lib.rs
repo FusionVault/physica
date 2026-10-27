@@ -8,16 +8,16 @@ pub mod decay;
 pub const C: f64 = 299_792_458.0;
 /// Planck constant, J s (exact).
 pub const H: f64 = 6.626_070_15e-34;
-/// Reduced Planck constant `h/2π`, J s.
-pub const HBAR: f64 = 1.054_571_817e-34;
+/// Reduced Planck constant `h/2π`, J s (exact; CODATA prints it truncated, 1.054 571 817…×10⁻³⁴).
+pub const HBAR: f64 = H / core::f64::consts::TAU;
 /// Elementary charge, C (exact).
 pub const E_CHARGE: f64 = 1.602_176_634e-19;
 /// Boltzmann constant, J/K (exact).
 pub const K_B: f64 = 1.380_649e-23;
 /// Avogadro constant, mol⁻¹ (exact).
 pub const N_A: f64 = 6.022_140_76e23;
-/// Molar gas constant `N_A k_B`, J mol⁻¹ K⁻¹.
-pub const R_GAS: f64 = 8.314_462_618;
+/// Molar gas constant `N_A k_B`, J mol⁻¹ K⁻¹ (exact; 8.314 462 618…).
+pub const R_GAS: f64 = N_A * K_B;
 
 // CODATA 2018 measured constants.
 
@@ -138,8 +138,8 @@ mod tests {
         assert!((1.0 / MOON_EARTH_MASS_RATIO - 81.300_57).abs() < 1e-4);
         // A sidereal day is 2π/ω: 86 164.1 s.
         assert!((2.0 * core::f64::consts::PI / EARTH_ROTATION - 86_164.1).abs() < 0.1);
-        assert!((HBAR / (H / (2.0 * core::f64::consts::PI)) - 1.0).abs() < 1e-9);
-        assert!((R_GAS / (N_A * K_B) - 1.0).abs() < 1e-9);
+        assert!((HBAR / 1.054_571_817e-34 - 1.0).abs() < 1e-9); // CODATA's truncated digits
+        assert!((R_GAS / 8.314_462_618 - 1.0).abs() < 1e-9); // CODATA's truncated digits
         assert!((MU_0 * EPS_0 * C * C - 1.0).abs() < 1e-9);
         assert!((ALPHA / (E_CHARGE * E_CHARGE / (4.0 * core::f64::consts::PI * EPS_0 * HBAR * C)) - 1.0).abs() < 1e-9);
         assert!((PLANCK_LENGTH / (HBAR * G / C.powi(3)).sqrt() - 1.0).abs() < 1e-5);
