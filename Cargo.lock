@@ -67,14 +67,14 @@ dependencies = [
 
 [[package]]
 name = "gravitational"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "metrology",
 ]
 
 [[package]]
 name = "gravitics"
-version = "0.5.9"
+version = "0.5.10"
 dependencies = [
  "geopotential",
  "gravitational",
@@ -128,7 +128,7 @@ dependencies = [
 
 [[package]]
 name = "physica"
-version = "0.3.8"
+version = "0.3.9"
 dependencies = [
  "geopotential",
  "gravimetry",
