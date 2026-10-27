@@ -6,12 +6,12 @@
 //! cargo run -p plasmoid --example fusion_yields
 //! ```
 
-use metrology::{C, KEV};
+use metrology::{C, KEV, MEV};
 use plasmoid::aneutronic::Q_DT;
 use plasmoid::fusion::{M_D, M_T};
 
 fn main() {
-    let per_reaction = Q_DT * 1e3 * KEV; // 17.59 MeV, J
+    let per_reaction = Q_DT * MEV; // 17.59 MeV, J
     // NIF N250406: 2.08 MJ of laser light in, 8.6 MJ of fusion out.
     let (laser, yield_nif) = (2.08e6, 8.6e6);
     let reactions = yield_nif / per_reaction;

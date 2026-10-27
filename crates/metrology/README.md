@@ -31,7 +31,7 @@ assert!(((HBAR * G / C.powi(3)).sqrt() / metrology::PLANCK_LENGTH - 1.0).abs() <
 | SI defining constants (exact) | `C`, `H`, `HBAR`, `E_CHARGE`, `K_B`, `N_A`, `R_GAS` | [SI Brochure 2019](https://www.bipm.org/en/publications/si-brochure) |
 | Measured | `G`, `ALPHA`, `MU_0`, `EPS_0`, `M_E`, `M_P`, `AMU`, `M_H`, `MU_B`, `MU_N`, `GAMMA_P`, `PLANCK_LENGTH` | [CODATA 2018](https://physics.nist.gov/cuu/Constants/) |
 | Flux quanta (exact) | `FLUX_QUANTUM` (h/2e), `JOSEPHSON_CONSTANT` (2e/h), `DIRAC_FLUX` (h/e, one Dirac monopole) | [SI Brochure 2019](https://www.bipm.org/en/publications/si-brochure); [PDG monopole review](https://pdg.lbl.gov/) |
-| Energy | `EV`, `KEV` | |
+| Energy | `EV`, `KEV`, `MEV`, `GEV` | |
 | Molecular binding | `WATER_DIMER_D0` (one hydrogen bond, 13.22 kJ/mol) | [Rocher-Casterline et al. 2011](https://doi.org/10.1063/1.3598339) |
 | `decay` | `activity`, `activity_step_after_suppression`, `ec_half_life_shift`, `CURIE` | the decay law; [Pommé et al. 2016](https://pmc.ncbi.nlm.nih.gov/articles/PMC5207040/) and [Ohtsuki et al. 2004](https://doi.org/10.1103/PhysRevLett.93.112501) for the tests |
 | Derived couplings | `EINSTEIN_KAPPA` (8πG/c⁴) | [Einstein field equations](https://en.wikipedia.org/wiki/Einstein_field_equations) |

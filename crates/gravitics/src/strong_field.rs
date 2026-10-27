@@ -19,7 +19,7 @@
 
 use core::f64::consts::PI;
 
-use metrology::{ALPHA, C, E_CHARGE, EPS_0, EV, HBAR, KEV, M_E, MU_0};
+use metrology::{ALPHA, C, E_CHARGE, EPS_0, GEV, HBAR, KEV, M_E, MEV, MU_0};
 
 /// Electron rest energy, keV.
 const MEC2_KEV: f64 = M_E * C * C / KEV;
@@ -136,7 +136,7 @@ pub fn graphene_critical_field(gap_ev: f64, v_f: f64) -> f64 {
 /// `eb_gev2` (GeV²): `B = eB/(eħc²)`. 1 GeV² is 1.69×10¹⁶ T and `m_π²` 3.3×10¹⁴ T; lattice QCD
 /// finds hadrons still confined at 9 GeV² (1.5×10¹⁷ T; D'Elia et al. 2022).
 pub fn field_from_eb(eb_gev2: f64) -> f64 {
-    eb_gev2 * (1e9 * EV).powi(2) / (E_CHARGE * HBAR * C * C)
+    eb_gev2 * GEV.powi(2) / (E_CHARGE * HBAR * C * C)
 }
 
 /// The field (T) quoted as `b_ev2` (eV²) in Heaviside–Lorentz natural units, where the energy
@@ -153,7 +153,7 @@ pub fn field_from_natural(b_ev2: f64) -> f64 {
 /// density is not a deconfinement threshold: lattice QCD keeps hadrons confined to fields a
 /// hundred times higher.
 pub fn lambda4_field(lambda_mev: f64) -> f64 {
-    (2.0 * MU_0 * (lambda_mev * 1e6 * EV).powi(4) / (HBAR * C).powi(3)).sqrt()
+    (2.0 * MU_0 * (lambda_mev * MEV).powi(4) / (HBAR * C).powi(3)).sqrt()
 }
 
 #[cfg(test)]
