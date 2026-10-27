@@ -160,7 +160,8 @@ print("\n== 5. Callan-Rubakov catalysis and searches ==")
 check("IceCube: sigma 1.7e-23 cm^2 <-> lambda 1 cm implies n [cm^-3]", 1 / (1.7e-23 * 1.0), 5.882e22, 1e-3)
 n_H_ice = 2 * 0.917 / 18.015 * NA          # free protons in ice, density 0.917 g/cm^3 assumed
 check("  = hydrogen-nucleus density of ice (0.917 g/cm^3 assumed)", n_H_ice, 1 / 1.7e-23, 0.05)
-def superk_limit(beta, sigma0_mb=1.0): return 6.3e-24 * (beta / 1e-3)**2 / sigma0_mb
+# Ueno et al., Astropart. Phys. 36, 131 (2012), eq. 9: valid for beta < 1e-3 and M < 1e17 GeV; f_pi = pi+ branching
+def superk_limit(beta, sigma0_mb=1.0, f_pi=0.5): return 6.3e-24 * (beta / 1e-3)**2 / (sigma0_mb * f_pi / 0.5)
 check("Super-K 2012 limit at beta=1e-3, sigma0=1 mb", superk_limit(1e-3), 6.3e-24, 1e-12)
 within("  'more than eight orders' below 1e-15", 1e-15 / superk_limit(1e-3), 1e8, 1e9)
 check("MACRO 1.4e-16 / Parker 1e-15", 1.4e-16 / 1e-15, 0.14, 1e-12)

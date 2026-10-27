@@ -148,8 +148,10 @@ pub fn field_from_natural(b_ev2: f64) -> f64 {
 }
 
 /// The field (T) whose energy density `B²/2μ₀` equals `Λ⁴/(ħc)³` for a QCD scale `lambda_mev`
-/// (MeV): `√(2μ₀Λ⁴/(ħc)³)`. It gives 10¹⁵ T only at Λ = 372 MeV. Equal energy density is not a
-/// deconfinement threshold: lattice QCD keeps hadrons confined to fields a hundred times higher.
+/// (MeV): `√(2μ₀Λ⁴/(ħc)³)`. It gives 10¹⁵ T only at Λ = 372 MeV; at PDG 2018's three-flavour
+/// Λ⁽³⁾ = 332 ± 17 MeV (eq. 9.24d; later editions quote only α_s) it is 7.98×10¹⁴ T. Equal energy
+/// density is not a deconfinement threshold: lattice QCD keeps hadrons confined to fields a
+/// hundred times higher.
 pub fn lambda4_field(lambda_mev: f64) -> f64 {
     (2.0 * MU_0 * (lambda_mev * 1e6 * EV).powi(4) / (HBAR * C).powi(3)).sqrt()
 }
@@ -175,7 +177,7 @@ mod tests {
         assert!(close(field_from_eb(1.0) / field_from_natural(1e18), 1.0 / (4.0 * PI * ALPHA).sqrt(), 1e-9));
         // The audit's Λ⁴ criterion: 2.90, 6.52 and 8.37×10¹⁴ T at Λ = 200, 300, 340 MeV;
         // 10¹⁵ T needs Λ = 371.67 MeV.
-        for (l, b) in [(200.0, 2.8957e14), (300.0, 6.5154e14), (340.0, 8.3686e14), (371.67, 1e15)] {
+        for (l, b) in [(200.0, 2.8957e14), (300.0, 6.5154e14), (332.0, 7.9794e14), (340.0, 8.3686e14), (371.67, 1e15)] {
             assert!(close(lambda4_field(l), b, 1e-3), "{l} MeV");
         }
     }

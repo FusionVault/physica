@@ -74,12 +74,13 @@ assert!(dynamo_field(2.04, 3e-5) > 0.0); // a neutral wind across the field driv
 | Module | What it computes |
 |---|---|
 | `main_field` | Earth's main field from WMM2025 (bundled) or any NOAA `.COF` model, through `geopotential`'s engine: the field elements D, I, H, F, X, Y, Z and their rates, the dipole moment, the geomagnetic pole, and `MainField` as a [`geopotential::Field`] |
-| `mhd` | Alfvén and magnetosonic speeds, plasma beta, magnetic pressure, magnetic diffusivity and Reynolds number, Hartmann, Prandtl and Elsasser numbers, free decay time, inertial length and gyroradius, the ion spectral break ([Chen et al. 2014](https://doi.org/10.1002/2014GL062009)), the perpendicular shock jump, and parallel line forces beside their gravitational twins |
+| `mhd` | Alfvén and magnetosonic speeds, plasma beta, magnetic pressure and the field for a given pressure, magnetic diffusivity and Reynolds number, Hartmann, Prandtl and Elsasser numbers, free decay time, inertial length and gyroradius, the ion spectral break ([Chen et al. 2014](https://doi.org/10.1002/2014GL062009)), the perpendicular shock jump, and parallel line forces beside their gravitational twins |
 | `stability` | Kadomtsev's sausage and kink criteria, magnetic Rayleigh–Taylor cut-off, Furth–Killeen–Rosenbluth tearing growth |
 | `flow` | The Hartmann velocity profile and pressure gradient, and the thin-walled pipe limit that sizes liquid-metal blankets |
 | `dynamo` | The αΩ dynamo number and growth rate, with the published laboratory self-excitation thresholds (Riga, Karlsruhe, VKS) |
 | `anomaly` | Magnetic anomalies of uniformly magnetised bodies by Poisson's relation, `B = (μ₀/4π)(T − I tr T)·M` from any body's gravity-gradient tensor in `geopotential::bodies`, inside or out; the sphere and the infinite cylinder in closed form; and the total-field reading `\|F + B\| − \|F\|` without cancellation; the demagnetising factors of any ellipsoid in one Carlson integral and the magnetisation `(I + χN)⁻¹(χH₀ + M_r)` with the Königsberger ratio ([Chen, Brug & Goldfarb 1991](https://doi.org/10.1109/20.102932); [Takahashi & Oliveira 2017](https://doi.org/10.5194/gmd-10-3591-2017)) |
 | `magnets` | Loop, solenoid and Helmholtz fields; Lorentz line load, stored energy and the virial limit; skin depth; diamagnetic levitation and Inductrack lift-to-drag; the force on a susceptible body in a field gradient; MRI Larmor frequency, SAR limits and magnetometer energy resolution; flux compression |
+| `monopole` | Dirac monopoles: the charge `h/(μ₀e)`, its field, vector potential (string on −n̂) and field energy, the energy gained in a field; Cabrera's flux, the Parker and seed bounds, Callan–Rubakov catalysis cross-sections and lengths, Super-Kamiokande's limit; Ahlen's fast and Ahlen–Kinoshita's slow stopping power; hydrogen with a bound dyon and which nuclei bind (Bracci–Fiorentini, Olaussen–Sollie); and the monopole textures of spin ice, spinor condensates and skyrmion lattices, whose charge is never in B ([PDG 2025 review 94](https://pdg.lbl.gov/2025/reviews/rpp2025-rev-mag-monopole-searches.pdf); [Milton 2006](https://arxiv.org/abs/hep-ex/0602040); [Patrizii & Spurio 2015](https://arxiv.org/abs/1510.07125)) |
 | `space_weather` | Solar-wind dynamic pressure, magnetopause standoff (Chapman–Ferraro and [Shue et al. 1998](https://doi.org/10.1029/98JA01103)), the Parker spiral, ring-current energy from Dst, the plasmapause, dipole L-shells, the induced geoelectric field and apparent resistivity, the ionospheric dynamo, and the NERC benchmarks |
 
 **Conventions:** SI throughout, with nanotesla for geomagnetic fields; angles in radians;
@@ -114,6 +115,12 @@ geodetic latitude and height above the WGS84 ellipsoid for the field elements.
 - **Dynamos:** the αΩ onset at dynamo number 2 recovered by bisection on the dispersion relation.
 - **Magnets:** the CFS/MIT coil's 815 kN/m; Berry and Geim's levitation condition and 16.5 T
   field; copper skin depths; CODATA's proton gyromagnetic ratio; Dang et al.'s 44ħ.
+- **Monopoles:** the Dirac flux `h/e` through every sphere to 10⁻¹²; the vector potential's
+  numerical curl against the radial field in all components; Cabrera's 6.1×10⁻¹⁰ cm⁻² s⁻¹ sr⁻¹;
+  PDG's flux bounds; IceCube's 1 cm catalysis length in ice; Super-K's 6.3×10⁻²⁴; Milton's
+  Table 1 and Olaussen & Sollie's table of binding eigenvalues, recomputed, and Milton's closed
+  forms as their ¼ crossings; Milton's 45 MeV/cm × β slow stopping power; the fast one's
+  prefactor equal to the Bethe constant for a charge 68.5β e; Castelnovo's spin-ice charge.
 - **Space weather:** the factor `4^(1/6)` between the compressed and uncompressed standoff; Shue
   et al.'s values; the Dessler–Parker–Sckopke energy for the May 2024 and March 1989 storms; the
   magnetotelluric identity recovering the ground resistivity exactly.
