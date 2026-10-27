@@ -5,7 +5,7 @@
 //! With `z` down and the sources below the grid, a field harmonic above them has a spectrum that
 //! falls as `e^(−|k|h)` with height `h`. A derivative along a unit vector `û` multiplies it by
 //! `|k|Θ_u`, with `Θ_u = û_z + i(û_x k_x + û_y k_y)/|k|`. The transforms run on
-//! [`crate::fft::fft`], which treats the grid as periodic. So an anomaly should fall off well
+//! [`crate::fft::fftn`], which treats the grid as periodic. So an anomaly should fall off well
 //! inside the grid, or be padded first.
 //!
 //! ```
@@ -19,7 +19,7 @@
 //! assert!((up[centre] / gz(80.0)[centre] - 1.0).abs() < 0.03); // periodic wrap-around costs ~2%
 //! ```
 
-use crate::fft::fft;
+use crate::fft::{fftn, wavenumber};
 use crate::linalg::symmetric_eigen;
 use metrology::{G, MU_0};
 
@@ -44,7 +44,7 @@ impl Grid {
     pub fn filter(&self, values: &[f64], kernel: impl Fn(f64, f64) -> (f64, f64)) -> Vec<f64> {
         assert_eq!(values.len(), self.nx * self.ny, "one value per grid point");
         let (mut re, mut im) = (values.to_vec(), vec![0.0; values.len()]);
-        self.fft2(&mut re, &mut im, false);
+        fftn(&mut re, &mut im, &[self.nx, self.ny], false);
         for i in 0..self.nx {
             let kx = wavenumber(i, self.nx, self.dx);
             for j in 0..self.ny {
@@ -53,7 +53,7 @@ impl Grid {
                 (re[k], im[k]) = (re[k] * a - im[k] * b, re[k] * b + im[k] * a);
             }
         }
-        self.fft2(&mut re, &mut im, true);
+        fftn(&mut re, &mut im, &[self.nx, self.ny], true);
         re
     }
 
@@ -147,24 +147,6 @@ impl Grid {
     pub fn pseudo_gravity(&self, values: &[f64], m: [f64; 3], f: [f64; 3], density_per_magnetisation: f64) -> Vec<f64> {
         let scale = G * density_per_magnetisation * 4.0 * core::f64::consts::PI / MU_0;
         self.filter(values, |kx, ky| direction_kernel(kx, ky, (m, f), POLE, scale / kx.hypot(ky), 0.0))
-    }
-
-    /// The 2-D FFT, rows then columns.
-    fn fft2(&self, re: &mut [f64], im: &mut [f64], inverse: bool) {
-        let (nx, ny) = (self.nx, self.ny);
-        for i in 0..nx {
-            fft(&mut re[i * ny..(i + 1) * ny], &mut im[i * ny..(i + 1) * ny], inverse);
-        }
-        let (mut cr, mut ci) = (vec![0.0; nx], vec![0.0; nx]);
-        for j in 0..ny {
-            for i in 0..nx {
-                (cr[i], ci[i]) = (re[i * ny + j], im[i * ny + j]);
-            }
-            fft(&mut cr, &mut ci, inverse);
-            for i in 0..nx {
-                (re[i * ny + j], im[i * ny + j]) = (cr[i], ci[i]);
-            }
-        }
     }
 }
 
@@ -342,12 +324,6 @@ fn pseudo_inverse<const K: usize>(a: &[[f64; K]; K]) -> ([[f64; K]; K], [[bool; 
 fn pseudo_solve<const K: usize>(a: &[[f64; K]; K], b: &[f64; K]) -> [f64; K] {
     let (inverse, _, _) = pseudo_inverse(a);
     core::array::from_fn(|p| (0..K).map(|q| inverse[p][q] * b[q]).sum())
-}
-
-/// The FFT's wavenumber (rad/m) at index `i` of `n` samples `d` apart, negative above `n/2`.
-fn wavenumber(i: usize, n: usize, d: f64) -> f64 {
-    let i = if i < n / 2 { i as f64 } else { i as f64 - n as f64 };
-    core::f64::consts::TAU * i / (n as f64 * d)
 }
 
 /// Both directions vertical: the pole.

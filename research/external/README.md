@@ -13,6 +13,7 @@ calculator or a test, what needs a source checked first, and what stays out.
 | [2026-10-24, Zhang's unified field theory and US 12,417,870 (links)](2026-10-24-zhang-unified-field-theory.md) | (6 sources, 4 rigs) | [Reviewed](2026-10-24-zhang-unified-field-theory-review.md) 2026-10-24 |
 | [2026-10-26, Greenyer's topological monopole talk (TeslaTech 2026) and slide](2026-10-26-greenyer-topological-monopole.md) | (talk, 9 slide items) | [Reviewed](../topics/topological-monopoles-and-transmutation/report.md) 2026-10-26 |
 | [2026-10-26, the user's audit of the talk, with a Rust crate as an exercise](2026-10-26-greenyer-audit-and-crate.md) | (4 parts, 1 crate) | [Reviewed](../topics/topological-monopoles-and-transmutation/report.md) 2026-10-26 |
+| [2026-10-27, OpenAI's forced Navier–Stokes computation preprint (link)](2026-10-27-openai-navier-stokes-preprint.md) | (1 preprint) | Under review: [#53](https://github.com/FusionVault/physica/issues/53) |
 
 ## How a batch is reviewed
 
