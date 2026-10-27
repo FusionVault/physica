@@ -156,10 +156,10 @@ fn bump_constant() -> f64 {
 }
 
 fn torus_schedule(c: f64) {
-    // Eq. 10 with R = 4L, in logarithms (D_n reaches 10^(10³) within a few hundred blocks).
+    // Eq. 10 with R = 4^L (eq. 8), in logarithms (D_n reaches 10^(10³) within a few hundred blocks).
     println!("\nTorus schedule (eq. 10), C = {c}:");
     for l in [1.0f64, 2.0, 5.0] {
-        let r = 4.0 * l;
+        let r = 4f64.powf(l);
         let ln_b = |n: f64| (1e-6f64).ln() - n * (2.0 * r).ln();
         let ln_d = |n: f64| (2.0 * c).ln() - 2.0 * ln_b(n) + (1.0 + n * l).ln() + 3.0 * n * r.ln();
         // M₀ = Σ4b_n² = 4×10⁻¹²/(4R² − 1) < 10⁻¹¹; the bump's true mass is 2.25b_n².
@@ -180,11 +180,9 @@ fn torus_schedule(c: f64) {
                     ln_b(1.0).exp(), ln_d(1.0) / 10f64.ln(), -(100f64.ln() + ln_d(1.0)) / 10f64.ln());
             }
         }
-        // Eq. 16 needs e^(Ln) ≤ Rⁿ, that is e^L ≤ R = 4L, which holds for L = 1, 2 only; R = ⌈e^L⌉
-        // (or any R ≥ max(4L, e^L)) repairs it and changes nothing else in §3.
-        let holds = l.exp() <= r;
-        println!("    eq. 16's e^L ≤ R = 4L: {:.2} ≤ {r}: {holds}", l.exp());
-        assert_eq!(holds, l < 3.0);
+        // Eq. 16's e^(Ln) ≤ Rⁿ needs e^L ≤ R = 4^L, true for every L since e < 4. (Text extraction
+        // flattens the superscript to "4L", under which it would fail from L = 3; the PDF has 4^L.)
+        assert!(l.exp() <= r);
     }
 }
 

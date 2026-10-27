@@ -241,7 +241,15 @@ Both are exact identities, verified by exact polynomial algebra with ν as a sym
 ### Gaps
 - No sympy is installed, so the check uses a small exact polynomial class in the script instead of a CAS.
 
-## 11. What this changes for the implementation
+## 11. Eq. 8's R = 4^L, and why eq. 16 holds
+
+### Takeaway
+Eq. 16 needs e^{Ln} ≤ Rⁿ, that is e^L ≤ R. Eq. 8 defines **R = 4^L**: in the PDF the "L" sits raised and smaller (yMax 384.8 against the "4"'s 389.9). Since e < 4, e^L ≤ 4^L for every L, so eq. 16 holds. Plain-text extraction flattens the superscript to "R = 4L", under which e^L ≤ 4L would fail from L = 3 (e³ = 20.09 > 12). The build first reported that as a slip; the PDF's glyph positions show it is not one. *(Computed here; the PDF was checked with pdftotext's bounding boxes.)*
+
+### Inferences
+- Values that depend on R (b_n, D_n, M₀) use R = 4^L; at L = 1 the two readings coincide.
+
+## 12. What this changes for the implementation
 
 ### Takeaway
 Nothing in the paper needs correcting before implementation. The checks change five implementation choices.

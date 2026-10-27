@@ -590,6 +590,12 @@ check("eqs. 5-6: with F, h as defined the 3-D residual of (a, w) vanishes and di
       and padd(pdiff(w, 1), adv(a, w), pscale(lap(w), -1), pscale(h, -1)) == {})
 
 # ---------------------------------------------------------------------------------------------
+# Eq. 8 / 16 (#53): R = 4^L (a superscript in the PDF, flattened to "4L" by text extraction), so
+# ||D Psi_s|| <= e^{Ln} <= R^n holds for every L since e < 4. Read as 4L it would fail from L = 3.
+check("eqs. 8/16: e^L <= R = 4^L for every L", all(math.exp(L) <= 4 ** L for L in range(1, 60)))
+check("eqs. 8/16: the flattened reading 4L would fail from L = 3 (e^3 = 20.09 > 12)", math.exp(3) > 12 and math.exp(2) <= 8)
+
+# ---------------------------------------------------------------------------------------------
 print()
 print(f"{len(FAILS)} failure(s)" if FAILS else "all checks pass")
 sys.exit(1 if FAILS else 0)

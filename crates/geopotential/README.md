@@ -79,7 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `planar` | Level grids in the wavenumber domain: upward continuation, reduction to the pole (plain or Wiener-damped) and to the equator, any change of field direction, Baranov pseudo-gravity (Blakely 1995, ch. 12), or any kernel through `Grid::filter`, with edge padding and a cosine taper against the periodic wrap; and Euler deconvolution of a profile or a grid for a source's position and the background, with its covariance, in moving windows, and as Euler inversion, which fits the data too and picks the structural index ([Reid & Thurston 2014](https://doi.org/10.1190/geo2013-0235.1); [Uieda et al. 2025](https://doi.org/10.1093/gji/ggaf114)) |
 | `special` | Complete elliptic integrals `K` and `E` by the arithmetic–geometric mean; Bulirsch's general complete integral `cel` (Bulirsch 1969); Carlson's symmetric `R_F`, `R_D`, `R_J`, `R_C` with their principal values ([Carlson 1995](https://arxiv.org/abs/math/9409227)); Legendre's incomplete `F`, `E` and `Π` for any `m`, with `Π` beyond its pole as a principal value ([DLMF §19.25](https://dlmf.nist.gov/19.25)); and `ring`, the average of `1/r` over a ring and its gradient, which rings of mass, charge and current share |
 | `linalg` | Pivoted Gaussian elimination for general systems, Cholesky for the normal equations of least squares, and symmetric eigenproblems by Jacobi's method or, for large matrices, Householder reduction and the implicit QL iteration |
-| `fft` | The radix-2 fast Fourier transform, for time series and gridded fields |
+| `fft` | The radix-2 fast Fourier transform, for time series, and `fftn` in any number of dimensions with `wavenumber`, for gridded fields |
 
 **Conventions:**
 - angles in radians, geocentric latitude;
