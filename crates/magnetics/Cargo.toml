@@ -1,6 +1,6 @@
 [package]
 name = "magnetics"
-version = "0.1.6"
+version = "0.1.7"
 description = "Magnetism and magnetohydrodynamics: Earth's main field from WMM2025 or any Gauss-coefficient model, evaluated with geopotential's spherical-harmonic engine."
 keywords = ["geomagnetism", "magnetic-field", "wmm", "mhd", "physics"]
 categories = ["science::geo", "science"]
