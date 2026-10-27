@@ -604,10 +604,18 @@ pub fn shapiro_2pn_difference(mass: f64, b: f64) -> f64 {
 /// remote observer sees local intervals as `Δt/√g₀₀`, frequencies as `ω√g₀₀` and energies as
 /// `E√g₀₀` ([Puthoff 2010](https://arxiv.org/abs/1204.2184)). His §3.1 example, ten seconds
 /// remote judged as five locally, is `g₀₀ = 0.25`. Between two heights it gives the gravitational
-/// redshift, `gh/c²` = 2.456×10⁻¹⁵ over Pound and Rebka's 22.5 m, though a `g₀₀` that close to 1
-/// carries such a shift only to the nearest `f64` step, 2.2×10⁻¹⁶. **Established.**
+/// redshift; for a `g₀₀` that close to 1 use [`clock_shift`], since an `f64` holds `g₀₀` itself only
+/// to the nearest step of 2.2×10⁻¹⁶. **Established.**
 pub fn redshift_factor(g00: f64) -> f64 {
     g00.sqrt()
+}
+
+/// The fractional clock shift `√g₀₀ − 1` from the metric's excess `g₀₀ − 1`, computed as
+/// `expm1(ln_1p(excess)/2)` so weak fields keep every digit: Pound and Rebka's 22.5 m tower,
+/// `excess = 2gh/c²`, gives `gh/c²` = 2.456×10⁻¹⁵ exactly, where [`redshift_factor`] of
+/// `1 + excess` is 0.55% off.
+pub fn clock_shift(excess: f64) -> f64 {
+    (0.5 * excess.ln_1p()).exp_m1()
 }
 
 /// Puthoff's "effective mass" factor `spatial/√g₀₀` (Table 1 row 6 of
@@ -1085,11 +1093,12 @@ mod tests {
         // §3.1: ten seconds remote are five locally where g₀₀ = 0.25.
         assert_eq!(10.0 * redshift_factor(0.25), 5.0);
         // Pound and Rebka's gh/c² = 2.456×10⁻¹⁵ over 22.5 m (g = 9.81 m/s²), the bottom clock as
-        // reference. f64 holds 1 + 2gh/c² only to the nearest of its 22 ulps above 1, so this
-        // reproduces the shift to 0.55%, not better: the redshift needs g₀₀ − 1, not g₀₀, to be
-        // exact this close to 1.
-        let shift = redshift_factor(1.0 + 2.0 * 9.81 * 22.5 / (C * C)) - 1.0;
-        assert!((shift / 2.456e-15 - 1.0).abs() < 6e-3);
+        // reference. f64 holds 1 + 2gh/c² only to the nearest of its 22 ulps above 1, so
+        // redshift_factor reproduces the shift to 0.55%; clock_shift, from g₀₀ − 1, is exact.
+        let excess = 2.0 * 9.81 * 22.5 / (C * C);
+        assert!(((redshift_factor(1.0 + excess) - 1.0) / 2.456e-15 - 1.0).abs() < 6e-3);
+        assert!(close(clock_shift(excess), excess / 2.0, 1e-14) && (clock_shift(excess) / 2.456e-15 - 1.0).abs() < 2e-4);
+        assert!(close(clock_shift(-0.75), redshift_factor(0.25) - 1.0, 1e-15));
         // At the Sun's surface, −GM/(c²R) = −2.1225×10⁻⁶ to first order.
         let u = metrology::GM_SUN / (C * C * 6.957e8);
         assert!(close(redshift_factor(1.0 - 2.0 * u) - 1.0, -2.1225e-6, 5e-5));
