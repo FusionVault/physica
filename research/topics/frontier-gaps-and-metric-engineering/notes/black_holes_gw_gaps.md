@@ -334,3 +334,11 @@ Each has exact identities plus at least one published high-precision value, with
 ### Gaps
 - Primary sources not opened, all off arXiv: BPT 1972, Leaver 1985, Bardeen–Carter–Hawking 1973, Hawking 1975.
 - Data not obtained: Cook's Zenodo HDF5 (403), Berti's SharePoint Kerr tables, and the NRSur7dq4Remnant data and surfinBH evaluations.
+
+## Implemented in the crates (2026-10-27, #4)
+
+Items 43–49 are in `gravitational`, and 47 is in `gravitics`. Building them corrected these research values:
+- **Love numbers (item 49):** this script's solver stopped at p = 10⁻¹⁴p_c and lost the outer 0.95 m of the star. Converged, SLy gives R₁.₄ = 11.706 km and k₂ = 0.07617, and AP4 gives 11.3197 km and k₂ = 0.07545. Λ does not change: 295.6 and 247.6, or 295.63 and 247.61 with metrology's solar mass. The DN09 agreement is 3×10⁻⁴ absolute but up to 5.5×10⁻⁴ relative. The series switch at C = 0.02 is 3×10⁻⁸ absolute.
+- **Hinderer's n = 0.5 and 0.3 rows:** these are not caused by n < 1 surface handling. An independent enthalpy-variable solver agrees with this script to 10⁻⁴, and Hinderer's rows still differ by up to 13%, with errors that change sign, so the fault is in her table.
+- **Shapiro retardation (item 48):** the factor-49 cross-check moved the companion to its passage position. Kopeikin & Schäfer define r with both bodies at emission time. An exact delay past a uniformly moving mass confirms their Eq. 130 to first order, with a misfit that falls as λ².
+- **Kerr QNMs (item 44):** the depth must scale as 1/√(1 − j²) from j = 0, not only above 0.99. Five BCW06 entries are rounded up from just above the half-unit, so 6×10⁻⁵ is the right tolerance. The solver covers the fits' 63 modes (n ≤ 2).

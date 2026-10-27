@@ -393,3 +393,10 @@ Most failures in these gaps would be convention mismatches, not algorithm errors
 
 ### Gaps
 - None beyond those listed under each gap.
+
+## Implemented in the crates (2026-10-27, #4)
+
+Items 50–55 are in `gravitics::spacetime` and `gravitational::{cosmology, lensing}`. Corrections:
+- **Kerr shadow:** at the curve's ends, rounding r leaves β ≈ 10⁻⁷. That biases the mean radius slightly; this note's ⟨R⟩ at a = 0.9, i = 90° is 1.7×10⁻⁹ high (5.0274894018 converged), invisible in 10.054979.
+- **Sahu et al. 2025, Table 6:** it lists Mróz's π_E as 0.095, the photometry-only value. Mróz's 7.88 M☉ uses the joint 0.0885, and 0.095 would give 7.34. Lam 2022's range is 1.6–4.4 M☉, not "2–4".
+- **H₀ from the joint (D_Δt, D_d) likelihood:** this cannot be rebuilt from Wong et al. 2020's printed tables, because three lenses use KDEs of unpublished chains. It needs the public H0LiCOW/TDCOSMO chains.
