@@ -84,7 +84,8 @@ pub fn flux_from_events(events: f64, t: f64, area: f64) -> f64 {
 }
 
 /// Emergent magnetic charge (A m) of a monopole in spin ice, for spins of moment `moment` (J/T)
-/// on a pyrochlore lattice of cubic constant `a` (m): `2μ/a_d` with the diamond-lattice spacing
+/// on a pyrochlore lattice of nearest-neighbour spacing `a` (m; 3.54 Å in Dy₂Ti₂O₇, whose cubic
+/// constant is 10.01 Å): `2μ/a_d` with the diamond-lattice spacing
 /// `a_d = √(3/2)·a` (Castelnovo, Moessner & Sondhi 2008). It is 1/8000 of `g_D` and sits in the
 /// magnetisation H, not in B.
 pub fn spin_ice_charge(moment: f64, a: f64) -> f64 {
