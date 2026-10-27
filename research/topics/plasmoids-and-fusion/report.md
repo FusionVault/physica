@@ -92,7 +92,7 @@ The candidate reactions all recompute from NIST atomic masses ([NIST](https://ph
 
 | Reaction | Q computed (MeV) | Published (MeV) | Products |
 |---|---|---|---|
-| p + ¹¹B → 3α | 8.6821 | 8.68 | three-body alpha continuum, mean 2.89 MeV |
+| p + ¹¹B → 3α | 8.6821 (AME2020: 8.6819, the value the crate uses since #22) | 8.68 | three-body alpha continuum, mean 2.89 MeV |
 | D + ³He → α + p | 18.3531 | 18.35 | α 3.69, p 14.66 MeV |
 | ³He + ³He → α + 2p | 12.8596 | 12.86 | — |
 | p + ⁶Li → α + ³He | 4.0197 | 4.0 | α 1.73, ³He 2.29 MeV |

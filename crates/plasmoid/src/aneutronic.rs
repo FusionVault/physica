@@ -11,12 +11,12 @@
 //! assert!((best - 0.457).abs() < 0.002);
 //! ```
 
-use metrology::KEV;
+use metrology::MEV;
 
 use crate::fusion::{ME_KEV, Pb11Fit, Reaction, bosch_hale, pb11_reactivity};
 
-/// Q-values (MeV) from NIST atomic masses.
-pub const Q_PB11: f64 = 8.6821;
+/// Q-values (MeV) from AME2020 atomic masses ([`crate::nuclear`] checks each).
+pub const Q_PB11: f64 = 8.6819;
 /// D + ³He → ⁴He + p.
 pub const Q_DHE3: f64 = 18.3531;
 /// ³He + ³He → ⁴He + 2p.
@@ -71,7 +71,7 @@ pub fn pb11_fusion_over_brems(ti: f64, te: f64, f_b: f64, fit: Pb11Fit) -> Optio
     let (n_p, n_b) = (1.0 - f_b, f_b);
     let ne = n_p + 5.0 * n_b;
     let z_eff = (n_p + 25.0 * n_b) / ne;
-    Some(n_p * n_b * pb11_reactivity(fit, ti)? * Q_PB11 * 1e3 * KEV / bremsstrahlung(ne, te, z_eff))
+    Some(n_p * n_b * pb11_reactivity(fit, ti)? * Q_PB11 * MEV / bremsstrahlung(ne, te, z_eff))
 }
 
 #[cfg(test)]
@@ -101,7 +101,7 @@ mod tests {
         let z_eff = (n_p + 25.0 * n_b) / ne_rel;
         let ne = 1e20;
         for (beta, expect) in [(1.0, 41.03), (0.1, 410.3)] {
-            let b2 = 2.0 * metrology::MU_0 * (ne / ne_rel * 300.0 + ne * 150.0) * KEV / beta;
+            let b2 = 2.0 * metrology::MU_0 * (ne / ne_rel * 300.0 + ne * 150.0) * metrology::KEV / beta;
             assert!(close(synchrotron(b2.sqrt(), ne, 150.0) / bremsstrahlung(ne, 150.0, z_eff), expect, 0.005));
         }
     }

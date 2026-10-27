@@ -156,7 +156,7 @@ mod tests {
     fn field_for_pressure_inverts_magnetic_pressure() {
         // The magnetics report's equipartition row: 1 eV/cm³ needs 6.35 µG; one atmosphere
         // balances 0.505 T (the plasmoids report's confinement cap).
-        assert!(close(field_for_pressure(1e6 * EV), 6.35e-10, 1e-3));
+        assert!(close(field_for_pressure(metrology::MEV), 6.35e-10, 1e-3));
         assert!(close(field_for_pressure(101_325.0), 0.5046, 1e-4));
         for b in [1e-9, 1.0, 45.0] {
             assert!(close(field_for_pressure(magnetic_pressure(b)), b, 1e-15));

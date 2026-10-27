@@ -67,6 +67,10 @@ pub const DIRAC_FLUX: f64 = H / E_CHARGE;
 pub const EV: f64 = E_CHARGE;
 /// One kiloelectronvolt, J.
 pub const KEV: f64 = 1e3 * E_CHARGE;
+/// One megaelectronvolt, J.
+pub const MEV: f64 = 1e6 * E_CHARGE;
+/// One gigaelectronvolt, J.
+pub const GEV: f64 = 1e9 * E_CHARGE;
 
 // Molecular binding.
 

@@ -273,13 +273,12 @@ pub fn monopole_dedx_slow(n: i32, beta: f64, n_e: f64) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use metrology::{AMU, EV, MU_B, N_A, PARSEC};
+    use metrology::{AMU, EV, GEV, MEV, MU_B, N_A, PARSEC};
 
     fn close(a: f64, b: f64, rel: f64) -> bool {
         (a / b - 1.0).abs() < rel
     }
 
-    const MEV: f64 = 1e6 * EV;
     const FM: f64 = 1e-15;
 
     #[test]
@@ -355,7 +354,7 @@ mod tests {
         // 1 G over 10 cm: 205 keV (de Lacheze-Murel 2022). 3 µG over 0.526 kpc gives 10¹¹ GeV =
         // 16.02 J, PDG eq. 94.8's boundary between relativistic and slow galactic monopoles.
         assert!(close(monopole_energy_gain(1, 1e-4, 0.1) / (1e3 * EV), 205.4, 1e-3));
-        assert!(close(monopole_energy_gain(1, 3e-10, 0.5257 * 1e3 * PARSEC), 1e11 * 1e9 * EV, 2e-3));
+        assert!(close(monopole_energy_gain(1, 3e-10, 0.5257 * 1e3 * PARSEC), 1e11 * GEV, 2e-3));
         // The force in 120 Oe (12 mT): 3.95×10⁻¹¹ N.
         assert!(close(monopole_energy_gain(1, 120e-4, 1.0), 3.949e-11, 1e-3));
     }
@@ -471,16 +470,16 @@ mod tests {
         // Slow, β = 10⁻³: 9.8239×10⁻¹⁰ J/m (61.3 MeV/cm); without the spin factor 44.76 MeV/cm,
         // Milton's eq. 8.11 "45 GeV/cm × β" to 0.6%.
         let slow = monopole_dedx_slow(1, 1e-3, n_e(2330.0)).unwrap();
-        assert!(close(slow, 9.8239e-10, 1e-4) && close(slow / 1.37 / (1e6 * EV) * 1e-2, 45.0, 6e-3));
+        assert!(close(slow, 9.8239e-10, 1e-4) && close(slow / 1.37 / MEV * 1e-2, 45.0, 6e-3));
         assert!(monopole_dedx_slow(1, 0.1, n_e(2330.0)).is_none() && monopole_dedx_slow(1, 5e-3, 1e29).is_none());
         assert!(close(monopole_dedx_slow(2, 5e-3, n_e(2330.0)).unwrap(), 4.0 * 5.0 * slow, 1e-12));
         // Fast, β = 0.5, I = 173 eV, δ = 0: 11.788 GeV/cm; its prefactor is the Bethe constant
         // K = 0.307075 MeV cm²/mol times (Z/A)ρ(n/2α)², a nucleus of charge g_D β/e = 68.5β.
         let fast = monopole_dedx_fast(1, 0.5, n_e(2330.0), 173.0 * EV, 0.0).unwrap();
-        assert!(close(fast / (1e9 * EV) * 1e-2, 11.788, 1e-4));
+        assert!(close(fast / GEV * 1e-2, 11.788, 1e-4));
         let mec2 = M_E * C * C;
         let bracket = (2.0 * mec2 * 0.25 / 0.75 / (173.0 * EV)).ln() + 0.406 / 2.0 - 0.5 - 0.248;
-        let bethe = 0.307_075 * 14.0 / 28.0855 * 2.33 / (2.0 * ALPHA).powi(2) * 1e6 * EV * 1e2;
+        let bethe = 0.307_075 * 14.0 / 28.0855 * 2.33 / (2.0 * ALPHA).powi(2) * MEV * 1e2;
         assert!(close(fast / bracket, bethe, 1e-5));
         assert!(monopole_dedx_fast(4, 0.5, 1e29, 173.0 * EV, 0.0).is_none() && monopole_dedx_fast(1, 0.01, 1e29, 173.0 * EV, 0.0).is_none());
     }

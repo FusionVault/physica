@@ -78,7 +78,7 @@ I found no primary record (paper, abstract or slides) of the furnace claim. The 
 
 ### Inferences
 - Q-values *(computed here)*: ¹²C+¹⁶O→²⁸Si +16.756 MeV; ²⁸Si+²⁸Si→⁵⁶Ni +10.922 MeV; ⁵⁶Ni→⁵⁶Fe by two EC +6.700 MeV (⁵⁶Ni→⁵⁶Co 2.133, ⁵⁶Co→⁵⁶Fe 4.567). Z balance: 2 Si (Z = 28) give ⁵⁶Ni, not ⁵⁶Fe (Z = 26); the iron needs two weak decays. Per ⁵⁶Fe from 2(C+O): 51.133 MeV.
-- 4 t/day of Fe = 4.31×10²⁸ atoms/day. Via Si+Si only: 8.74×10¹¹ W = 7.9×10⁴ × 11 MW; from C+O all the way: 4.09×10¹² W. If the iron passed through ⁵⁶Ni, the steady activity equals the production rate, 5.0×10²³ Bq = 1.35×10¹³ Ci *(computed here)*. At "4 t over 11 weeks" the Si+Si power is still 1.13×10¹⁰ W, 10³ × the furnace.
+- 4 t/day of ⁵⁶Fe = 4.31×10²⁸ atoms/day. Via Si+Si only: 8.72×10¹¹ W = 7.9×10⁴ × 11 MW; from C+O all the way: 4.08×10¹² W. If the iron passed through ⁵⁶Ni, the steady activity equals the production rate, 5.0×10²³ Bq = 1.35×10¹³ Ci *(computed here)*. At "4 t over 11 weeks" the Si+Si power is still 1.13×10¹⁰ W, 10³ × the furnace.
 - Tunnelling at arc temperatures: Maxwell-averaged factor for ¹²C+¹⁶O is 10^−2708 at 5000 K and 10^−2149 at 10⁴ K; for ²⁸Si+²⁸Si 10^−8773 at 5000 K *(computed here)*. For comparison the measured ¹²C+¹⁶O barrier is ~7.8 MeV ([Goasduff et al., arXiv:1107.1124](https://ar5iv.arxiv.org/html/1107.1124)); arc kT is ~0.4–0.9 eV.
 - Both ways: an 11 MW furnace at 8.46–9.18 MWh/t makes 28.8–31.2 t/day of FeSi75 *(computed here)*. "4 t/day excess" is 13–14% of that output; "4 t in 11 weeks" (52 kg/day) is 0.17%. A 0.2% discrepancy is within the assay and weighing uncertainty of raw materials (quartzite, coke, scrap, electrode paste); a 13% one would be a gross accounting error. Without the mass balance, assays and isotope data, neither can be tested, and the "no ill effects" observation is itself the strongest evidence against a nuclear origin at the stated rate.
 - A nuclear origin via α-conjugate fusion (C+O, Si+Si) would make essentially pure ⁵⁶Fe and ²⁸Si; natural iron is 91.75% ⁵⁶Fe, 5.85% ⁵⁴Fe, 2.12% ⁵⁷Fe, natural silicon 92.2% ²⁸Si ([NIST](https://physics.nist.gov/cgi-bin/Compositions/stand_alone.pl?ele=&ascii=ascii2&isotype=some)). An ⁵⁴Fe/⁵⁶Fe ratio diluted below 0.064 in the "excess" metal would be a signature; natural ratios would point to unaccounted feed.
@@ -342,7 +342,7 @@ One new module, `plasmoid::nuclear`, covers every accounting above: a small embe
 | `q_value(lhs, rhs, positrons, weak) -> Result<f64, Imbalance>` (`plasmoid::nuclear`) | ΣΔ_in − ΣΔ_out − 2mₑc²·positrons; requires ΔA = 0, ΔZ = positrons + weak | AME2020 | D+D→³He+n 3.2689 (3.268); D+D→T+p 4.0327 (4.033); ¹⁶O+¹⁶O→²⁸Si+α 9.594 (9.593), →³¹P+p 7.678 (7.676), →³²S 16.542 (16.539); ¹²C+¹⁶O→²⁸Si 16.756 (16.76) | mainstream |
 | same, slide/talk reactions | as above | AME2020 | 2 ²⁸Si→⁵⁶Ni 10.922; ⁵⁶Ni→⁵⁶Fe 6.700 (weak 2); 4 ¹⁷O→¹²C+⁵⁶Fe 57.372; ¹⁷O+¹⁷O→¹²C+²²Ne 6.407; ²³Na+¹⁶O→³⁹K 19.540; ¹⁸⁴W→⁴⁸Ca+¹³⁶Xe 84.949; 4 ⁶³Cu→²⁰⁸Pb+11α (weak 12) −267.2; ¹⁸⁴W→46α (weak −18) −157.25 | mainstream data; claims labelled per section |
 | `stable_splits(parent, z1)` (`plasmoid::nuclear`) | pairs (A₁, A − A₁) with both stable | AME2020 + NIST (stability = nonzero abundance) | ¹⁸⁴W, Z₁ = 20 → only (48, 136); ¹⁸³W, ¹⁸⁶W → none | mainstream |
-| `production_power(kg_per_s, a, q_mev)` (`plasmoid::nuclear`) | ṁ/(A u)·Q | — | 4 t/day Fe via Si+Si → 8.74×10¹¹ W; via 2(C+O) → 4.09×10¹² W | mainstream arithmetic |
+| `production_power(kg_per_s, a, q_mev)` (`plasmoid::nuclear`) | ṁ/(A u)·Q | — | 4 t/day ⁵⁶Fe via Si+Si → 8.72×10¹¹ W; via 2(C+O) → 4.08×10¹² W | mainstream arithmetic |
 | `max_atoms(energy_j, q_mev)` (`plasmoid::nuclear`) | E/|Q| | — | 300 J at −267.2 MeV → 7.01×10¹² Pb atoms, 2.42 ng | mainstream arithmetic |
 | `steady_activity(rate_per_s)`, `activity(n, half_life)` (`plasmoid::nuclear`) | A = R; A = N ln2/t½ | half-lives: Wikipedia silicon burning (6 d, 77 d) | 4 t/day → 1.35×10¹³ Ci; 1 µg ⁵⁶Ni → 0.389 Ci | mainstream |
 | `specific_energy(q_mev, fuel_mass_u)` (`plasmoid::nuclear`), with `assert ≤ c²` | Q/(m u) | AME2020 | 4 ¹⁷O→Fe+C 8.14×10¹³ J/kg; whole ¹⁶O = c² = 8.988×10¹⁶; 16 m_p/16 u = 1.0073 c² (rejected) | mainstream |
@@ -354,3 +354,11 @@ One new module, `plasmoid::nuclear`, covers every accounting above: a small embe
 
 ### Gaps
 - Not checked: whether `metrology` exposes `M_E` in keV and `AMU` in keV with the CODATA 2018 values the script uses (fusion.rs implies yes); the half-lives of ⁵⁶Ni/⁵⁶Co are from a secondary page (6 d, 77 d), and an ENSDF value should replace them in the crate.
+
+## Built into `plasmoid::nuclear` (2026-10-27, #22)
+
+- **AME2020 table:** every one of this note's 43 hand-entered masses matches the evaluation's `mass_1.mas20` exactly. The crate's table adds ⁶Li, ⁷Li, ¹¹B, ¹¹C and ¹⁴N.
+- **Iron mass:** the script took 4 t of iron as 55.845 u per atom, natural iron's atomic weight. An α-conjugate route makes pure ⁵⁶Fe at 55.935 u, so the figures are now 4.31×10²⁸ atoms/day, 8.722×10¹¹ W (Si+Si) and 4.083×10¹² W (C+O). With 55.845 u the earlier 8.74×10¹¹ W was right, and the script's 8.72 passed only on a loose 2×10⁻³ tolerance.
+- **p + ¹¹B → ¹¹C + n** is −2.7640 MeV from AME2020 (the research sweep quoted −2.7648).
+- **`aneutronic::Q_PB11`** was 8.6821 MeV, from NIST's AME2012-based masses. AME2020 moves ¹¹B by 0.2 µu, giving 8.6819 MeV. The crate now uses 8.6819, and a test pins all seven aneutronic Q constants to the table.
+- **Natural abundances:** NIST's full table, 288 isotopes in 84 elements, each element summing to 1. `stable_splits` takes "occurs in nature" from it, so ⁴⁸Ca and ¹³⁶Xe count.

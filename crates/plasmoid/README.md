@@ -56,10 +56,11 @@ assert!(magnetic_over_gravitational(1e6, pinch) > 1e27);
 
 | Module | What it computes | Key sources |
 |---|---|---|
-| `fusion` | Coulomb barrier, Sommerfeld and Gamow factors, Gamow peak, Bosch–Hale reactivities and cross sections (D–T, D–D, D–³He), p–¹¹B (Nevins–Swain, Tentori–Belloni), Lawson, screening (first-order and exact), Salpeter, muon catalysis, Lane–Emden, and the low-energy fusion checks | Bosch & Hale 1992 ([implementation notes](https://notebook.community/MFEFormulary/MFEFormulary/ipython/BH_ReactionRates)); [Wurzel & Hsu 2022](https://arxiv.org/abs/2105.10954); [Tentori & Belloni 2023](https://doi.org/10.1088/1741-4326/acda4b) |
+| `fusion` | Coulomb barrier, Sommerfeld and Gamow factors, Gamow peak, Bosch–Hale reactivities and cross sections (D–T, D–D, D–³He), p–¹¹B (Nevins–Swain, Tentori–Belloni), Lawson, screening (first-order and exact), Salpeter, muon catalysis, Lane–Emden, the thermal tunnelling exponent of heavy ions, and the low-energy fusion checks | Bosch & Hale 1992 ([implementation notes](https://notebook.community/MFEFormulary/MFEFormulary/ipython/BH_ReactionRates)); [Wurzel & Hsu 2022](https://arxiv.org/abs/2105.10954); [Tentori & Belloni 2023](https://doi.org/10.1088/1741-4326/acda4b) |
 | `pinch` | Bennett temperature and line density, Pease–Braginskii, Lee's peak current and yield, snowplow speed, cyclotron energy, the Ostriker filament | [Klír 2005](https://arxiv.org/abs/physics/0703207); [Lee 2009](https://www.plasmafocus.net/IPFS/2009/09PP8APL.pdf); Ostriker 1964 (ApJ 140, 1056) |
 | `relaxation` | Bessel-function model, spheromak eigenvalues, Taylor-state energy, FRC beta and s-parameter, Lundquist number, Sweet–Parker and plasmoid reconnection, the virial cap on a free plasmoid | [Taylor 1986](https://doi.org/10.1103/RevModPhys.58.741); [Tuszewski 1988](https://zenodo.org/records/1235740); [Loureiro et al. 2007](https://arxiv.org/abs/astro-ph/0703631) |
-| `aneutronic` | Q-values, D–³He neutron fraction, relativistic bremsstrahlung, synchrotron, the p–¹¹B fusion-to-bremsstrahlung ratio | Putvinski, Ryutov & Yushmanov 2019 (Nucl. Fusion 59, 076018) |
+| `nuclear` | AME2020 mass excesses, Q-values that refuse unbalanced reactions (with β⁺, electron capture and β⁻), atomic rest energies, specific energy capped at c², production power and the atoms an energy can make, NIST's natural isotopic compositions, the stable fission partners of a nucleus, and the contamination test of an element mix | [AME2020](https://doi.org/10.1088/1674-1137/abddaf); [NIST isotopic compositions](https://physics.nist.gov/cgi-bin/Compositions/stand_alone.pl); Priem et al. 2008 |
+| `aneutronic` | Q-values (pinned to `nuclear`'s AME2020 table), D–³He neutron fraction, relativistic bremsstrahlung, synchrotron, the p–¹¹B fusion-to-bremsstrahlung ratio | Putvinski, Ryutov & Yushmanov 2019 (Nucl. Fusion 59, 076018) |
 | `collisions` | Spitzer's resistivity across and along the field, shared by the pinch and reconnection calculators, its coefficient checked against Braginskii's `m_e/(n_e e² τ_e)` | NRL Plasma Formulary; Braginskii 1965 |
 | `discharge` | Gas discharges and the thin gas around them: Paschen breakdown and its minimum with air's Townsend constants, the mean free path, Peek's corona onset, the floating potential in a glow, ion mobility, gas density and molecular speed, and slip-corrected drag on a sphere moving or turning at any Knudsen number: whether a high-voltage rig "in vacuum" is free of ions, and how long a body in it keeps swinging | Raizer, *Gas Discharge Physics* (1991), table 4.1; Peek 1929; Hirschfelder, Curtiss & Bird 1954; Davies 1945; Lieberman & Lichtenberg |
 | `tokamak` | The design scalings a tokamak is checked against: edge safety factor and the kink limit, Greenwald density, Troyon beta and IPB98(y,2) confinement, with ITER and SPARC | ITER Physics Basis (Nucl. Fusion 39, 1999); Creely et al. 2020 (J. Plasma Phys., SPARC) |
@@ -91,6 +92,10 @@ and on [Z-pinches, plasmoids and aneutronic fusion](https://github.com/FusionVau
 - **Pinches:** Klír's 3.12 keV Bennett coefficient, the 1.4 MA Pease–Braginskii current, and Lee's
   Table I peak currents within 1.5%.
 - **Plasmoids:** Ji & Daughton's Lundquist numbers and Bhattacharjee et al.'s rates.
+- **Nuclear accounting:** AME2020's printed atomic masses to 10⁻⁸ u; Bosch & Hale's D–D
+  branches, oxygen burning (Woosley, Heger & Weaver) and every aneutronic Q constant; the
+  talk's reactions, unbalanced ones refused; ¹⁸⁴W's only stable Ca + Xe split; NIST's
+  compositions summing to 1; Priem et al.'s steel fingerprint.
 - **Aneutronic power:** NRL's bremsstrahlung limit and Putvinski's synchrotron ratios.
 - **Laser shots:** Margarone's and the PALS shots' energy returns.
 

@@ -11,7 +11,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-metrology = { path = "../metrology", version = "0.2.0" }
+metrology = { path = "../metrology", version = "0.2.6" }
 
 [lints]
 workspace = true

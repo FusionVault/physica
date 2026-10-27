@@ -16,7 +16,7 @@
 use core::f64::consts::PI;
 
 use crate::aneutronic::Q_PB11;
-use metrology::KEV;
+use metrology::MEV;
 
 /// Best efficiency of an ideal `stages`-stage electrostatic collector on an ion flux
 /// `f(E) ∝ (E − s)e^(−(E − s))` (energies in units of the temperature, `shift` = s the potential
@@ -76,7 +76,7 @@ pub fn pulsed_breakeven(eta_rec: f64, eta_dc: f64, f_ch: f64) -> f64 {
 /// Fusion energy out over laser energy in for a p–¹¹B shot that reports `alphas_per_sr` alphas
 /// per steradian from `laser_energy` (J), assuming isotropic emission (three alphas per fusion).
 pub fn laser_pb11_gain(alphas_per_sr: f64, laser_energy: f64) -> f64 {
-    4.0 * PI * alphas_per_sr / 3.0 * Q_PB11 * 1e3 * KEV / laser_energy
+    4.0 * PI * alphas_per_sr / 3.0 * Q_PB11 * MEV / laser_energy
 }
 
 #[cfg(test)]
